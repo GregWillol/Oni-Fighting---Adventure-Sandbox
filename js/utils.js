@@ -68,6 +68,25 @@ function PlatformCollisions({rectangle1,rectangle2}){
     }
 
 }
+function BouncinessPlatformCollisions({rectangle1,rectangle2}){
+    //Obj is falling
+    if (rectangle1.velocity.y>0 && (rectangle1.position.y+rectangle1.size.y-rectangle1.velocity.y)<=rectangle2.position.y){
+        rectangle1.velocity.y = -rectangle1.velocity.y/1.0;
+        rectangle1.position.y = rectangle2.position.y-rectangle1.size.y;
+        //Checking if obj is a "FIghter" obj or not
+        if (rectangle1.OnGround !== "undefined") rectangle1.OnGround = true;
+    }
+    //collision x-axis
+    else if (rectangle1.velocity.x > 0 && rectangle1.position.x + rectangle1.size.x-rectangle1.velocity.x <= rectangle2.position.x){
+        rectangle1.velocity.x = -rectangle1.velocity.x/1.1 ; 
+        rectangle1.position.x = rectangle2.position.x -rectangle1.size.x;
+    }
+    else if (rectangle1.velocity.x < 0 && rectangle1.position.x -rectangle1.velocity.x >= rectangle2.position.x +rectangle2.size.x){
+        rectangle1.velocity.x = -rectangle1.velocity.x/2 ; 
+        rectangle1.position.x= rectangle2.position.x + rectangle2.size.x;
+    }
+
+}
 function CheckAttackCollision({ attacker, victim }) {
     
     const AttackBox = attacker.AttackBox;

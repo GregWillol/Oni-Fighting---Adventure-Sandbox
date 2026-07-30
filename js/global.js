@@ -64,8 +64,9 @@ class GameContext {
         this.Fighter1Name = "";
         this.Fighter2Name = "";
 
-        //- - - PLAYER POINTERS - - - 
+        //- - - PLAYER POINTERS / BULLETS / ENEMIES     - - - 
         this.Pointers = [];
+        this.Bullets = [];
 
         //- - - GENERAL PURPOSES - - - 
         let lastTime = 0;
@@ -137,7 +138,8 @@ class GameContext {
 }
 const g = new GameContext();
 const c = g.c;
-const AI = localStorage.getItem("player2_name") === "CPU" ? true : false;
+//const AI = localStorage.getItem("player2_name") === "CPU" ? true : false;
+const AI = true;
 
 
 

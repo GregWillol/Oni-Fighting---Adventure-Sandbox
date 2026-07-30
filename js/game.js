@@ -16,6 +16,8 @@ const Aura2 = Sprite.CreateAura(2);
 
 
 
+
+
 g.Pointers.push(FloatingPointers.createPointers(Player1));
 g.Pointers.push(FloatingPointers.createPointers(Player2));
 
@@ -32,7 +34,7 @@ function Gameloop (currentTime){
             if (isNaN(dt) || dt > 2) dt = 1;
         // - - - CLEANING CANVAS - - -
         c.clearRect(0,0,g.MAX_WIDTH,g.MAX_HEIGHT)
-
+        
         //- - - TELECAMERA SETTINGS - - -
         updateCamera(Player1, Player2);
         g.cameraMovement();
@@ -63,6 +65,15 @@ function Gameloop (currentTime){
         Player1.update(Player2,dt);        
         Player2.update(Player1,dt);
 
+
+        // - - - BULLET 1st TRY
+        g.Bullets.forEach(c =>{
+            if (!c.hasHit){
+                c.update(dt);
+            }
+        })
+        
+        
         // - - - VICTORY UPDATE - - -
         CheckVictory({player1:Player1 , player2:Player2, timerId : g.TimerIntervalId});
 

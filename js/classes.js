@@ -22,6 +22,8 @@ class Sprite{
         }
     }
     Draw(){
+            c.fillStyle = this.color;
+            c.fillRect(this.position.x, this.position.y, this.size.x, this.size.y);
         
         
         if (!this.image || !this.image.src) {
@@ -83,7 +85,7 @@ class Sprite{
 
 
 class Fighter extends Sprite{
-    constructor ({position,velocity = {x:0 , y:0},size = {x: 0, y:0},color,keys = {up : {pressed : false},left : {pressed : false},attack : {pressed : false},right : {pressed : false},defend : {pressed: false}},ControlKeys,AttackBox = {position : {x: 0, y:0}, size : {x:StandardAttBoxWid, y:g.HitHeight},shape : ""},Direction = {right : false, left : false},Player,imageSrc,scale = 1,framesMax=1, offset = {x : 0 , y : 0},sprites,Damage = 10,isAI=false,attackFrame = 5}){
+    constructor ({position,velocity = {x:0 , y:0},size = {x: 0, y:0},color,keys = {up : {pressed : false},left : {pressed : false},attack : {pressed : false},right : {pressed : false},defend : {pressed: false}},ControlKeys,AttackBox = {position : {x: 0, y:0}, size : {x:StandardAttBoxWid, y:g.HitHeight},shape : ""},Direction = {right : false, left : false},Player,imageSrc,scale = 1,framesMax=1, offset = {x : 0 , y : 0},sprites,Damage = 10,isAI,attackFrame,type}){
         super({
             position,
             size,
@@ -119,6 +121,7 @@ class Fighter extends Sprite{
         this.jumpBuffer = 0 ;
         this.KnockBack = 1 ;
         this.attackFrame = attackFrame;
+        this.type = type ;
     
         // for AI checking if it's stuck
         this.checkStuckTimer = 0;
@@ -143,13 +146,13 @@ class Fighter extends Sprite{
             if (this.keys.right.pressed && this.LastKeyPressed === this.ControlKeys.right && !this.Defending && !this.Dead && !this.isAttacking) {
                 this.Direction.right = true; 
                 this.Direction.left = false; 
-                this.velocity.x = 5*dt;
+                this.velocity.x = 5.5*dt;
                 CreateVFX(this,"RUN")
                 
             } else if (this.keys.left.pressed && this.LastKeyPressed === this.ControlKeys.left && !this.Defending && !this.Dead && !this.isAttacking) {
                 this.Direction.left = true;
                 this.Direction.right = false; 
-                this.velocity.x = -5*dt;
+                this.velocity.x = -5.5*dt;
                 CreateVFX(this,"RUN")
             }
             //- - - VERIFYING JUMP CONDITION - - - 
@@ -224,9 +227,13 @@ class Fighter extends Sprite{
         }
 
         else if (this.isAttacking && !this.Dead && this.attackCooldown === 0) {
+            
+            
 
     // Check if the animation has reached the active impact frame
     if (this.framesCurrent == this.attackFrame) {
+        if (this.isAttacking)
+        console.log("Frame Corrente", this.framesCurrent, "Frame Attacco" , this.attackFrame);
 
         // Determine active targets based on the current game mode
    let targets = [];
@@ -404,79 +411,137 @@ if (this === Player1) {
     const diffY = other.position.y - this.position.y; 
     const dist = Math.abs(diffX);
 
-   // - - - DEFENCE - - - 
-    if ((dist < this.AttackBox.size.x +other.size.x && !this.isAttacking && other.isAttacking && Math.random()<0.4)) {
-        this.keys.defend.pressed = true ;
-        this.LastKeyPressed=this.ControlKeys.defend
-        return ; 
-    }
-    
-    const SafeZone = 120 ; 
-    if (dist > 250){
-        if (diffX > 0){
-            this.keys.right.pressed = true;
-            this.LastKeyPressed = this.ControlKeys.right;
+    if (this.type === "base"){
+            // - - - DEFENCE - - - 
+        if ((dist < this.AttackBox.size.x +other.size.x && !this.isAttacking && other.isAttacking && Math.random()<0.4)) {
+            this.keys.defend.pressed = true ;
+            this.LastKeyPressed=this.ControlKeys.defend
+            return ; 
         }
-        else {
-            this.keys.left.pressed = true;
-            this.LastKeyPressed = this.ControlKeys.left;
-        }
-    }
 
-    else if (dist > SafeZone) {
-        if (Math.random() > 0.02){
+        const SafeZone = 120 ; 
+        if (dist > 250){
             if (diffX > 0){
                 this.keys.right.pressed = true;
                 this.LastKeyPressed = this.ControlKeys.right;
-            } 
+            }
             else {
                 this.keys.left.pressed = true;
                 this.LastKeyPressed = this.ControlKeys.left;
             }
         }
-    } 
-    // too close to the player
-    else if (dist < SafeZone-this.size.x){
-        if (Math.random()<0.1){
-            if (diffX>0){
-                this.keys.left.pressed = true;
-                this.LastKeyPressed = this.ControlKeys.left;
-            }
-            else {
-                this.keys.right.pressed = true;
-                this.LastKeyPressed = this.ControlKeys.right;
-            }
-        }
-    }
-    
-        // - - - DIRECTION - - -
-        if (diffX > 0) {
-            this.Direction.right = true;
-            this.Direction.left = false;
-        } else {
-            this.Direction.right = false;
-            this.Direction.left = true;
-        }
-    
 
-    // - - - ATTACK - - -
-    if (dist < this.AttackBox.size.x && !this.isAttacking && !this.Dead) {
-        if (Math.random() < 0.05) { 
-            this.attack();
+        else if (dist > SafeZone) {
+            if (Math.random() > 0.02){
+                if (diffX > 0){
+                    this.keys.right.pressed = true;
+                    this.LastKeyPressed = this.ControlKeys.right;
+                } 
+                else {
+                    this.keys.left.pressed = true;
+                    this.LastKeyPressed = this.ControlKeys.left;
+                }
+            }
+        } 
+        // too close to the player
+        else if (dist < SafeZone-this.size.x){
+            if (Math.random()<0.1){
+                if (diffX>0){
+                    this.keys.left.pressed = true;
+                    this.LastKeyPressed = this.ControlKeys.left;
+                }
+                else {
+                    this.keys.right.pressed = true;
+                    this.LastKeyPressed = this.ControlKeys.right;
+                }
+            }
+        }
+
+            // - - - DIRECTION - - -
+            if (diffX > 0) {
+                this.Direction.right = true;
+                this.Direction.left = false;
+            } else {
+                this.Direction.right = false;
+                this.Direction.left = true;
+            }
+        
+
+        // - - - ATTACK - - -
+        if (dist < this.AttackBox.size.x && !this.isAttacking && !this.Dead) {
+            if (Math.random() < 0.05) { 
+                this.attack();
+            }
+        }
+        // Random defence / jump
+        if ((diffY < -100 && this.OnGround) || (Math.random()<0.005 && this.OnGround)) {
+            const ran = Math.random();
+            if (ran>0.5){
+                this.keys.up.pressed = true;
+                this.LastKeyPressed=this.ControlKeys.up;
+            }
+            else {
+                this.keys.defend.pressed = true;
+                this.LastKeyPressed=this.ControlKeys.defend;
+            }
         }
     }
-    // Random defence / jump
-    if ((diffY < -100 && this.OnGround) || (Math.random()<0.005 && this.OnGround)) {
-        const ran = Math.random();
-        if (ran>0.5){
-            this.keys.up.pressed = true;
-            this.LastKeyPressed=this.ControlKeys.up;
+       else if (this.type === "launcher") {
+            // - - - ORIENTATION (Indispensabile per mirare!) - - -
+            if (diffX > 0) {
+                this.Direction.right = true;
+                this.Direction.left = false;
+            } else {
+                this.Direction.right = false;
+                this.Direction.left = true;
+            }
+
+            // - - - DEFENCE - - - 
+            if (dist < 150 && !this.isAttacking && other.isAttacking && Math.random() < 0.2) {
+                this.keys.defend.pressed = true;
+                this.LastKeyPressed = this.ControlKeys.defend;
+                return; 
+            }
+
+            const SafeZone = 300; 
+            
+            // Troppo lontano -> Avvicinati
+            if (dist > 450) {
+                if (diffX > 0) {
+                    this.keys.right.pressed = true;
+                    this.LastKeyPressed = this.ControlKeys.right;
+                } else {
+                    this.keys.left.pressed = true;
+                    this.LastKeyPressed = this.ControlKeys.left;
+                }
+            } 
+            // Troppo vicino -> Indietreggia per scappare dal player!
+            else if (dist < SafeZone - 50) {
+                if (diffX > 0) {
+                    this.keys.left.pressed = true; // Va a sinistra se il player è a destra
+                    this.LastKeyPressed = this.ControlKeys.left;
+                } else {
+                    this.keys.right.pressed = true; // Va a destra se il player è a sinistra
+                    this.LastKeyPressed = this.ControlKeys.right;
+                }
+            }
+
+            // - - - ATTACK (Spara fino a 450px di distanza!) - - -
+            if (dist < 450 && !this.isAttacking && !this.Dead) {
+                if (Math.random() < 0.03) { // Probabilità bilanciata a frame
+                    this.attack();
+                    this.castBullet(this);
+                }
+            }
         }
-        else {
-            this.keys.defend.pressed = true;
-            this.LastKeyPressed=this.ControlKeys.defend;
+    } // Chiude runAI
+
+    castBullet(caster) {
+        if (!g.Bullets) g.Bullets = [];{
+            const New = Bullet.CreateBullet(1, caster);
+            g.Bullets.push();
+            g.Enemies.push
         }
-    }
     }
     static createFighters(ids){
 
@@ -496,7 +561,9 @@ if (this === Player1) {
             scale : configData.scale,
             offset : configData.offset,
             sprites : configData.sprites,
-            isAI : configData.isAI
+            isAI : configData.isAI,
+            attackFrame : configData.attackFrame,
+            type : configData.type,
         })
 
     }
@@ -688,4 +755,119 @@ class Platform extends Sprite{
         })
     }
     
+}
+class Bullet extends Sprite{
+    constructor({position,velocity = {x: 0 , y : 0},size ,color = "black",imageSrc,sprites,scale = 1 , framesMax=1 ,offset = {x:0, y:0},Damage,KnockBack,caster,other}){
+        super({
+            position,
+            size,
+            color,
+            imageSrc,
+            scale,
+            framesMax,
+            offset,
+            sprites
+        })
+        this.Damage = Damage;
+        this.KnockBack = KnockBack;
+        this.hasHit = false;
+        this.Bullets = [];
+        this.velocity=velocity;
+        this.caster = caster;
+        this.other = other;
+
+    }
+    update(dt){
+        
+        this.animateFrames();
+
+         
+        this.position.x += this.velocity.x*dt; 
+
+        this.velocity.y+=g.Gravity_Acceleration/8;
+        this.position.y +=this.velocity.y *dt;
+
+        // - - - BOUNDARIES - - -
+
+        /*Bound X-Axis
+        if (this.position.x+this.size.x > g.MAX_WIDTH){
+            this.velocity.x = 0;
+            this.position.x = g.MAX_WIDTH-this.size.x;
+        }
+        else if (this.position.x< 0){
+            this.velocity.x = 0;
+            this.position.x = 0;
+        }
+
+        
+
+        // - - - BOUNDARIES - - -
+        //Bound Y-Axis
+        if (this.position.y+this.size.y > g.MAX_HEIGHT){
+            this.velocity.y = 0;
+            this.position.y = g.MAX_HEIGHT-this.size.y;
+        }
+        else if (this.position.y< 0){
+            this.velocity.y = 0;
+            this.position.y = 0;
+        }*/
+
+        // - - - COLLISIONS WITH PLAYERS - - - 
+    
+        if (!this.hasHit && this.other && !this.other.Dead) {
+            if (CheckCollisions({ rectangle1: this, rectangle2: this.other })) {
+                this.hasHit = true;
+                this.Dead = true; // Segna il proiettile per l'eliminazione
+
+                if (!this.other.Defending) {
+                    
+                    this.other.HealthPoints -= this.Damage;
+                    ReduceAddHP(this.other);
+                    this.other.hurt();
+                    CreateVFX(this.other, "HIT");
+                    CreateVFX(this.other, "DAM");
+
+                    // Knockback coerente: spinge nella direzione del VOLO del proiettile
+                    const pushDir = this.velocity.x >= 0 ? 1 : -1;
+                    this.other.velocity.x = pushDir * this.KnockBack;
+                } else {
+                    CreateVFX(this.other, "DEF");
+                }
+            }
+        }
+
+        // - - - COLLISIONS WITH PLATFORMS - - - 
+        g.Platforms.forEach(c => {
+            if (CheckCollisions({ rectangle1: this, rectangle2: c })) {
+                BouncinessPlatformCollisions({ rectangle1: this, rectangle2: c });
+            }
+        });
+
+        this.Draw();
+    }
+    static CreateBullet(val,caster){
+        // const config = val < 0.5 ? MASK_STATS[1] : MASK_STATS[2]
+         const speed = Math.random()*8;
+         const dir = caster.Direction.right ? 1 : -1;
+         const config = val === 1 ? BULLET_STATS[1] : BULLET_STATS[2] ; 
+         const other = caster.Player === 1 ? Player2 : Player1;
+        
+        
+        return new Bullet ({
+            position : { 
+                x: caster.position.x + (dir === 1 ? caster.size.x : -20), 
+                y: caster.position.y + caster.size.y / 2
+            },
+            velocity: { x: speed * dir, y: -speed },
+            size : config.size,
+            KnockBack : config.KnockBack,
+            imageSrc : config.imageSrc,
+            framesMax : config.framesMax,
+            scale: config.scale,
+            offset: config.offset,
+            Damage : config.Damage, 
+            caster : caster,
+            other : other, 
+        });
+    }
 }

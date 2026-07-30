@@ -106,6 +106,7 @@ const FIGHTER_STATS={
             }
         },
         attackFrame : 5,
+        type : undefined
         
     },
     Night : {
@@ -144,6 +145,7 @@ const FIGHTER_STATS={
         // - - - GAME SETTINGS - - -
         Damage : 15,
         isAI : AI,
+        type : "launcher",
 
         // - - - ANIMATION SPRITES - - -
         scale : 1.3, 
@@ -261,4 +263,27 @@ const MASK_STATS= {
         scale : 0.4, 
         offset : {x: -2, y:0},        
     }
+}
+const BULLET_STATS= {
+    1 : {
+        position : {
+            x : g.MAX_WIDTH/2 , 
+            y : g.MAX_HEIGHT/2
+        },
+        size : {
+            x : 50, 
+            y : 50 
+        }, 
+        KnockBack : 20,
+        imageSrc : undefined, 
+        scale : 1 , 
+        offset : {
+            x : 0 , 
+            y:0 
+
+        },
+        Damage : 10 ,
+        caster : undefined,
+    }
+
 }
