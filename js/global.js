@@ -1,0 +1,143 @@
+class GameContext {
+    constructor(){
+        // - - - DOM & UI - - -
+        this.canvas =document.getElementById("Game")
+        this.c = this.canvas.getContext("2d")
+        this.Timer = document.getElementById("Timer")
+        this.P2HP = document.getElementById("P2HP")
+        this.P1HP = document.getElementById("P1HP")
+        this.Announcement = document.getElementById("Announcement")
+        this.P1DOM = document.getElementById('P1')
+        this.P2DOM =document.getElementById('P2')
+        this.maskTitle = null ; 
+
+        // - - - CAMERA - - -
+        this.Camera = {
+            camera : {
+                x: 0 , 
+                y: 0 ,
+                zoom : 1 
+            },
+            MAX_ZOOM :  1.5,
+            MIN_ZOOM : 0.7,
+            PADDING : 200,
+            SMOOTHING :0.05,
+            
+        }
+
+        // - - - GAME FLAGS - - -
+        this.roundEnded = false;
+        this.FlagGame = true;
+        this.GameOver = false;
+        this.FlagFight = false;
+
+        // - - - TIMER - - -
+        this.timer = 64 ;
+        this.TimerIntervalId = null;
+        // this permits that the mask can drop randomly every game from 30 seconds to 50 seconds
+        this.MaskRandomTime = Math.floor(Math.random()*20 +30);
+        
+
+        // - - - GAME/AMBIENT - - -
+        this.MAX_WIDTH = 1280; 
+        this.MAX_HEIGHT= 720;
+        this.Gravity_Acceleration = 0.82; 
+
+        // - - - MAP SETTINGS - - -
+        this.Platforms = [];
+        this.VisualEffects=[];
+        this.Background = null;
+        
+        // - - - PLAYERS STATS - - -
+        this.Fighter1Width = 80;
+        this.Fighter1Height = 130;
+        this.Fighter2Width = 100;
+        this.Fighter2Height = 120;
+        this.StandardAttBoxWid = 100;
+        this.HitHeight = 30 ; 
+
+         // - - - PLAYER MAP POSITION - - -
+        this.StartingPositionP1 = {x: 0 , y: 0};  
+        this.StartingPositionP2 = {x:this.MAX_WIDTH-this.Fighter2Width, y: 0}; 
+
+        // - - - PLAYER NAMES - - -
+        this.Fighter1Name = "";
+        this.Fighter2Name = "";
+
+        //- - - PLAYER POINTERS - - - 
+        this.Pointers = [];
+
+        //- - - GENERAL PURPOSES - - - 
+        let lastTime = 0;
+        this.isAdventure = false;
+    }
+    loadMap(id){
+        const data = MAP_CONFIG[id]; 
+        this.Background = new Sprite ({
+            size : {
+                x : this.MAX_WIDTH,
+                y: this.MAX_HEIGHT
+            },
+            imageSrc : data.background.link,
+            framesMax : data.background.framesMax,
+            scale : data.background.scale, 
+            offset : data.background.offset,
+            color : "black"
+        }) 
+        this.Platforms =data.Platforms.map(p=>{
+            return new Platform({
+                position: {x: p.position.x, y: p.position.y},
+                size : {x: p.size.x, y : p.size.y},
+                imageSrc : p.imageSrc,
+                scale : p.scale,
+                offset : p.offset,
+                color : p.color
+            })
+        })
+        if (data.StartPos){
+            this.StartingPositionP1=data.StartPos.p1
+            this.StartingPositionP2=data.StartPos.p2
+        }
+    }   
+    loadMode(id){
+        //missing something
+    }  
+    loadNames(){
+        const Name1 = localStorage.getItem("player1_name")
+        const Name2 = localStorage.getItem("player2_name")
+        if (Name1 !== null) this.Fighter1Name = Only3(Name1)
+        if (Name2 !== null) this.Fighter2Name = Only3(Name2)
+        
+        this.P1DOM.textContent = this.Fighter1Name
+        this.P2DOM.textContent = this.Fighter2Name
+
+        if (this.Pointers.length >= 2) {
+        this.Pointers[0].text = this.Fighter1Name; 
+        this.Pointers[1].text = this.Fighter2Name; 
+        }
+    } 
+    cameraMovement(){
+            c.save();
+            c.translate(this.MAX_WIDTH / 2, this.MAX_HEIGHT / 2);
+            c.scale(this.Camera.camera.zoom, this.Camera.camera.zoom); 
+            c.translate(-this.Camera.camera.x * this.Camera.SMOOTHING, -this.Camera.camera.y * this.Camera.SMOOTHING);
+            c.translate(-this.Background.size.x / 2, -this.Background.size.y / 2);
+            this.Background.update();
+            c.restore();
+            c.save();
+            c.translate(this.MAX_WIDTH / 2, this.MAX_HEIGHT / 2);
+            c.scale(this.Camera.camera.zoom, this.Camera.camera.zoom);
+            c.translate(-this.Camera.camera.x, -this.Camera.camera.y);
+    }
+    startTimer(){
+        if (this.TimerIntervalId) clearInterval(this.TimerIntervalId);
+        this.TimerIntervalId= setInterval(reduceTimer,1000)
+
+    }
+}
+const g = new GameContext();
+const c = g.c;
+const AI = localStorage.getItem("player2_name") === "CPU" ? true : false;
+
+
+

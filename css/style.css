@@ -1,0 +1,29 @@
+/*_ _ _ _ _ _ _ _ _ _ _ _ _ 
+    GLOBAL and UTILITIES
+  _ _ _ _ _ _ _ _ _ _ _ _ _ */
+@font-face {
+    font-family: 'Press Start 2P';
+    src: url('./fonts/PressStart2P-Regular.ttf') format('truetype');
+}
+body{
+    margin : 0 ; 
+    display : flex ; 
+    justify-content : flex-start;
+    align-items: center;
+    flex-direction: column;
+    height : 100vh ; 
+    background-color: #120f0f;
+    font-family: 'Press Start 2P', sans-serif;
+}
+
+.text-gold{
+    background: linear-gradient(to bottom, #ffd700,#b8860b);
+    -webkit-background-clip: text;
+    background-clip:text;
+    color: transparent;
+    -webkit-text-stroke: 0.4px black;
+    font-weight: 800;
+}
+
+
+
