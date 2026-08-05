@@ -122,6 +122,7 @@ class Fighter extends Sprite{
         this.KnockBack = 1 ;
         this.attackFrame = attackFrame;
         this.type = type ;
+        this.BulletCooldown = 0;
     
         // for AI checking if it's stuck
         this.checkStuckTimer = 0;
@@ -419,7 +420,7 @@ if (this === Player1) {
             return ; 
         }
 
-        const SafeZone = 120 ; 
+        const SafeZone = 100 ; 
         if (dist > 250){
             if (diffX > 0){
                 this.keys.right.pressed = true;
@@ -503,7 +504,7 @@ if (this === Player1) {
                 return; 
             }
 
-            const SafeZone = 300; 
+            const SafeZone = 200; 
             
             // Troppo lontano -> Avvicinati
             if (dist > 450) {
@@ -527,8 +528,8 @@ if (this === Player1) {
             }
 
             // - - - ATTACK (Spara fino a 450px di distanza!) - - -
-            if (dist < 450 && !this.isAttacking && !this.Dead) {
-                if (Math.random() < 0.03) { // Probabilità bilanciata a frame
+            if (dist < 450 && !this.isAttacking && !this.Dead ) {
+                if (Math.random() < 0.01) { // Probabilità bilanciata a frame
                     this.attack();
                     this.castBullet(this);
                 }
@@ -537,11 +538,11 @@ if (this === Player1) {
     } // Chiude runAI
 
     castBullet(caster) {
-        if (!g.Bullets) g.Bullets = [];{
+            if (g.Bullets.length >= 3) return ; 
             const New = Bullet.CreateBullet(1, caster);
-            g.Bullets.push();
-            g.Enemies.push
-        }
+            g.Bullets.push(New);
+            
+        
     }
     static createFighters(ids){
 
@@ -757,7 +758,7 @@ class Platform extends Sprite{
     
 }
 class Bullet extends Sprite{
-    constructor({position,velocity = {x: 0 , y : 0},size ,color = "black",imageSrc,sprites,scale = 1 , framesMax=1 ,offset = {x:0, y:0},Damage,KnockBack,caster,other}){
+    constructor({position,velocity = {x: 0 , y : 0},size ,color = "black",imageSrc,sprites,scale = 1 , framesMax=1 ,offset = {x:0, y:0},Damage,KnockBack,caster,other,liveFrames = 0}){
         super({
             position,
             size,
@@ -775,10 +776,11 @@ class Bullet extends Sprite{
         this.velocity=velocity;
         this.caster = caster;
         this.other = other;
+        this.liveFrames = liveFrames;
 
     }
     update(dt){
-        
+        this.liveFrames++;
         this.animateFrames();
 
          
@@ -813,11 +815,22 @@ class Bullet extends Sprite{
         }*/
 
         // - - - COLLISIONS WITH PLAYERS - - - 
+        if (this.liveFrames > 140){
+                    const index =  g.Bullets.indexOf(this);
+                    this.hasHit = true;
+                    if (index !== -1){
+                        g.Bullets.splice(index,1);
+                    }
+                    CreateVFX(this, "DISAPPEAR","",false)
+                    console.log(g.Bullets);
+            }
     
-        if (!this.hasHit && this.other && !this.other.Dead) {
+        else if (!this.hasHit && this.other && !this.other.Dead) {
+            
             if (CheckCollisions({ rectangle1: this, rectangle2: this.other })) {
                 this.hasHit = true;
                 this.Dead = true; // Segna il proiettile per l'eliminazione
+               
 
                 if (!this.other.Defending) {
                     
@@ -833,8 +846,16 @@ class Bullet extends Sprite{
                 } else {
                     CreateVFX(this.other, "DEF");
                 }
+                const index =  g.Bullets.indexOf(this);
+                    this.hasHit = true;
+                    if (index !== -1){
+                        g.Bullets.splice(index,1);
+                    }
+                    CreateVFX(this, "DISAPPEAR","",false)
+                    console.log(g.Bullets);
             }
         }
+        
 
         // - - - COLLISIONS WITH PLATFORMS - - - 
         g.Platforms.forEach(c => {
@@ -845,29 +866,46 @@ class Bullet extends Sprite{
 
         this.Draw();
     }
-    static CreateBullet(val,caster){
-        // const config = val < 0.5 ? MASK_STATS[1] : MASK_STATS[2]
-         const speed = Math.random()*8;
-         const dir = caster.Direction.right ? 1 : -1;
-         const config = val === 1 ? BULLET_STATS[1] : BULLET_STATS[2] ; 
-         const other = caster.Player === 1 ? Player2 : Player1;
+    static CreateBullet(val, caster) {
+        const config = val === 1 ? BULLET_STATS[1] : BULLET_STATS[2]; 
+        const other = caster.Player === 1 ? Player2 : Player1;
+        const dir = caster.Direction.right ? 1 : -1;
+
+        // 1. Punti di partenza e bersaglio
+        const startX = caster.position.x + (dir === 1 ? caster.size.x : -20);
+        const startY = caster.position.y + caster.size.y / 2;
+
+        const targetX = other.position.x + other.size.x / 2;
+        const targetY = other.position.y + other.size.y / 2;
+
+        const dx = targetX - startX;
+        const dy = targetY - startY;
+
+        // 2. Gravità applicata al proiettile
+        const gravity = g.Gravity_Acceleration / 8;
+
+       
+        const vy = -6; 
+
+        // 4. Calcolo esatto del tempo di volo T basato sull'arco verticale
+        const discriminant = (vy * vy) + (2 * gravity * dy);
         
         
-        return new Bullet ({
-            position : { 
-                x: caster.position.x + (dir === 1 ? caster.size.x : -20), 
-                y: caster.position.y + caster.size.y / 2
-            },
-            velocity: { x: speed * dir, y: -speed },
-            size : config.size,
-            KnockBack : config.KnockBack,
-            imageSrc : config.imageSrc,
-            framesMax : config.framesMax,
+        // 5. Velocità orizzontale calcolata di conseguenza
+        const vx = dx / 100;
+
+        return new Bullet({
+            position: { x: startX, y: startY },
+            velocity: { x: vx, y: vy }, // Arco garantito!
+            size: config.size,
+            KnockBack: config.KnockBack,
+            imageSrc: config.imageSrc,
+            framesMax: config.framesMax,
             scale: config.scale,
             offset: config.offset,
-            Damage : config.Damage, 
-            caster : caster,
-            other : other, 
+            Damage: config.Damage, 
+            caster: caster,
+            other: other, 
         });
     }
 }

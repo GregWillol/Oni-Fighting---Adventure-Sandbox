@@ -211,11 +211,11 @@ function CheckVictory({player1, player2, timerId}) {
             TriggerAnnouncement("TIE");
         }
         // Death animation need to play
-        setTimeout(() => {
+        /*setTimeout(() => {
             g.GameOver = true;
             //console.log("Redirect index.php")
             window.location.replace("index.php") 
-        }, 4000);   
+        }, 4000);   */
     }
 }
 
@@ -241,7 +241,7 @@ function HandleMovement(player){
     player.switchSprite(pAction);
 }
 
-function CreateVFX(player,typo,text){
+function CreateVFX(player,typo,text,bool = true){
     const vfx = {CRIT: {text : "CRITICAL HIT!",color : "#FF3126",offset : {x:player.size.x,y:player.size.y},velocity:{x:0,y:-2},count : 1},
             HIT : {text : "HIT", color :"#fff",offset : {x:player.size.x,y:player.size.y},velocity : {x: 0, y:-0.5},count : 1},
             HP : {text : "+HP", color :"#8f00ff",offset : {x:player.size.x,y:player.size.y},velocity : {x: 0, y:-0.5}, count : 1},
@@ -251,8 +251,12 @@ function CreateVFX(player,typo,text){
             JUMP : {text : "", color :player.Player === 1 ? "#FF3126" : "#8f00ff", offset: {x: 0, y:0},velocity : {x:0,y:0},count : 2},
             DASH : {text : "", color : player.Player === 1 ? "#FF3126" : "#8f00ff", offset: {x: player.size.x/2 , y:player.size.y/2},velocity: {x:0 , y:0},count : 30},
             DAM : {text : "", color : player.Player !== 1 ? "#FF3126" : "#8f00ff", offset :{x: player.size.x, y:player.size.y/2},velocity : {x:0 , y:0 },count : 10},
-            COOLDOWN : {text : text, color : player.Player === 1 ? "#FF3126" : "#8f00ff", offset :{x: player.size.x/2, y:player.size.y},velocity : {x:0 , y:-0.5 },count : 1}};
-    const Direction = player.Direction.right ? -1 : 1 ; 
+            COOLDOWN : {text : text, color : player.Player === 1 ? "#FF3126" : "#8f00ff", offset :{x: player.size.x/2, y:player.size.y},velocity : {x:0 , y:-0.5 },count : 1},
+            DISAPPEAR : {text : "NIGGA", color : "#000", offset :{x: player.size.x, y:player.size.y/2},velocity : {x:0 , y:0 },count : 10},};
+    let Direction = 1;
+    if (bool){
+        Direction = player.Direction.right ? -1 : 1 ; 
+    }        
     const opacity = typo === "COOLDOWN" ? 0.6 : 1 ; 
     
     if (typo === "JUMP" && player.jumpBuffer === 0 )return;
