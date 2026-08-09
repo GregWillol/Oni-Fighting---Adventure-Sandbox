@@ -184,6 +184,82 @@ const FIGHTER_STATS={
         attackFrame : 9,
         
 
+    },
+    Night2 : {
+        //- - - COLOR DEBUG - - -
+        color : "blue",
+
+        // - - - COMMANDS - - -
+        ControlKeys : {
+            left : "arrowleft",
+            right : "arrowright",
+            up : "arrowup",
+            attack : "arrowdown",
+            defend : "-"
+        },
+
+        // - - - FIGHTER STATS - - -
+        size : {
+            x: g.Fighter2Width,
+            y : g.Fighter2Height
+        },
+        Direction : {
+            left : true
+        },
+        AttackBox : {
+            position : {
+                x : 0 , 
+                y : 0 
+            },
+            size : {
+                x : g.StandardAttBoxWid*2.3, 
+                y : g.StandardAttBoxWid*2.3
+            },
+            shape : "circle"
+        },
+        Player : 2,
+        // - - - GAME SETTINGS - - -
+        Damage : 15,
+        isAI : AI,
+        type : "base",
+
+        // - - - ANIMATION SPRITES - - -
+        scale : 1.3, 
+        offset : {x: 110, y:133},
+        sprites: {
+            idle: {
+                imageSrc: './img/Night/idle.png',
+                framesMax: 9 
+            },
+            run: {
+                imageSrc: './img/Night/run.png', 
+                framesMax: 6 
+            },
+             jump: {
+                imageSrc: './img/Night/jump.png', 
+                framesMax: 5 
+            },
+            attack: {
+                imageSrc: './img/Night/attack.png',
+                framesMax: 12
+            },
+            hurt :{
+                imageSrc: './img/Night/hurt.png', 
+                framesMax: 5
+
+            },
+            death : {
+                imageSrc: './img/Night/death.png', 
+                framesMax: 23 
+            },
+            defence : {
+                imageSrc: './img/Night/defence.png',
+                framesMax: 3 
+            },
+        },
+        attackFrame : 9,
+        
+
     }
 }
 const AURA_STATS={

@@ -9,6 +9,8 @@ g.loadMap(map);
 // - - - CONSTANTS - - - 
 const Player1 = Fighter.createFighters(1)
 const Player2 = Fighter.createFighters(2)
+const Player3 =  Fighter.createFighters(3)
+g.Fighters = [Player1,Player2,Player3];
 
 const Mask1 = Mask.CreateMask(Math.random());
 const Aura1 = Sprite.CreateAura(1);
@@ -20,6 +22,7 @@ const Aura2 = Sprite.CreateAura(2);
 
 g.Pointers.push(FloatingPointers.createPointers(Player1));
 g.Pointers.push(FloatingPointers.createPointers(Player2));
+g.Pointers.push(FloatingPointers.createPointers(Player3));
 
 function Gameloop (currentTime){
     if (!g.FlagGame){
@@ -57,13 +60,13 @@ function Gameloop (currentTime){
             Mask1.update(dt);
         }
 
-        // - - - SPRITE ANIMATION SELECTOR - - -
-        HandleMovement(Player1);
-        HandleMovement(Player2);
+      
         
         // - - - PLAYERS UPDATE - - -
-        Player1.update(Player2,dt);        
-        Player2.update(Player1,dt);
+        g.Fighters.forEach(fighter => {
+            HandleMovement(fighter);
+            if (!fighter.Dead) fighter.update(dt);
+        });
 
 
         // - - - BULLET 1st TRY

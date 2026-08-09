@@ -67,6 +67,7 @@ class GameContext {
         //- - - PLAYER POINTERS / BULLETS / ENEMIES     - - - 
         this.Pointers = [];
         this.Bullets = [];
+        this.Fighters = [];
 
         //- - - GENERAL PURPOSES - - - 
         let lastTime = 0;

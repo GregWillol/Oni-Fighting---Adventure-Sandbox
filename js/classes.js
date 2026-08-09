@@ -22,8 +22,9 @@ class Sprite{
         }
     }
     Draw(){
-            c.fillStyle = this.color;
-            c.fillRect(this.position.x, this.position.y, this.size.x, this.size.y);
+        // - - - DEBUG - - -
+        // c.fillStyle = this.color;
+        // c.fillRect(this.position.x, this.position.y, this.size.x, this.size.y);
         
         
         if (!this.image || !this.image.src) {
@@ -128,9 +129,9 @@ class Fighter extends Sprite{
         this.checkStuckTimer = 0;
         this.previousPositionX = this.position.x;
     }
-    update(Other,dt){ 
+    update(dt){ 
         
-        if (this.isAI) this.runAI(Other);
+        if (this.isAI) this.runAI();
         
         //first thing before it can be changed
         if (this.HitStun > 0){
@@ -233,20 +234,14 @@ class Fighter extends Sprite{
 
     // Check if the animation has reached the active impact frame
     if (this.framesCurrent == this.attackFrame) {
-        if (this.isAttacking)
-        console.log("Frame Corrente", this.framesCurrent, "Frame Attacco" , this.attackFrame);
 
         // Determine active targets based on the current game mode
-   let targets = [];
-
-if (this === Player1) {
-    // Se attacca Player 1, i bersagli sono gli Enemies (Torre) oppure Player 2 (Sandbox)
-    targets = g.isAdventure ? g.Enemies : [Player2];
-} else {
-    // Se attacca CHIUNQUE ALTRO (Player 2 umano, Player 2 IA, o un Mob), il bersaglio è Player 1
-    targets = [Player1];
-}
-
+            let targets = [];
+                if (this.Player === 1) {
+                    targets = g.Fighters.filter(f => f !== this && !f.Dead);
+                } else {
+                    targets = g.Fighters.filter(f => f.Player === 1 && !f.Dead);
+                }
         for (let i = 0; i < targets.length; i++) {
             const victim = targets[i];
 
@@ -399,8 +394,25 @@ if (this === Player1) {
     defend (){
         this.switchSprite('defence') 
     }
-    runAI(other) {
+    runAI() {
     if (!g.FlagFight) return ;
+
+    // - - - FINDING NEAREST ENEMY - - -
+    let other = null; 
+    let minDist = Infinity ; 
+
+        g.Fighters.forEach(f => {
+            // finding player1
+            if (f !== this && !f.Dead && f.Player === 1) { 
+                let d = Math.abs(f.position.x - this.position.x);
+                if (d < minDist) {
+                    minDist = d;
+                    other = f;
+                }
+            }
+        });
+
+        if (!other) return;
     // - - - RESET KEYS - - - 
     this.keys.right.pressed = false;
     this.keys.left.pressed = false;
@@ -504,10 +516,10 @@ if (this === Player1) {
                 return; 
             }
 
-            const SafeZone = 200; 
-            
-            // Troppo lontano -> Avvicinati
-            if (dist > 450) {
+            const SafeZone = 200;
+
+            // 1. Troppo lontano: si avvicina
+            if (dist > SafeZone + 50) {
                 if (diffX > 0) {
                     this.keys.right.pressed = true;
                     this.LastKeyPressed = this.ControlKeys.right;
@@ -516,26 +528,27 @@ if (this === Player1) {
                     this.LastKeyPressed = this.ControlKeys.left;
                 }
             } 
-            // Troppo vicino -> Indietreggia per scappare dal player!
+            // 2. Troppo vicino: scappa all'indietro
             else if (dist < SafeZone - 50) {
                 if (diffX > 0) {
-                    this.keys.left.pressed = true; // Va a sinistra se il player è a destra
+                    this.keys.left.pressed = true;
                     this.LastKeyPressed = this.ControlKeys.left;
                 } else {
-                    this.keys.right.pressed = true; // Va a destra se il player è a sinistra
+                    this.keys.right.pressed = true;
                     this.LastKeyPressed = this.ControlKeys.right;
                 }
             }
 
-            // - - - ATTACK (Spara fino a 450px di distanza!) - - -
-            if (dist < 450 && !this.isAttacking && !this.Dead ) {
-                if (Math.random() < 0.01) { // Probabilità bilanciata a frame
+            // 3. Raggio d'attacco coerente con la distanza di fuga
+            if (dist < SafeZone && !this.isAttacking && !this.Dead) {
+                if (Math.random() < 0.03) {
                     this.attack();
+                    if (Math.random() < 0.05)
                     this.castBullet(this);
                 }
             }
         }
-    } // Chiude runAI
+    } 
 
     castBullet(caster) {
             if (g.Bullets.length >= 3) return ; 
@@ -546,8 +559,16 @@ if (this === Player1) {
     }
     static createFighters(ids){
 
-        const configData = ids === 1 ? FIGHTER_STATS.Sekiro : FIGHTER_STATS.Night ; 
-        const spawnPos = ids === 1 ? g.StartingPositionP1 : g.StartingPositionP2;
+        let configData = ids === 1 ? FIGHTER_STATS.Sekiro : FIGHTER_STATS.Night ; 
+            if (ids === 3){
+                configData = FIGHTER_STATS.Night2;
+            }
+        const basePos = ids === 1 ? g.StartingPositionP1 : g.StartingPositionP2;
+
+        let spawnPos =  { x : basePos.x, y: basePos.y };
+        if (ids === 3){
+                spawnPos.x -= 100;
+        }
         return new Fighter({
             position : spawnPos,
             size : configData.size,
@@ -713,7 +734,7 @@ class FloatingText{
     }
 }
 class FloatingPointers extends FloatingText{
-    constructor({position,text,color,offset = {x:0,y:0},target}){
+    constructor({position,text,color,offset = {x:0,y:0},target,isMob}){
         super({
             position,
             text,
@@ -721,24 +742,66 @@ class FloatingPointers extends FloatingText{
         })
         this.offset = offset;
         this.target = target;
+        this.isMob = isMob;
     }
-    static createPointers(player){
-        const color = player.Player === 1 ? "#FF3126" : "#8f00ff";
-        const name = player.Player === 1 ? g.Fighter1Name : g.Fighter2Name;
+    static createPointers(player) {
+        let color, name, isMob = false;
+
+        if (player.Player === 1) {
+            color = "#FF3126";
+            name = g.Fighter1Name;
+        } else if (player.Player === 2 && !player.isAI) {
+            color = "#8f00ff";
+            name = "2";
+        } else {
+            color = "red";
+            name = "3"; // Niente nome per i mob
+            isMob = true; 
+        }
         
-       
         return new FloatingPointers({
-            text : name,
-            color : color,
-            target : player
+            text: name,
+            color: color,
+            target: player,
+            isMob: isMob
         });
-        
+    }
+    draw(){
+        if(!this.isMob){
+            super.draw();
+        }
+        else {
+            const barWidth = 40; 
+            const barHeight = 5;
+            const hpPercent = Math.max(0,this.target.HealthPoints / 100);
+
+            // Color and Style
+            c.save();
+            c.fillStyle = '#440000'; 
+            c.fillRect(this.position.x, this.position.y, barWidth, barHeight);
+            
+            c.fillStyle = '#00ff00'; 
+            c.fillRect(this.position.x, this.position.y, barWidth * hpPercent, barHeight);
+            
+            c.strokeStyle = 'black'; 
+            c.lineWidth = 1;
+            c.strokeRect(this.position.x, this.position.y, barWidth, barHeight);
+            c.restore();
+
+        }
     }
     update(){
         const player = this.target;
         if (player.Dead) return ;
-        this.position.x=player.position.x+this.offset.x;
-        this.position.y = player.position.y+this.offset.y;
+        if (this.isMob) {
+            this.position.x = player.position.x + (player.size.x /2) -20;
+            this.position.y = player.position.y - 15;
+        }
+        else {
+            this.position.x = player.position.x + this.offset.x;
+            this.position.y = player.position.y + this.offset.y;
+
+        }
         this.draw();
     }
 }

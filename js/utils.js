@@ -139,14 +139,19 @@ function reduceTimer(){
 
 
 function ReduceAddHP(player){
+
+    
     if (player.HealthPoints <=0) {
         player.HealthPoints = 0;
         player.Dead = true;
+
     }
+    if (player.isAI || player.Player > 2) return;
+    
     // - - - DOM - - -
     const HealthBar = document.getElementById("P"+player.Player+"HP")
     if (player.HealthPoints>=100) player.HealthPoints= 100;
-        HealthBar.style.width=player.HealthPoints+"%"
+        HealthBar.style.width=player.HealthPoints+"%" 
 }
 
 function TriggerAnnouncement(text,flag = false){
@@ -252,7 +257,7 @@ function CreateVFX(player,typo,text,bool = true){
             DASH : {text : "", color : player.Player === 1 ? "#FF3126" : "#8f00ff", offset: {x: player.size.x/2 , y:player.size.y/2},velocity: {x:0 , y:0},count : 30},
             DAM : {text : "", color : player.Player !== 1 ? "#FF3126" : "#8f00ff", offset :{x: player.size.x, y:player.size.y/2},velocity : {x:0 , y:0 },count : 10},
             COOLDOWN : {text : text, color : player.Player === 1 ? "#FF3126" : "#8f00ff", offset :{x: player.size.x/2, y:player.size.y},velocity : {x:0 , y:-0.5 },count : 1},
-            DISAPPEAR : {text : "NIGGA", color : "#000", offset :{x: player.size.x, y:player.size.y/2},velocity : {x:0 , y:0 },count : 10},};
+            DISAPPEAR : {text : "", color : "#000", offset :{x: player.size.x, y:player.size.y/2},velocity : {x:0 , y:0 },count : 10},};
     let Direction = 1;
     if (bool){
         Direction = player.Direction.right ? -1 : 1 ; 
@@ -269,7 +274,7 @@ function CreateVFX(player,typo,text,bool = true){
         }
         let randVelocity;
         //Need 2 different assets for these vfx
-        if (typo === "JUMP" || typo === "DASH" || typo === "DAM"){
+        if (typo === "JUMP" || typo === "DASH" || typo === "DAM" || typo === "DISAPPEAR"){
             const randOffset = RandomOffsetVFX(player);
             offsetPlayer.x += randOffset.x-(player.size.x/2); 
             offsetPlayer.y += randOffset.y;
