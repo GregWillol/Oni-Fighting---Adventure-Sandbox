@@ -23,8 +23,8 @@ class Sprite{
     }
     Draw(){
         // - - - DEBUG - - -
-        // c.fillStyle = this.color;
-        // c.fillRect(this.position.x, this.position.y, this.size.x, this.size.y);
+        //c.fillStyle = this.color;
+        //c.fillRect(this.position.x, this.position.y, this.size.x, this.size.y);
         
         
         if (!this.image || !this.image.src) {
@@ -124,6 +124,7 @@ class Fighter extends Sprite{
         this.attackFrame = attackFrame;
         this.type = type ;
         this.BulletCooldown = 0;
+        this.aiTimer = 0;
     
         // for AI checking if it's stuck
         this.checkStuckTimer = 0;
@@ -131,7 +132,13 @@ class Fighter extends Sprite{
     }
     update(dt){ 
         
-        if (this.isAI) this.runAI();
+        if (this.isAI) {
+            this.aiTimer++;
+            if (this.aiTimer % 2 === 0){
+                this.runAI();
+            }
+
+        }
         
         //first thing before it can be changed
         if (this.HitStun > 0){
@@ -141,7 +148,7 @@ class Fighter extends Sprite{
         this.Draw(); 
         this.animateFrames(dt);
         //Setting X-Component of Velocity to 0 each frame for boundaries limits 
-        this.velocity.x *= 0.8 ;  
+        this.velocity.x *= 0.8*dt ;  
         //- - - DIRECTION SETTING - - - 
         if (!isKnockedBack && this.HitStun === 0 && g.FlagFight){
             //Setting direction of the Sprite using the LastKeyPressed on X-Axis (so left or right)
@@ -295,6 +302,34 @@ class Fighter extends Sprite{
         this.isAttacking = false;
         this.attackCooldown = 90;
         this.hitEnemies.length = 0; // Fast array reset without memory re-allocation
+        // --- RIFLESSIONE PROIETTILI ---
+        g.Bullets.forEach(bullet => {
+            // Controlla se la tua AttackBox tocca il proiettile
+            if (CheckCollisions({ rectangle1: this.AttackBox, rectangle2: bullet }) && !this.isAI) {
+
+                const isMoving = Math.abs(this.velocity.x) > 1 || Math.abs(this.velocity.y) > 1;
+
+                if (isMoving && Math.random() < 0.4) {
+                    return; // Interrompe l'azione: il proiettile ti colpirà in pieno nell'update successivo!
+                }
+                
+                // 1. Inverte la direzione e lo fa schizzare via più veloce
+                bullet.velocity.x *= -1.5; 
+                bullet.velocity.y = -3; // Gli dà un piccolo sbalzo verso l'alto per l'impatto
+                
+                // 2. Scambia i ruoli (tu diventi il proprietario, il vecchio proprietario diventa il bersaglio)
+                const originalCaster = bullet.caster;
+                bullet.caster = this;
+                bullet.other = originalCaster; 
+                
+                // 3. Resetta lo stato del proiettile
+                bullet.hasHit = false;
+                bullet.liveFrames = 0; 
+                
+                // 4. Effetto visivo per la parata/respinta
+                CreateVFX(bullet, "DEF"); 
+            }
+        });
     }
 }
         
@@ -380,6 +415,27 @@ class Fighter extends Sprite{
             this.hitEnemies = [];
         }
         else return ; 
+    }
+    castRangedAttack() {
+        // Controlla che non sia già in attacco e che non sia in cooldown
+        if (this.attackCooldown === 0 && !this.isAttacking) {
+            this.switchSprite('attack'); 
+            this.isAttacking = true;
+            this.framesCurrent = 0; 
+            this.framesElapsed = 0;
+            this.hitEnemies = [];
+
+            // Rilascia immediatamente i tasti per bloccare il movimento a terra
+            this.keys.left.pressed = false;
+            this.keys.right.pressed = false;
+            this.velocity.x = 0; 
+
+            // Genera il proiettile
+            this.castBullet(this);
+            
+            // Applica il cooldown specifico (es. 120 frame = 2 secondi di attesa)
+            this.attackCooldown = 120; 
+        }
     }
     hurt(){
         this.isAttacking = false;
@@ -500,51 +556,69 @@ class Fighter extends Sprite{
         }
     }
        else if (this.type === "launcher") {
-            // - - - ORIENTATION (Indispensabile per mirare!) - - -
-            if (diffX > 0) {
-                this.Direction.right = true;
-                this.Direction.left = false;
-            } else {
-                this.Direction.right = false;
-                this.Direction.left = true;
+
+            if (this.isAttacking){
+                this.keys.left.pressed = false;
+                this.keys.right.pressed = false;
+                return;
             }
+            
+            // 3. GESTIONE DISTANZA E ANGOLI (Kiting)
+            const MinDistance = 350; 
+            const MaxDistance = 550; 
+            const CornerMargin = 60; // Limite dai bordi della mappa
 
-            // - - - DEFENCE - - - 
-            if (dist < 150 && !this.isAttacking && other.isAttacking && Math.random() < 0.2) {
-                this.keys.defend.pressed = true;
-                this.LastKeyPressed = this.ControlKeys.defend;
-                return; 
-            }
+            // Controlla se ha toccato i bordi dello schermo
+            const atLeftWall = this.position.x <= CornerMargin;
+            const atRightWall = (this.position.x + this.size.x) >= (g.MAX_WIDTH - CornerMargin);
+            let isCornered = false;
 
-            const SafeZone = 200;
-
-            // 1. Troppo lontano: si avvicina
-            if (dist > SafeZone + 50) {
-                if (diffX > 0) {
-                    this.keys.right.pressed = true;
-                    this.LastKeyPressed = this.ControlKeys.right;
-                } else {
-                    this.keys.left.pressed = true;
-                    this.LastKeyPressed = this.ControlKeys.left;
+            // Troppo vicino -> Scappa, MA controlla se c'è un muro!
+            if (dist < MinDistance) {
+                if (diffX > 0) { // Player a destra, scappa a sinistra
+                    if (!atLeftWall) {
+                        this.keys.left.pressed = true;
+                        this.LastKeyPressed = this.ControlKeys.left;
+                    } else {
+                        isCornered = true; // Incastrato a sinistra!
+                    }
+                } else { // Player a sinistra, scappa a destra
+                    if (!atRightWall) {
+                        this.keys.right.pressed = true;
+                        this.LastKeyPressed = this.ControlKeys.right;
+                    } else {
+                        isCornered = true; // Incastrato a destra!
+                    }
                 }
             } 
-            // 2. Troppo vicino: scappa all'indietro
-            else if (dist < SafeZone - 50) {
+            // Troppo lontano -> Si avvicina
+            else if (dist > MaxDistance) {
                 if (diffX > 0) {
-                    this.keys.left.pressed = true;
-                    this.LastKeyPressed = this.ControlKeys.left;
-                } else {
                     this.keys.right.pressed = true;
                     this.LastKeyPressed = this.ControlKeys.right;
+                } else {
+                    this.keys.left.pressed = true;
+                    this.LastKeyPressed = this.ControlKeys.left;
                 }
             }
 
-            // 3. Raggio d'attacco coerente con la distanza di fuga
-            if (dist < SafeZone && !this.isAttacking && !this.Dead) {
-                if (Math.random() < 0.03) {
-                    this.attack();
-                    if (Math.random() < 0.05)
-                    this.castBullet(this);
+            // 4. EVASIONE DISPERATA (Se è all'angolo o il player gli addosso)
+            if ((isCornered || dist < 120) && this.OnGround && Math.random() < 0.1) {
+                this.keys.up.pressed = true; // Salta
+                this.LastKeyPressed = this.ControlKeys.up;
+                
+                // Se è all'angolo, corre verso il player saltando per scavalcarlo
+                if (isCornered) {
+                    const runForward = atLeftWall ? 'right' : 'left';
+                    this.keys[runForward].pressed = true;
+                    this.LastKeyPressed = this.ControlKeys[runForward];
+                }
+            }
+
+            // 5. ATTACCO RANGED (Spara a distanza ottimale, OPPURE se è con le spalle al muro)
+            if (((dist >= MinDistance && dist <= MaxDistance) || isCornered) && !this.Dead) {
+                if (Math.random() < 0.04) { 
+                    this.castRangedAttack();
                 }
             }
         }
@@ -840,11 +914,22 @@ class Bullet extends Sprite{
         this.caster = caster;
         this.other = other;
         this.liveFrames = liveFrames;
+        this.framesMax = framesMax;
+        
+        this.Direction = {
+            left: this.velocity.x < 0,
+            right: this.velocity.x >= 0
+        };
 
     }
     update(dt){
         this.liveFrames++;
-        this.animateFrames();
+
+        this.Direction = {
+            left: this.velocity.x < 0,
+            right: this.velocity.x >= 0
+        };
+        this.animateFrames(dt);
 
          
         this.position.x += this.velocity.x*dt; 
@@ -878,7 +963,7 @@ class Bullet extends Sprite{
         }*/
 
         // - - - COLLISIONS WITH PLAYERS - - - 
-        if (this.liveFrames > 140){
+        if (this.liveFrames > 300){
                     const index =  g.Bullets.indexOf(this);
                     this.hasHit = true;
                     if (index !== -1){
@@ -929,6 +1014,38 @@ class Bullet extends Sprite{
 
         this.Draw();
     }
+    Draw() {
+        // - - - DEBUG BOX - - -
+        //c.fillStyle = this.color;
+        //c.fillRect(this.position.x, this.position.y, this.size.x, this.size.y);
+
+        if (!this.image || !this.image.complete || this.image.naturalWidth === 0) return;
+
+        const frameWidth = this.image.width / this.framesMax;
+        const angle = Math.atan2(this.velocity.y, this.velocity.x);
+
+        c.save();
+
+        const centerX = this.position.x + this.size.x / 2;
+        const centerY = this.position.y + this.size.y / 2;
+        c.translate(centerX, centerY);
+
+        c.rotate(angle);
+
+        c.drawImage(
+            this.image,
+            this.framesCurrent * frameWidth,
+            0,
+            frameWidth,
+            this.image.height,
+            -this.size.x / 2 - this.offset.x, 
+            -this.size.y / 2 - this.offset.y, 
+            frameWidth * this.scale,
+            this.image.height * this.scale
+        );
+
+        c.restore();
+    }
     static CreateBullet(val, caster) {
         const config = val === 1 ? BULLET_STATS[1] : BULLET_STATS[2]; 
         const other = caster.Player === 1 ? Player2 : Player1;
@@ -969,6 +1086,7 @@ class Bullet extends Sprite{
             Damage: config.Damage, 
             caster: caster,
             other: other, 
+            color : config.color,
         });
     }
 }

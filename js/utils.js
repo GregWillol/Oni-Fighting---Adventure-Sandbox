@@ -257,7 +257,7 @@ function CreateVFX(player,typo,text,bool = true){
             DASH : {text : "", color : player.Player === 1 ? "#FF3126" : "#8f00ff", offset: {x: player.size.x/2 , y:player.size.y/2},velocity: {x:0 , y:0},count : 30},
             DAM : {text : "", color : player.Player !== 1 ? "#FF3126" : "#8f00ff", offset :{x: player.size.x, y:player.size.y/2},velocity : {x:0 , y:0 },count : 10},
             COOLDOWN : {text : text, color : player.Player === 1 ? "#FF3126" : "#8f00ff", offset :{x: player.size.x/2, y:player.size.y},velocity : {x:0 , y:-0.5 },count : 1},
-            DISAPPEAR : {text : "", color : "#000", offset :{x: player.size.x, y:player.size.y/2},velocity : {x:0 , y:0 },count : 10},};
+            DISAPPEAR : {text : "", color : "orange", offset :{x: player.size.x, y:player.size.y/2},velocity : {x:0 , y: 0},count : 20},};
     let Direction = 1;
     if (bool){
         Direction = player.Direction.right ? -1 : 1 ; 
@@ -336,20 +336,35 @@ function ApplyKnockback(gotHit,Attacker){
 
 
 
-function updateCamera(p1, p2) {
-    const midX = (p1.position.x + p2.position.x + p1.size.x/2 + p2.size.x/2) / 2;
-    const midY = (p1.position.y + p2.position.y + p1.size.y/2 + p2.size.y/2) / 2;
-    const distMapX = Math.abs(p1.position.x - p2.position.x);
-    //Calculate dynamic zoom based on Player1 and Player2 distance
-    let targetZoom = g.MAX_WIDTH / (distMapX + 1000); 
-    //rettifing the values
-    if (targetZoom < 0.7) targetZoom = 0.7;
-    if (targetZoom > 1.0) targetZoom = 1.0;
+function updateCamera() {
+    const activeFighters = g.Fighters.filter(f => f && !f.Dead);
+    if (activeFighters.length === 0) return;
+
+    let minX = Infinity, maxX = -Infinity;
+
+    activeFighters.forEach(f => {
+        const centerX = f.position.x + f.size.x / 2;
+        if (centerX < minX) minX = centerX;
+        if (centerX > maxX) maxX = centerX;
+    });
+
+    const midX = (minX + maxX) / 2;
+    const distMapX = maxX - minX;
+
+    // 1. Zoom più morbido e con un limite massimo più prudente (1000 -> 1200 per allargare un po')
+    let targetZoom = g.MAX_WIDTH / (distMapX + 1200); 
+    if (targetZoom < 0.75) targetZoom = 0.75;
+    if (targetZoom > 0.95) targetZoom = 0.95; // Un pelo meno zoomato da vicino per stabilizzare
     if (!g.Camera.camera.zoom) g.Camera.camera.zoom = 1;
 
-    g.Camera.camera.zoom += (targetZoom - g.Camera.camera.zoom) * g.Camera.SMOOTHING;
-    g.Camera.camera.x += (midX - g.Camera.camera.x) * g.Camera.SMOOTHING;
-    g.Camera.camera.y = midY; 
+    // 2. Usiamo uno smoothing fisso più lento (es. 0.04) per ammorbidire gli scatti
+    const smooth = 0.04; 
+
+    g.Camera.camera.zoom += (targetZoom - g.Camera.camera.zoom) * smooth;
+    g.Camera.camera.x += (midX - g.Camera.camera.x) * smooth;
+    
+    // 3. Fissiamo l'asse Y a una quota fissa (altezza dello stage/2) invece di farla saltare con i bot
+    g.Camera.camera.y = g.MAX_HEIGHT / 2 + 100; // Aumenta +100 o +150 per abbassare l'inquadratura
 }
 function RandomOffsetVFX(player){
     return {

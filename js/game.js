@@ -39,7 +39,7 @@ function Gameloop (currentTime){
         c.clearRect(0,0,g.MAX_WIDTH,g.MAX_HEIGHT)
         
         //- - - TELECAMERA SETTINGS - - -
-        updateCamera(Player1, Player2);
+        updateCamera();
         g.cameraMovement();
         
         // - - - PLATFORMS DRAWING - - -

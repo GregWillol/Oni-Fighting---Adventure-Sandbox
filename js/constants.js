@@ -347,19 +347,22 @@ const BULLET_STATS= {
             y : g.MAX_HEIGHT/2
         },
         size : {
-            x : 50, 
-            y : 50 
+            x : 40, 
+            y : 25 
         }, 
         KnockBack : 20,
-        imageSrc : undefined, 
-        scale : 1 , 
+        imageSrc : './img/VFX/Bullets/Fireball.png', 
+         framesMax :5 ,
+        scale : 1.5, 
         offset : {
-            x : 0 , 
-            y:0 
+            x : 35 , 
+            y:  10 
 
         },
         Damage : 10 ,
         caster : undefined,
+        color : "orange"
+       
     }
 
 }
