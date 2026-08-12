@@ -284,15 +284,18 @@ initMobileControls();
 const btnFullscreen = document.getElementById('btn-fullscreen');
 
 if (btnFullscreen) {
-    btnFullscreen.addEventListener('click', () => {
+    const toggleFullscreen = (e) => {
+        e.preventDefault(); // Blocca click fantasma
         const gioco = document.getElementById('Gioco');
 
         if (!document.fullscreenElement) {
             // Entra in Fullscreen
             if (gioco.requestFullscreen) {
                 gioco.requestFullscreen();
-            } else if (gioco.webkitRequestFullscreen) { /* Safari / iOS */
-                gioco.webkitRequestFullscreen();
+            } else if (gioco.webkitRequestFullscreen) { 
+                gioco.webkitRequestFullscreen(); // Android Chrome
+            } else {
+                alert("Fullscreen non supportato su questo dispositivo (es. iPhone). Gira il telefono!");
             }
         } else {
             // Esci dal Fullscreen
@@ -302,5 +305,9 @@ if (btnFullscreen) {
                 document.webkitExitFullscreen();
             }
         }
-    });
+    };
+
+    // Ascoltiamo sia il click (PC) che il rilascio del tocco (Mobile)
+    btnFullscreen.addEventListener('click', toggleFullscreen);
+    btnFullscreen.addEventListener('touchend', toggleFullscreen);
 }

@@ -4,14 +4,23 @@ canvas{
     background-color: #778899; 
 }
 
-#Gioco{
-    
-    position : relative; 
-    width : 1280px;
-    height : 720px;
-    display : flex ; 
+#Gioco {
+    position: relative; 
+    width: 100vw;       /* Prende tutta la larghezza dello schermo... */
+    height: 100vh;      /* ...e tutta l'altezza, sempre! */
+    display: flex; 
     align-items: center; 
     justify-content: center;
+    background-color: #000;
+    overflow: hidden;
+    touch-action: none;
+}
+
+#Game {
+    max-width: 100%;    /* Non uscirà mai fuori dallo schermo in larghezza */
+    max-height: 100%;   /* Non uscirà mai in altezza */
+    aspect-ratio: 16 / 9; /* Mantiene la forma a rettangolo perfetto! */
+    object-fit: contain;
     box-shadow: 0 0 20px rgba(0,0,0,0.5); 
 }
 #Interface {
