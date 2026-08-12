@@ -314,7 +314,7 @@ class Fighter extends Sprite{
         g.Bullets.forEach(bullet => {
             // Controlla se la tua AttackBox tocca il proiettile
             if (CheckCollisions({ rectangle1: this.AttackBox, rectangle2: bullet }) && !this.isAI) {
-
+                if (bullet.isUnblockable) return;
                 const isMoving = Math.abs(this.velocity.x) > 1 || Math.abs(this.velocity.y) > 1;
 
                 if (isMoving && Math.random() < 0.4) {
@@ -432,7 +432,6 @@ class Fighter extends Sprite{
         else return ; 
     }
     castRangedAttack() {
-        // Controlla che non sia già in attacco e che non sia in cooldown
         if (this.attackCooldown === 0 && !this.isAttacking) {
             this.switchSprite('attack'); 
             this.isAttacking = true;
@@ -440,18 +439,20 @@ class Fighter extends Sprite{
             this.framesElapsed = 0;
             this.hitEnemies = [];
 
-            // Rilascia immediatamente i tasti per bloccare il movimento a terra
             this.keys.left.pressed = false;
             this.keys.right.pressed = false;
             this.velocity.x = 0; 
 
-            // Genera il proiettile
-            this.castBullet(this);
+            // Se è il BigAhhLauncher spara la meteora (tipo 2), altrimenti il proiettile base (tipo 1)
+            const bulletType = this.type === "BigAhhLauncher" ? 2 : 1;
+            this.castBullet(this, bulletType);
             
-            // Applica il cooldown specifico (es. 120 frame = 2 secondi di attesa)
-            this.attackCooldown = 120; 
+            // Il boss ha un cooldown più lungo (circa 3 secondi e mezzo)
+            this.attackCooldown = this.type === "BigAhhLauncher" ? 200 : 120; 
         }
     }
+
+    
     hurt(){
         this.isAttacking = false;
         this.switchSprite('hurt') 
@@ -639,20 +640,40 @@ class Fighter extends Sprite{
                 }
             }
         }
+        else if (this.type === "BigAhhLauncher") {
+
+            if (this.isAttacking && this.framesCurrent >= this.sprites.attack.framesMax - 1){
+                return;
+            }
+            
+            // 1. NON SI MUOVE MAI. Si limita a guardare minacciosamente il player.
+            if (diffX > 0) {
+                this.Direction.right = true;
+                this.Direction.left = false;
+            } else {
+                this.Direction.right = false;
+                this.Direction.left = true;
+            }
+
+            // 2. ATTACCO RANGED (Spara a intervalli regolari)
+            if (!this.Dead && this.attackCooldown === 0) {
+                if (Math.random() < 0.03) { 
+                    this.castRangedAttack();
+                }
+            }
+        }
     } 
 
-    castBullet(caster) {
-            if (g.Bullets.length >= 3) return ; 
-            const New = Bullet.CreateBullet(1, caster);
-            g.Bullets.push(New);
-            
-        
+    castBullet(caster, type = 1) {
+        if (g.Bullets.length >= 3) return ; 
+        const New = Bullet.CreateBullet(type, caster);
+        g.Bullets.push(New);
     }
     static createFighters(ids){
 
         let configData = ids === 1 ? FIGHTER_STATS.Sekiro : FIGHTER_STATS.Night ; 
             if (ids === 3){
-                configData = FIGHTER_STATS.Night2;
+                configData = FIGHTER_STATS.Night3;
             }
         const basePos = ids === 1 ? g.StartingPositionP1 : g.StartingPositionP2;
 
@@ -862,7 +883,7 @@ class FloatingPointers extends FloatingText{
             super.draw();
         }
         else {
-            const barWidth = 40; 
+            const barWidth = 50; 
             const barHeight = 5;
             const hpPercent = Math.max(0,this.target.HealthPoints / 100);
             console.log(hpPercent)
@@ -886,7 +907,7 @@ class FloatingPointers extends FloatingText{
             c.fillRect(this.position.x, this.position.y, barWidth * hpPercent, barHeight);
             
             c.strokeStyle = 'black'; 
-            c.lineWidth = 1;
+            c.lineWidth = 0.5;
             c.strokeRect(this.position.x, this.position.y, barWidth, barHeight);
             c.restore();
 
@@ -923,7 +944,7 @@ class Platform extends Sprite{
     
 }
 class Bullet extends Sprite{
-    constructor({position,velocity = {x: 0 , y : 0},size ,color = "black",imageSrc,sprites,scale = 1 , framesMax=1 ,offset = {x:0, y:0},Damage,KnockBack,caster,other,liveFrames = 0}){
+    constructor({position,velocity = {x: 0 , y : 0},size ,color = "black",imageSrc,sprites,scale = 1 , framesMax=1 ,offset = {x:0, y:0},Damage,KnockBack,caster,other,liveFrames = 0,isUnblockable = false}){
         super({
             position,
             size,
@@ -943,6 +964,7 @@ class Bullet extends Sprite{
         this.other = other;
         this.liveFrames = liveFrames;
         this.framesMax = framesMax;
+        this.isUnblockable = this.isUnblockable
         
         this.Direction = {
             left: this.velocity.x < 0,
@@ -1008,7 +1030,7 @@ class Bullet extends Sprite{
                 this.Dead = true; // Segna il proiettile per l'eliminazione
                
 
-                if (!this.other.Defending) {
+                if (!this.other.Defending || this.isUnblockable) {
                     
                     this.other.HealthPoints -= this.Damage;
                     ReduceAddHP(this.other);
@@ -1096,19 +1118,21 @@ class Bullet extends Sprite{
         // 2. Gravità applicata al proiettile
         const gravity = g.Gravity_Acceleration / 8;
 
-       
-        const vy = Math.random()*10*-1; 
+        // --- LA MAGIA DELLA VELOCITÀ È QUI ---
+        const isMeteor = val === 2;
+        
+        // Impulso verso l'alto: la meteora va altissima e scende pesante (-12)
+        const vy = isMeteor ? -12 : Math.random() * 10 * -1; 
 
-        // 4. Calcolo esatto del tempo di volo T basato sull'arco verticale
-        const discriminant = (vy * vy) + (2 * gravity * dy);
+        // Tempo di volo in frame: 100 = roba veloce. 260 = quasi 4 secondi di terrore puro
+        const flightTime = isMeteor ? 260 : 100; 
         
-        
-        // 5. Velocità orizzontale calcolata di conseguenza
-        const vx = dx / 100;
+        // 5. Velocità orizzontale scalata in base al tempo
+        const vx = dx / flightTime;
 
         return new Bullet({
             position: { x: startX, y: startY },
-            velocity: { x: vx, y: vy }, // Arco garantito!
+            velocity: { x: vx, y: vy }, 
             size: config.size,
             KnockBack: config.KnockBack,
             imageSrc: config.imageSrc,
@@ -1119,6 +1143,7 @@ class Bullet extends Sprite{
             caster: caster,
             other: other, 
             color : config.color,
+            isUnblockable: isMeteor // La meteora (2) non si para
         });
     }
 }

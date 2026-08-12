@@ -39,9 +39,9 @@ canvas{
     align-items: center;
     justify-content: center;
     
-    /* Rimuovi: justify-self: flex-end; */
-    
-    border-radius: 9%;
+    backdrop-filter: blur(12px);
+    border : 1px black dotted;
+    border-radius: 20%;
     font-size: 40px; 
     -webkit-text-stroke: 1px black;
 }

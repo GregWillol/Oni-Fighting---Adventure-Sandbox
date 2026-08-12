@@ -13,10 +13,7 @@ const MAP_CONFIG = {
         StartPos: null,
         //- - - PLATFORMS POSITIONS - - -
         Platforms : [
-            { position : {x: 200, y: g.MAX_HEIGHT-300},size : {x: 150,y:15},imageSrc:'./img/Platforms/clouds/cloud.png',scale : 0.3,offset : {x:50,y:20},color : "yellow"},
-            { position : {x: g.MAX_WIDTH/2 -75, y: g.MAX_HEIGHT/2 -80},size : {x: 140, y : 12},imageSrc:'./img/Platforms/clouds/cloud2.png',scale : 0.25,offset : {x:20,y:35},  color : "green" },
-            { position : {x: g.MAX_WIDTH -250-110, y: g.MAX_HEIGHT-300},size:{x:120, y : 13},imageSrc:'./img/Platforms/clouds/cloud.png',scale : 0.22,offset:{x:20,y:20},color :"pink"},
-            { position : {x: g.MAX_WIDTH/2 -40, y: g.MAX_HEIGHT-180},size:{x:80, y : 13},imageSrc:'./img/Platforms/clouds/cloud2.png',scale : 0.2,offset: {x: 30,y:30},color :"gold"},
+            
             { position : {x: g.MAX_WIDTH/2- 478, y: g.MAX_HEIGHT},size : {x:956,y:240},imageSrc: "./img/Platforms/Map1Platform.png", scale : 1 , offset : {x: 160 , y: 365}, color : "blue"}
         ]
     },
@@ -261,6 +258,82 @@ const FIGHTER_STATS={
         attackFrame : 9,
         
 
+    },
+    Night3 : {
+        //- - - COLOR DEBUG - - -
+        color : "blue",
+
+        // - - - COMMANDS - - -
+        ControlKeys : {
+            left : "arrowleft",
+            right : "arrowright",
+            up : "arrowup",
+            attack : "arrowdown",
+            defend : "-"
+        },
+
+        // - - - FIGHTER STATS - - -
+        size : {
+            x: g.Fighter2Width,
+            y : g.Fighter2Height
+        },
+        Direction : {
+            left : true
+        },
+        AttackBox : {
+            position : {
+                x : 0 , 
+                y : 0 
+            },
+            size : {
+                x : g.StandardAttBoxWid*2.3, 
+                y : g.StandardAttBoxWid*2.3
+            },
+            shape : "circle"
+        },
+        Player : 2,
+        // - - - GAME SETTINGS - - -
+        Damage : 15,
+        isAI : AI,
+        type : "BigAhhLauncher",
+
+        // - - - ANIMATION SPRITES - - -
+        scale : 1.3, 
+        offset : {x: 110, y:133},
+        sprites: {
+            idle: {
+                imageSrc: './img/Night/idle.png',
+                framesMax: 9 
+            },
+            run: {
+                imageSrc: './img/Night/run.png', 
+                framesMax: 6 
+            },
+             jump: {
+                imageSrc: './img/Night/jump.png', 
+                framesMax: 5 
+            },
+            attack: {
+                imageSrc: './img/Night/attack.png',
+                framesMax: 12
+            },
+            hurt :{
+                imageSrc: './img/Night/hurt.png', 
+                framesMax: 5
+
+            },
+            death : {
+                imageSrc: './img/Night/death.png', 
+                framesMax: 23 
+            },
+            defence : {
+                imageSrc: './img/Night/defence.png',
+                framesMax: 3 
+            },
+        },
+        attackFrame : 9,
+        
+
     }
 }
 const AURA_STATS={
@@ -362,8 +435,22 @@ const BULLET_STATS= {
         },
         Damage : 10 ,
         caster : undefined,
-        color : "orange"
+        color : "orange",
+        isUnblockable : false
        
+    },
+    2 : {
+        position : { x : 0, y : 0 },
+        size : { x : 80, y : 50 }, // Hitbox raddoppiata
+        KnockBack : 40,            // Ti spedisce fuori dalla mappa
+        imageSrc : './img/VFX/Bullets/Fireball.png', // Ricicliamo l'immagine per ora
+        framesMax : 5,
+        scale : 3.5,               // Sprite GIGANTE
+        offset : { x : 80, y : 30 }, // Aggiustato per la scala
+        Damage : 35,               // Danno devastante
+        caster : undefined,
+        color : "red",             // Box debug cattivo
+        isUnblockable : true       // Niente parate bro
     }
 
 }
