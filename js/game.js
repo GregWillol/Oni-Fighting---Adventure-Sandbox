@@ -73,7 +73,7 @@ function Gameloop (currentTime){
             let dt = (currentTime - g.lastTime) / (1000 / 60);
             g.lastTime = currentTime;
 
-            if (isNaN(dt) || dt > 2) dt = 1;
+            if (isNaN(dt) || dt > 1.5 || dt < 0) dt = 1;
         // - - - CLEANING CANVAS - - -
         c.clearRect(0,0,g.MAX_WIDTH,g.MAX_HEIGHT)
         
@@ -280,3 +280,27 @@ function initMobileControls() {
 
 // Invocala all'avvio del gioco
 initMobileControls();
+
+const btnFullscreen = document.getElementById('btn-fullscreen');
+
+if (btnFullscreen) {
+    btnFullscreen.addEventListener('click', () => {
+        const gioco = document.getElementById('Gioco');
+
+        if (!document.fullscreenElement) {
+            // Entra in Fullscreen
+            if (gioco.requestFullscreen) {
+                gioco.requestFullscreen();
+            } else if (gioco.webkitRequestFullscreen) { /* Safari / iOS */
+                gioco.webkitRequestFullscreen();
+            }
+        } else {
+            // Esci dal Fullscreen
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            }
+        }
+    });
+}

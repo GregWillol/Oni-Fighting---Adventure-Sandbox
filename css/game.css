@@ -205,3 +205,36 @@ canvas{
     display: flex;
     gap: 15px;
 }
+/* Tasto Fullscreen */
+#btn-fullscreen {
+    background: rgba(0, 0, 0, 0.6);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    color: white;
+    font-size: 20px;
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    z-index: 100;
+}
+
+#btn-fullscreen:active {
+    transform: scale(0.95);
+}
+
+/* BLOCCO E ADATTAMENTO SCHERMO INTERO */
+#Gioco:fullscreen {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #000; /* Sfondo nero nei bordi */
+    overflow: hidden;
+}
+
+#Gioco:fullscreen canvas {
+    max-width: 100vw;
+    max-height: 100vh;
+    object-fit: contain; /* Mantiene la proporzione 16:9 senza sformare */
+}
