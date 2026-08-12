@@ -170,7 +170,7 @@ class Fighter extends Sprite{
             }
             //- - - VERIFYING JUMP CONDITION - - - 
             if (this.keys.up.pressed && this.OnGround && !this.Defending && !this.Dead && !this.isAttacking) {
-                this.velocity.y = -24*dt;
+                this.velocity.y = -24;
                 this.OnGround = false;
             }
         }
