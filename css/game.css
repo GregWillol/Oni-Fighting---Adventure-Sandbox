@@ -247,3 +247,14 @@ canvas{
     max-height: 100vh;
     object-fit: contain; /* Mantiene la proporzione 16:9 senza sformare */
 }
+* {
+    /* Disabilita la selezione del testo (fondamentale per Safari) */
+    -webkit-user-select: none;
+    user-select: none;
+
+    /* Rimuove l'alone grigio di default che appare quando tappi un pulsante su iOS */
+    -webkit-tap-highlight-color: transparent;
+
+    /* Disabilita il menu popup (copia/incolla/condividi) che esce tenendo premuto */
+    -webkit-touch-callout: none;
+}
