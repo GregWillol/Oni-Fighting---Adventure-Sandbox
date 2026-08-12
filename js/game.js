@@ -235,3 +235,48 @@ document.addEventListener("keyup",e=>{
             break;
     }
 })
+
+function initMobileControls() {
+    const controls = [
+        { id: 'btn-left', key: 'left' },
+        { id: 'btn-right', key: 'right' },
+        { id: 'btn-up', key: 'up' },
+        { id: 'btn-defend', key: 'defend' },
+        { 
+            id: 'btn-attack', 
+            key: 'attack', 
+            // Innesca l'attacco al tocco come farebbe il keydown della tastiera
+            onPress: () => { if (Player1 && Player1.attack) Player1.attack(); } 
+        }
+    ];
+
+    controls.forEach(({ id, key, onPress }) => {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+
+        const handleStart = (e) => {
+            e.preventDefault();
+            if (!Player1 || !Player1.keys[key]) return;
+
+            Player1.keys[key].pressed = true;
+            if (Player1.ControlKeys && Player1.ControlKeys[key]) {
+                Player1.LastKeyPressed = Player1.ControlKeys[key];
+            }
+            if (onPress) onPress();
+        };
+
+        const handleEnd = (e) => {
+            e.preventDefault();
+            if (Player1 && Player1.keys[key]) {
+                Player1.keys[key].pressed = false;
+            }
+        };
+
+        btn.addEventListener('touchstart', handleStart, { passive: false });
+        btn.addEventListener('touchend', handleEnd, { passive: false });
+        btn.addEventListener('touchcancel', handleEnd, { passive: false });
+    });
+}
+
+// Invocala all'avvio del gioco
+initMobileControls();

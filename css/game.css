@@ -168,3 +168,40 @@ canvas{
     transition: width 0.3s ease-out;
     background: linear-gradient(90deg, rgb(163, 225, 235) 0%, rgb(69, 241, 230) 56%, rgb(83, 103, 237) 100%);
 }
+#mobile-controls {
+    position: absolute;
+    bottom: 25px;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 40px;
+    box-sizing: border-box;
+    z-index: 100;
+    pointer-events: none; /* Permette il click sotto se premi dove non ci sono bottoni */
+}
+
+#mobile-controls button {
+    pointer-events: auto;
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.4);
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    color: white;
+    font-size: 22px;
+    backdrop-filter: blur(4px);
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+}
+
+#mobile-controls button:active {
+    background: rgba(255, 255, 255, 0.4);
+    transform: scale(0.92);
+}
+
+.dpad, .actions {
+    display: flex;
+    gap: 15px;
+}
