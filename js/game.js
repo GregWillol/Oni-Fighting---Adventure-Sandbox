@@ -10,19 +10,58 @@ g.loadMap(map);
 const Player1 = Fighter.createFighters(1)
 const Player2 = Fighter.createFighters(2)
 const Player3 =  Fighter.createFighters(3)
-g.Fighters = [Player1,Player2,Player3];
+const Player4 =  Fighter.createFighters(4)
+
+g.Fighters = [Player1,Player2,Player3,Player4];
 
 const Mask1 = Mask.CreateMask(Math.random());
 const Aura1 = Sprite.CreateAura(1);
 const Aura2 = Sprite.CreateAura(2);
 
 
+const Lamp1 = new Sprite ({
+            position : {
+                x:700,
+                y:700
+            },
+            size : {
+                x : 50,
+                y: 50
+            },
+            imageSrc : './img/VFX/Lamp/OrangeSilver.png',
+            framesMax : 38,
+            scale : 1, 
+            offset : {
+                x:-200,
+                y:40
+            },
+            color : "black"
+        }) 
+        const Lamp2 = new Sprite ({
+            position : {
+                x:217,
+                y:550
+            },
+            size : {
+                x : 50,
+                y: 50
+            },
+            imageSrc : './img/VFX/Lamp/Lamp2.png',
+            framesMax : 38,
+            scale : 1.7, 
+            offset : {
+                x:3,
+                y:14
+            },
+            color : "black"
+        }) 
 
 
 
 g.Pointers.push(FloatingPointers.createPointers(Player1));
 g.Pointers.push(FloatingPointers.createPointers(Player2));
 g.Pointers.push(FloatingPointers.createPointers(Player3));
+g.Pointers.push(FloatingPointers.createPointers(Player4));
 
 function Gameloop (currentTime){
     if (!g.FlagGame){
@@ -46,6 +85,9 @@ function Gameloop (currentTime){
         g.Platforms.forEach(platform=>{
             platform.Draw();
         })
+        // Lamp
+        Lamp1.update(dt);
+        Lamp2.update(dt);
 
         // - - - AURA UPDATE - - -
         if (Player2.PoweredUp && !Player2.Dead){
@@ -60,6 +102,7 @@ function Gameloop (currentTime){
             Mask1.update(dt);
         }
 
+        
       
         
         // - - - PLAYERS UPDATE - - -

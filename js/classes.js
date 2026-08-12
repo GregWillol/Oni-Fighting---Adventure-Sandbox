@@ -381,6 +381,7 @@ class Fighter extends Sprite{
         
         if (this.staminaBar >= 3){
             utilStaminaTimer(this);
+            CreateVFX(this,"UP");
         }
 
         
@@ -675,11 +676,14 @@ class Fighter extends Sprite{
             if (ids === 3){
                 configData = FIGHTER_STATS.Night3;
             }
+            else if (ids === 4){
+                configData = FIGHTER_STATS.Night2;
+            }
         const basePos = ids === 1 ? g.StartingPositionP1 : g.StartingPositionP2;
 
         let spawnPos =  { x : basePos.x, y: basePos.y };
-        if (ids === 3){
-                spawnPos.x -= 100;
+        if (ids > 2){
+                spawnPos.x -= Math.random()*100;
         }
         return new Fighter({
             position : spawnPos,
@@ -1054,7 +1058,7 @@ class Bullet extends Sprite{
                         g.Bullets.splice(index,1);
                     }
                     CreateVFX(this, "DISAPPEAR","",false)
-                    console.log(g.Bullets);
+                    
             }
         }
         

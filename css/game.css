@@ -48,7 +48,6 @@ canvas{
 #Giocatore{
     display: flex;
     align-items: center;
-    justify-content: center;
     gap : 2%;
 }
 .health-bar-container{
@@ -146,18 +145,18 @@ canvas{
     animation : bounceIn 2s cubic-bezier(0.68,-0.55,0.27,1.55) infinite; 
 }
 #P1-container{
-    width : 30% ;
-    height : 40%;
+    width : 400px; /* Stessa larghezza della health-bar-container */
     display : flex;
     flex-direction: column;
     align-items: flex-start;
     justify-content: center;
-    gap : 3%;
+    gap : 8px; /* Un po' più di spazio tra le due barre */
 }
+
 #stamina-bar-container{
-    width: 50%; 
-    height : 10%;
-    background-color : darkred;
+    width: 30%; /* Copre tutta la larghezza sotto la vita */
+    height : 12px; /* Altezza fissa in pixel invece che percentuale */
+    background-color : rgba(50, 0, 0, 0.6);
     border: 2px solid gray; 
     border-radius: 4px;
     box-shadow: 0 0 5px rgba(0,0,0,0.5);

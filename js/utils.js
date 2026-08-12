@@ -272,7 +272,9 @@ function CreateVFX(player,typo,text,bool = true){
             DASH : {text : "", color : player.Player === 1 ? "#FF3126" : "#8f00ff", offset: {x: player.size.x/2 , y:player.size.y/2},velocity: {x:0 , y:0},count : 30},
             DAM : {text : "", color : player.Player !== 1 ? "#FF3126" : "#8f00ff", offset :{x: player.size.x, y:player.size.y/2},velocity : {x:0 , y:0 },count : 10},
             COOLDOWN : {text : text, color : player.Player === 1 ? "#FF3126" : "#8f00ff", offset :{x: player.size.x/2, y:player.size.y},velocity : {x:0 , y:-0.5 },count : 1},
-            DISAPPEAR : {text : "", color : "orange", offset :{x: player.size.x, y:player.size.y/2},velocity : {x:0 , y: 0},count : 20},};
+            DISAPPEAR : {text : "", color : "orange", offset :{x: player.size.x, y:player.size.y/2},velocity : {x:0 , y: 0},count : 20},
+            UP : {text : "", color : "blue", offset :{x: 0, y:Math.random()*player.size.y},velocity : {x:0 , y: 0},count : 2},
+        };
     let Direction = 1;
     if (bool){
         Direction = player.Direction.right ? -1 : 1 ; 
@@ -289,7 +291,7 @@ function CreateVFX(player,typo,text,bool = true){
         }
         let randVelocity;
         //Need 2 different assets for these vfx
-        if (typo === "JUMP" || typo === "DASH" || typo === "DAM" || typo === "DISAPPEAR"){
+        if (typo === "JUMP" || typo === "DASH" || typo === "DAM" || typo === "DISAPPEAR" || "UP"){
             const randOffset = RandomOffsetVFX(player);
             offsetPlayer.x += randOffset.x-(player.size.x/2); 
             offsetPlayer.y += randOffset.y;

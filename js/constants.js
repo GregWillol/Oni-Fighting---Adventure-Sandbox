@@ -14,7 +14,7 @@ const MAP_CONFIG = {
         //- - - PLATFORMS POSITIONS - - -
         Platforms : [
             
-            { position : {x: g.MAX_WIDTH/2- 478, y: g.MAX_HEIGHT},size : {x:956,y:240},imageSrc: "./img/Platforms/Map1Platform.png", scale : 1 , offset : {x: 160 , y: 365}, color : "blue"}
+            { position : {x: g.MAX_WIDTH/2- 478, y: g.MAX_HEIGHT},size : {x:956,y:240},imageSrc: "./img/BackGround/tryingSomething.png", scale : 1 , offset : {x: 500 , y: 990}, color : "blue"}
         ]
     },
     2:{
@@ -332,8 +332,6 @@ const FIGHTER_STATS={
             },
         },
         attackFrame : 9,
-        
-
     }
 }
 const AURA_STATS={
