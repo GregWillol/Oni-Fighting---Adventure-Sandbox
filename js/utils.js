@@ -153,6 +153,27 @@ function ReduceAddHP(player){
     if (player.HealthPoints>=100) player.HealthPoints= 100;
         HealthBar.style.width=player.HealthPoints+"%" 
 }
+function ReduceAddStamina(player){
+
+    
+    if (player.staminaBar <=0) {
+        player.staminaBar = 0;
+    }
+    if (player.isAI || player.Player > 2) return;
+    
+    // - - - DOM - - -
+    const StaminaBar = document.getElementById("stamina-bar")
+    let StaminaBarWidth = 0 ; 
+    if (player.staminaBar>=3) {
+            player.staminaBar = 3;
+            StaminaBarWidth = 100;
+    }
+    else {
+        StaminaBarWidth = player.staminaBar*33;
+    }
+        StaminaBar.style.width= StaminaBarWidth+"%" 
+        
+}
 
 function TriggerAnnouncement(text,flag = false){
     RemoveAnnouncement();

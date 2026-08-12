@@ -29,7 +29,7 @@ function Gameloop (currentTime){
         return ; 
     }
     else {
-
+        // Delta Time
         if (!g.lastTime) g.lastTime = currentTime;
             let dt = (currentTime - g.lastTime) / (1000 / 60);
             g.lastTime = currentTime;

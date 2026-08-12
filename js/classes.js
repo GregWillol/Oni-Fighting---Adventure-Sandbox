@@ -125,6 +125,7 @@ class Fighter extends Sprite{
         this.type = type ;
         this.BulletCooldown = 0;
         this.aiTimer = 0;
+        this.staminaBar = 0;
     
         // for AI checking if it's stuck
         this.checkStuckTimer = 0;
@@ -292,15 +293,19 @@ class Fighter extends Sprite{
                 } else {
                     // --- BLOCKED ATTACK LOGIC ---
                     CreateVFX(victim, "DEF");
+                    if (!victim.isAI && victim.staminaBar < 3){
+                        victim.staminaBar++;
+                        ReduceAddStamina(victim);
+                    }
                 }
             }
         }
     }
-
+    
     // End of attack animation: trigger cooldown and clear hit entities tracking
     if (this.isAttacking && this.framesCurrent >= this.sprites.attack.framesMax - 1) {
         this.isAttacking = false;
-        this.attackCooldown = 90;
+        this.attackCooldown = this.staminaBar >= 3 ? 10 : 90;
         this.hitEnemies.length = 0; // Fast array reset without memory re-allocation
         // --- RIFLESSIONE PROIETTILI ---
         g.Bullets.forEach(bullet => {
@@ -328,9 +333,13 @@ class Fighter extends Sprite{
                 
                 // 4. Effetto visivo per la parata/respinta
                 CreateVFX(bullet, "DEF"); 
+                
             }
         });
     }
+
+    
+        
 }
         
 
@@ -993,6 +1002,10 @@ class Bullet extends Sprite{
                     this.other.velocity.x = pushDir * this.KnockBack;
                 } else {
                     CreateVFX(this.other, "DEF");
+                    if (this.other.staminaBar< 3){
+                        this.other.staminaBar++;
+                        ReduceAddStamina(this.other);
+                    }
                 }
                 const index =  g.Bullets.indexOf(this);
                     this.hasHit = true;
