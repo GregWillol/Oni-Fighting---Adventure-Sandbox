@@ -18,8 +18,8 @@ class GameContext {
                 y: 0 ,
                 zoom : 1 
             },
-            MAX_ZOOM :  1.5,
-            MIN_ZOOM : 0.7,
+            MAX_ZOOM :  0.9,
+            MIN_ZOOM : 0.5,
             PADDING : 200,
             SMOOTHING :0.05,
             
@@ -118,18 +118,20 @@ class GameContext {
         this.Pointers[1].text = this.Fighter2Name; 
         }
     } 
-    cameraMovement(){
-            c.save();
-            c.translate(this.MAX_WIDTH / 2, this.MAX_HEIGHT / 2);
-            c.scale(this.Camera.camera.zoom, this.Camera.camera.zoom); 
-            c.translate(-this.Camera.camera.x * this.Camera.SMOOTHING, -this.Camera.camera.y * this.Camera.SMOOTHING);
-            c.translate(-this.Background.size.x / 2, -this.Background.size.y / 2);
-            this.Background.update();
-            c.restore();
-            c.save();
-            c.translate(this.MAX_WIDTH / 2, this.MAX_HEIGHT / 2);
-            c.scale(this.Camera.camera.zoom, this.Camera.camera.zoom);
-            c.translate(-this.Camera.camera.x, -this.Camera.camera.y);
+    cameraMovement() {
+        c.save();
+        
+        // 1. Usa le dimensioni VERE dello schermo (canvas.width), non quelle della mappa!
+        c.translate(this.canvas.width / 2, this.canvas.height / 2);
+        
+        // 2. Applica lo Zoom
+        c.scale(this.Camera.camera.zoom, this.Camera.camera.zoom);
+        
+        // 3. Sposta il mondo sulle coordinate calcolate della Camera
+        c.translate(-this.Camera.camera.x, -this.Camera.camera.y);
+        
+        // 4. Disegna lo sfondo
+        if (this.Background) this.Background.update();
     }
     startTimer(){
         if (this.TimerIntervalId) clearInterval(this.TimerIntervalId);

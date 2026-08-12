@@ -65,7 +65,7 @@ function Gameloop (currentTime){
         // - - - PLAYERS UPDATE - - -
         g.Fighters.forEach(fighter => {
             HandleMovement(fighter);
-            if (!fighter.Dead) fighter.update(dt);
+            if (!fighter.imploded) fighter.update(dt);
         });
 
 

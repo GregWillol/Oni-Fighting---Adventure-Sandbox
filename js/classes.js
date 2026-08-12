@@ -127,6 +127,7 @@ class Fighter extends Sprite{
         this.aiTimer = 0;
         this.staminaBar = 0;
         this.staminaTimer = 300;
+        this.imploded = false;
     
         // for AI checking if it's stuck
         this.checkStuckTimer = 0;
@@ -142,6 +143,7 @@ class Fighter extends Sprite{
 
         }
         
+        
         //first thing before it can be changed
         if (this.HitStun > 0){
             this.HitStun--;
@@ -154,7 +156,7 @@ class Fighter extends Sprite{
         //- - - DIRECTION SETTING - - - 
         if (!isKnockedBack && this.HitStun === 0 && g.FlagFight){
             //Setting direction of the Sprite using the LastKeyPressed on X-Axis (so left or right)
-            if (this.keys.right.pressed && this.LastKeyPressed === this.ControlKeys.right && !this.Defending && !this.Dead && !this.isAttacking) {
+            if (this.keys.right.pressed && this.LastKeyPressed === this.ControlKeys.right && !this.Defending && !this.Dead && !this.isAttacking && !this.imploded) {
                 this.Direction.right = true; 
                 this.Direction.left = false; 
                 this.velocity.x = 5.5*dt;
@@ -405,7 +407,7 @@ class Fighter extends Sprite{
         else if (this.image === this.sprites.death.image && 
             this.framesCurrent === this.sprites.death.framesMax-1
         ){
-            g.FlagGame = false;
+            this.imploded = true;
         }
         
         if (!this.sprites[spriteName]) return;
@@ -863,13 +865,24 @@ class FloatingPointers extends FloatingText{
             const barWidth = 40; 
             const barHeight = 5;
             const hpPercent = Math.max(0,this.target.HealthPoints / 100);
+            console.log(hpPercent)
 
             // Color and Style
             c.save();
             c.fillStyle = '#440000'; 
             c.fillRect(this.position.x, this.position.y, barWidth, barHeight);
+            if (hpPercent < 0.34){
+                c.fillStyle = '#ff4800'; 
+
+            }
+            else if (hpPercent > 0.34 && hpPercent < 0.5){
+                c.fillStyle = '#ffbf00'; 
+
+            }
+            else {
+                c.fillStyle = '#00ff00'; 
+            }
             
-            c.fillStyle = '#00ff00'; 
             c.fillRect(this.position.x, this.position.y, barWidth * hpPercent, barHeight);
             
             c.strokeStyle = 'black'; 

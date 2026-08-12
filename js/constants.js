@@ -4,10 +4,10 @@ const MAP_CONFIG = {
     1 : {
         // - - - ANIMATION SPRITES / IMAGES SETTINGS - - - 
         background : {
-            link : "./img/BackGround/Map1Background.JPG",
+            link : "./img/BackGround/Background1.png",
             framesMax : 1,
-            offset : {x:400,y:130},
-            scale : 1
+            offset : {x:600,y:330},
+            scale : 1.1
         },
         // - - - PLAYERS POSITIONS - - -
         StartPos: null,
@@ -106,7 +106,8 @@ const FIGHTER_STATS={
             }
         },
         attackFrame : 5,
-        type : undefined
+        type : undefined,
+        Damage : 50
         
     },
     Night : {

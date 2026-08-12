@@ -139,13 +139,12 @@ function reduceTimer(){
 
 
 function ReduceAddHP(player){
-
-    
     if (player.HealthPoints <=0) {
         player.HealthPoints = 0;
-        player.Dead = true;
-
     }
+    else if (player.HealthPoints>=100) player.HealthPoints= 100;
+
+    
     if (player.isAI || player.Player > 2) return;
     
     // - - - DOM - - -
@@ -176,9 +175,10 @@ function ReduceAddStamina(player){
 }
 function utilStaminaTimer(player){
     player.staminaTimer--;
-    player.staminaBar = 0 ;
+    
     if (player.staminaTimer<= 0) {
         player.staminaTimer = 300;
+        player.staminaBar = 0 ;
         ReduceAddStamina(player);
     }
 }
@@ -198,61 +198,47 @@ function RemoveAnnouncement(){
     g.Announcement.classList.remove('show-announcement')
 }
 
-function CheckVictory({player1, player2, timerId}) {
+function CheckVictory({ player1, timerId }) {
     if (g.roundEnded) return;
 
-    let winner = null;
+    // 1. GESTIONE STATO: Chi ha 0 HP avvia la morte e setta .Dead = true
+    g.Fighters.forEach(f => {
+        if (f.HealthPoints <= 0 && f.image !== f.sprites.death.image) {
+            if (f.death) f.death();
+        }
+    });
 
-    if (player1.HealthPoints <= 0) {
-        winner = "P2";
-    } 
-    else if (player2.HealthPoints <= 0) {
-        winner = "P1";
-    }
-    if (g.timer === 0) {
-        if (player1.HealthPoints > player2.HealthPoints) {
-            winner = "P1";
-        } else if (player1.HealthPoints < player2.HealthPoints) {
-            winner = "P2";
-        } else {
-            winner = "TIE";
-        }
-    }
-    if (winner) {     
-        g.roundEnded= true;
+    // 2. SCONFITTA: Scatta SOLO quando P1 ha finito l'animazione (.imploded = true)
+    if (player1.HealthPoints <= 0 && player1.imploded) {
+        g.roundEnded = true;
         clearInterval(timerId);
-        if (winner === "P1") {
-            Player2.Dead = true;  
-            Player2.death();      
-            
-            TriggerAnnouncement((window.P1_NAME || "P1") + " WINS !!!",true);
-            SaveStatistics(window.P1_ID, true, player2.HealthPoints);
-            SaveStatistics(window.P2_ID, false, player1.HealthPoints);
-        } 
-        else if (winner === "P2") {
-            Player1.Dead = true;  
-            Player1.death();    
-            const nomeP2 = window.P2_NAME || "P2";
-            TriggerAnnouncement(nomeP2 + " WINS !!!",true);
-            SaveStatistics(window.P1_ID, false, player2.HealthPoints);
-            SaveStatistics(window.P2_ID, true, player1.HealthPoints);
-        } 
-        else {
-            Player1.Dead = true;
-            Player1.death();
-            Player2.Dead = true;
-            Player2.death();
-            TriggerAnnouncement("TIE");
+        TriggerAnnouncement("YOU DIED", true);
+        return; 
+    }
+
+    // 3. TIMEOUT: Scade il tempo
+    if (g.timer === 0) {
+        g.roundEnded = true;
+        clearInterval(timerId);
+        if (player1.image !== player1.sprites.death.image) {
+            if (player1.death) player1.death();
         }
-        // Death animation need to play
-        /*setTimeout(() => {
-            g.GameOver = true;
-            //console.log("Redirect index.php")
-            window.location.replace("index.php") 
-        }, 4000);   */
+        TriggerAnnouncement("YOU DIED", true);
+        return;
+    }
+
+    // 4. VITTORIA: Controlliamo che i nemici siano implosi
+    const enemies = g.Fighters.filter(f => f.Player !== 1);
+    const allEnemiesDefeated = enemies.length > 0 && enemies.every(mob => mob.imploded);
+
+    if (allEnemiesDefeated) {
+        g.roundEnded = true;
+        clearInterval(timerId);
+        
+        const p1Name = window.P1_NAME || "P1";
+        TriggerAnnouncement(p1Name + " WINS !!!", true);
     }
 }
-
 
 function HandleMovement(player){
     if (player.Dead) {
@@ -366,34 +352,74 @@ function ApplyKnockback(gotHit,Attacker){
 
 
 function updateCamera() {
-    const activeFighters = g.Fighters.filter(f => f && !f.Dead);
-    if (activeFighters.length === 0) return;
+    if (!Player1 || Player1.Dead) return;
 
-    let minX = Infinity, maxX = -Infinity;
+    // 1. Troviamo TUTTI i nemici vivi
+    const enemies = g.Fighters.filter(f => f !== Player1 && !f.Dead);
 
-    activeFighters.forEach(f => {
-        const centerX = f.position.x + f.size.x / 2;
-        if (centerX < minX) minX = centerX;
-        if (centerX > maxX) maxX = centerX;
-    });
+    let targetX = Player1.position.x + Player1.size.x / 2;
+    let targetY = g.MAX_HEIGHT / 2 + 100; 
+    let targetZoom = 1;
 
-    const midX = (minX + maxX) / 2;
-    const distMapX = maxX - minX;
+    // --- MODALITÀ BATTAGLIA (Nemici Vivi) ---
+    if (enemies.length > 0) {
+        let minX = targetX;
+        let maxX = targetX;
 
-    // 1. Zoom più morbido e con un limite massimo più prudente (1000 -> 1200 per allargare un po')
-    let targetZoom = g.MAX_WIDTH / (distMapX + 1200); 
-    if (targetZoom < 0.75) targetZoom = 0.75;
-    if (targetZoom > 0.95) targetZoom = 0.95; // Un pelo meno zoomato da vicino per stabilizzare
-    if (!g.Camera.camera.zoom) g.Camera.camera.zoom = 1;
+        enemies.forEach(mob => {
+            const mobX = mob.position.x + mob.size.x / 2;
+            if (mobX < minX) minX = mobX;
+            if (mobX > maxX) maxX = mobX;
+        });
 
-    // 2. Usiamo uno smoothing fisso più lento (es. 0.04) per ammorbidire gli scatti
+        targetX = (minX + maxX) / 2; 
+
+        const spread = maxX - minX;
+        
+        // CORREZIONE 1: Usare g.canvas.width, non g.MAX_WIDTH!
+        // Aumenta il numero sommato (es. 1200 o 1400) per tenere la camera più distante
+        targetZoom = g.canvas.width / (spread + 1400); 
+        
+        // Abbassiamo i limiti per permettere un FOV molto più grande
+        if (targetZoom < 0.5) targetZoom = 0.6; // Limite in allontanamento (molto ampio)
+        if (targetZoom > 0.8) targetZoom = 1.2; // Limite in avvicinamento (non ti si appiccicherà mai addosso)     
+    }
+    else {
+        // Guarda un po' più avanti di te
+        const lookAheadOffset = Player1.Direction.right ? 150 : -150;
+        targetX = Player1.position.x + Player1.size.x / 2 + lookAheadOffset;
+        
+        // PRIMA ERA 0.95. Mettilo a 0.75 per avere subito un FOV enorme quando esplori!
+        targetZoom = 0.9; 
+    }
+
+    // 2. SMOOTHING "SNAPPY"
     const smooth = 0.04; 
 
+    if (!g.Camera.camera.x) g.Camera.camera.x = targetX;
+    if (!g.Camera.camera.zoom) g.Camera.camera.zoom = targetZoom;
+
+    g.Camera.camera.x += (targetX - g.Camera.camera.x) * smooth;
     g.Camera.camera.zoom += (targetZoom - g.Camera.camera.zoom) * smooth;
-    g.Camera.camera.x += (midX - g.Camera.camera.x) * smooth;
-    
-    // 3. Fissiamo l'asse Y a una quota fissa (altezza dello stage/2) invece di farla saltare con i bot
-    g.Camera.camera.y = g.MAX_HEIGHT / 2 + 100; // Aumenta +100 o +150 per abbassare l'inquadratura
+    g.Camera.camera.y = targetY - 50; 
+
+    // 3. LIMITI DELLA MAPPA (Clamping a prova di bomba)
+    const WORLD_WIDTH = g.MAX_WIDTH; 
+    const halfViewWidth = (g.canvas.width / 2) / g.Camera.camera.zoom;
+
+    // Se la visuale è diventata più larga di tutta la mappa...
+    if (halfViewWidth * 2 >= WORLD_WIDTH) {
+        g.Camera.camera.x = WORLD_WIDTH / 2; // ...centrati perfettamente a metà stage e non muoverti!
+    } 
+    // Altrimenti fai scorrere normalmente i bordi
+    else {
+        if (g.Camera.camera.x - halfViewWidth < 0) {
+            g.Camera.camera.x = halfViewWidth; // Muro Sinistro
+        }
+        if (g.Camera.camera.x + halfViewWidth > WORLD_WIDTH) {
+            g.Camera.camera.x = WORLD_WIDTH - halfViewWidth; // Muro Destro
+        }
+    }
 }
 function RandomOffsetVFX(player){
     return {

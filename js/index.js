@@ -20,7 +20,7 @@ async function SaveNames() {
     const errorMsg = document.getElementById("ErrorP2");
     // single player
     if (p2Id === "0") {
-        localStorage.setItem("player1_name", p1Name);
+        localStorage.setItem("player1_name", "p1Name");
         localStorage.setItem("player2_name", "CPU"); 
         window.location.href = "game.html";
         return;
