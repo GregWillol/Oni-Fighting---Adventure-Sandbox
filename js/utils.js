@@ -174,6 +174,14 @@ function ReduceAddStamina(player){
         StaminaBar.style.width= StaminaBarWidth+"%" 
         
 }
+function utilStaminaTimer(player){
+    player.staminaTimer--;
+    player.staminaBar = 0 ;
+    if (player.staminaTimer<= 0) {
+        player.staminaTimer = 300;
+        ReduceAddStamina(player);
+    }
+}
 
 function TriggerAnnouncement(text,flag = false){
     RemoveAnnouncement();

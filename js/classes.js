@@ -126,6 +126,7 @@ class Fighter extends Sprite{
         this.BulletCooldown = 0;
         this.aiTimer = 0;
         this.staminaBar = 0;
+        this.staminaTimer = 300;
     
         // for AI checking if it's stuck
         this.checkStuckTimer = 0;
@@ -376,6 +377,9 @@ class Fighter extends Sprite{
             aura.position.y = this.position.y;
         }
         
+        if (this.staminaBar >= 3){
+            utilStaminaTimer(this);
+        }
 
         
         
@@ -536,12 +540,14 @@ class Fighter extends Sprite{
         }
 
             // - - - DIRECTION - - -
-            if (diffX > 0) {
-                this.Direction.right = true;
-                this.Direction.left = false;
-            } else {
-                this.Direction.right = false;
-                this.Direction.left = true;
+            if (!this.isAttacking){
+                if (diffX > 0) {
+                    this.Direction.right = true;
+                    this.Direction.left = false;
+                } else {
+                    this.Direction.right = false;
+                    this.Direction.left = true;
+                }
             }
         
 
@@ -566,7 +572,7 @@ class Fighter extends Sprite{
     }
        else if (this.type === "launcher") {
 
-            if (this.isAttacking){
+            if (this.isAttacking && this.framesCurrent >= this.sprites.attack.framesMax - 1){
                 this.keys.left.pressed = false;
                 this.keys.right.pressed = false;
                 return;
@@ -1078,7 +1084,7 @@ class Bullet extends Sprite{
         const gravity = g.Gravity_Acceleration / 8;
 
        
-        const vy = -6; 
+        const vy = Math.random()*10*-1; 
 
         // 4. Calcolo esatto del tempo di volo T basato sull'arco verticale
         const discriminant = (vy * vy) + (2 * gravity * dy);
