@@ -1,4 +1,13 @@
 
+/* Mettilo alla primissima riga di game.css */
+*, *::before, *::after {
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+    /* Evita che Safari cerchi di fare lo zoom sui tap veloci */
+    touch-action: manipulation; 
+}
 canvas{
     display: block;
     background-color: #778899; 
@@ -61,7 +70,6 @@ canvas{
     display: flex; 
     align-items: center;
     justify-content: center;
-    
     backdrop-filter: blur(12px);
     border : 1px black dotted;
     border-radius: 20%;
@@ -262,24 +270,23 @@ canvas{
 
 
 /*choosing enemies styles*/
-#choosing-enemies{
+#choosing-enemies {
+    position: absolute;
+    top: 120px; /* Lo mette in alto a destra, appena sotto i nomi/vita */
+    right: 20px;
     display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    gap : 4%;
+    flex-direction: column; /* Mette i bottoni in colonna */
+    gap: 10px;
+    z-index: 100;
 }
-.spawn-enemies{
+.spawn-enemies {
     background: linear-gradient(to bottom, #000,#b8870b48);
     color: #ffd700;
-    font-family: 'Press Start 2P', cursive; 
-    font-size: 16px;
-    padding : 20px 40px;
-    border: 2px solid orange;
-    box-shadow: 4px 4px 0px #000;
-    transition: all 0.1s;
-    display: block;
-    margin: 20px auto;
+    border: 1px solid white;
+    padding: 8px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: 'Press Start 2P', cursive;
 }
 
 .spawn-enemies:hover {

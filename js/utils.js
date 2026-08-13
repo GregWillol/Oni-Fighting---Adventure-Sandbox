@@ -384,8 +384,8 @@ function updateCamera() {
         targetZoom = g.canvas.width / (spread + 1400); 
         
         // Abbassiamo i limiti per permettere un FOV molto più grande
-        if (targetZoom < 0.5) targetZoom = 0.6; // Limite in allontanamento (molto ampio)
-        if (targetZoom > 0.8) targetZoom = 1.2; // Limite in avvicinamento (non ti si appiccicherà mai addosso)     
+        if (targetZoom < 0.6) targetZoom = 0.6; // Limite in allontanamento
+        if (targetZoom > 1.0) targetZoom = 1.0; // Limite in avvicinamento (così non ti zooma troppo addosso)     
     }
     else {
         // Guarda un po' più avanti di te
@@ -453,9 +453,10 @@ function IncrementEnemies(ids){
     g.Pointers.push(FloatingPointers.createPointers(Player));
     g.Fighters.push(Player);
 }
-function DropPotions (){
-    const NewMask = Mask.CreateMask(Math.random());
+function DropPotions() {
+    const randomValue = Math.random();
+    const NewMask = Mask.CreateMask(randomValue);
+   
     NewMask.Placed = true;
     g.Potions.push(NewMask);
-    
 }

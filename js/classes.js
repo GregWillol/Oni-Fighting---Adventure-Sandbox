@@ -23,8 +23,8 @@ class Sprite{
     }
     Draw(){
         // - - - DEBUG - - -
-        c.fillStyle = this.color;
-        c.fillRect(this.position.x, this.position.y, this.size.x, this.size.y);
+        //c.fillStyle = this.color;
+        //c.fillRect(this.position.x, this.position.y, this.size.x, this.size.y);
         
         
         if (!this.image || !this.image.src) {
@@ -726,8 +726,8 @@ class Mask extends Sprite{
         this.GotTaken = false;
         this.Placed = false;
     }
-    update(){
-        this.animateFrames();
+    update(dt){
+        this.animateFrames(dt);
 
         this.velocity.x = 0 ; 
         this.position.x += this.velocity.x ; 
@@ -795,9 +795,13 @@ class Mask extends Sprite{
         // 50 % that power up has knockback and less curing health
         const config = val < 0.5 ? MASK_STATS[1] : MASK_STATS[2]
         g.maskTitle = val < 0.5  ? "Damage Mult." : "KnockBack Mult.";
+
+        const randomX = val < 0.5 
+            ? Math.floor(Math.random() * (g.MAX_WIDTH - 200) + 50) 
+            : Math.floor(Math.random() * (g.MAX_WIDTH / 2) + 478);
         
         return new Mask ({
-            position : config.position,
+            position : {x : randomX, y:0},
             size : config.size,
             CuringHealth:config.CuringHealth,
             DamageMult : config.DamageMult,

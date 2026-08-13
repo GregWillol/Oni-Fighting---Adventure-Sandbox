@@ -374,12 +374,12 @@ const MASK_STATS= {
     1 : {
         // - - - POWER UP POSITION / SIZE - - -
         position: {
-            x : Math.floor(Math.random() * (g.MAX_WIDTH-200)+50),
+            x : 0,
             y : 0
         },
         size: {
-            x: 90,
-            y:90
+            x: 40,
+            y:70
         },
         // - - - POWER UP STATS - - -
         CuringHealth: 25,
@@ -389,17 +389,17 @@ const MASK_STATS= {
         imageSrc : './img/PowerUp/purpleVial.png',
         framesMax : 22,
         scale : 2, 
-        offset : {x: -2, y:0},        
+        offset : {x: 0, y:0},        
     },
     2 : {
         // - - - POWER UP POSITION / SIZE - - -
         position: {
-            x : Math.floor(Math.random() * g.MAX_WIDTH/2+478),
+            x : 0,
             y : 0
         },
         size: {
-            x: 90,
-            y:90
+            x: 40,
+            y:70
         },
         // - - - POWER UP STATS - - -
         CuringHealth: 15,
