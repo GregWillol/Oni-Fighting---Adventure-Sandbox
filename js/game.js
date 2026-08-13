@@ -251,9 +251,9 @@ function initMobileControls() {
         { 
             id: 'btn-attack', 
             key: 'attack', 
-            // FIX: Scatta solo se Player1 NON sta già attaccando
             onPress: () => { 
-                if (Player1 && Player1.attack && !Player1.isAttacking) {
+                // Aggiunto il controllo del cooldown (come da tastiera) per non far laggare i frame
+                if (Player1 && Player1.attack && Player1.attackCooldown === 0 && !Player1.isAttacking) {
                     Player1.attack(); 
                 } 
             } 
@@ -270,9 +270,9 @@ function initMobileControls() {
 
             Player1.keys[key].pressed = true;
             
-            // FIX: Aggiorniamo LastKeyPressed SOLO se stiamo muovendoci a destra o sinistra.
-            // In questo modo, saltare, difendersi o attaccare non fermerà la corsa!
-            if ((key === 'left' || key === 'right' || 'defend') && Player1.ControlKeys && Player1.ControlKeys[key]) {
+            // FIX: Ora la sintassi è corretta (key === 'defend')
+            // Salto e attacco non fermeranno più la tua corsa!
+            if ((key === 'left' || key === 'right' || key === 'defend') && Player1.ControlKeys && Player1.ControlKeys[key]) {
                 Player1.LastKeyPressed = Player1.ControlKeys[key];
             }
             
