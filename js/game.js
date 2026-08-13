@@ -272,7 +272,7 @@ function initMobileControls() {
             
             // FIX: Aggiorniamo LastKeyPressed SOLO se stiamo muovendoci a destra o sinistra.
             // In questo modo, saltare, difendersi o attaccare non fermerà la corsa!
-            if ((key === 'left' || key === 'right') && Player1.ControlKeys && Player1.ControlKeys[key]) {
+            if ((key === 'left' || key === 'right' || 'defend') && Player1.ControlKeys && Player1.ControlKeys[key]) {
                 Player1.LastKeyPressed = Player1.ControlKeys[key];
             }
             
@@ -283,6 +283,9 @@ function initMobileControls() {
             e.preventDefault();
             if (Player1 && Player1.keys[key]) {
                 Player1.keys[key].pressed = false;
+                if (key === 'defend'){
+                    Player1.Defending = false;
+                }
             }
         };
 
