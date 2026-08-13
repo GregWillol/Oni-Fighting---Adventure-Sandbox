@@ -685,6 +685,19 @@ class Fighter extends Sprite{
         if (ids > 2){
                 spawnPos.x -= Math.random()*300;
         }
+
+        // --- FIX DEL BUG DEI CLONI ---
+        // Creiamo una COPIA INDIPENDENTE degli sprites per ogni nuovo nemico!
+        let clonedSprites = {};
+        for (const [key, value] of Object.entries(configData.sprites)) {
+            clonedSprites[key] = {
+                imageSrc: value.imageSrc,
+                framesMax: value.framesMax,
+                framesHold: value.framesHold // se lo usi
+                // Non copiamo "image", così la classe Sprite se ne creerà una nuova per conto suo!
+            };
+        }
+
         return new Fighter({
             position : spawnPos,
             size : configData.size,
@@ -698,12 +711,14 @@ class Fighter extends Sprite{
             framesMax : configData.framesMax,
             scale : configData.scale,
             offset : configData.offset,
-            sprites : configData.sprites,
+            
+            // Passiamo i cloni, non l'oggetto originale!
+            sprites : clonedSprites, 
+            
             isAI : configData.isAI,
             attackFrame : configData.attackFrame,
             type : configData.type,
         })
-
     }
 }
 
