@@ -116,6 +116,7 @@ function reduceTimer(){
         // - - - COUNTDOWN - - -
         case 63: 
             TriggerAnnouncement("3"); 
+            
             break;
         case 62: 
             TriggerAnnouncement("2"); 
@@ -444,4 +445,17 @@ function Only3(str){
     else {
         return str.substring(0, 3);
     }
+}
+
+function IncrementEnemies(ids){
+    if (g.roundEnded) return;
+    const Player = Fighter.createFighters(ids);
+    g.Pointers.push(FloatingPointers.createPointers(Player));
+    g.Fighters.push(Player);
+}
+function DropPotions (){
+    const NewMask = Mask.CreateMask(Math.random());
+    NewMask.Placed = true;
+    g.Potions.push(NewMask);
+    
 }

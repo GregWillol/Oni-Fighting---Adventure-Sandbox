@@ -23,8 +23,8 @@ class Sprite{
     }
     Draw(){
         // - - - DEBUG - - -
-        //c.fillStyle = this.color;
-        //c.fillRect(this.position.x, this.position.y, this.size.x, this.size.y);
+        c.fillStyle = this.color;
+        c.fillRect(this.position.x, this.position.y, this.size.x, this.size.y);
         
         
         if (!this.image || !this.image.src) {
@@ -170,7 +170,7 @@ class Fighter extends Sprite{
             }
             //- - - VERIFYING JUMP CONDITION - - - 
             if (this.keys.up.pressed && this.OnGround && !this.Defending && !this.Dead && !this.isAttacking) {
-                this.velocity.y = -24;
+                this.velocity.y = -15;
                 this.OnGround = false;
             }
         }
@@ -683,7 +683,7 @@ class Fighter extends Sprite{
 
         let spawnPos =  { x : basePos.x, y: basePos.y };
         if (ids > 2){
-                spawnPos.x -= Math.random()*100;
+                spawnPos.x -= Math.random()*300;
         }
         return new Fighter({
             position : spawnPos,
@@ -890,7 +890,6 @@ class FloatingPointers extends FloatingText{
             const barWidth = 50; 
             const barHeight = 5;
             const hpPercent = Math.max(0,this.target.HealthPoints / 100);
-            console.log(hpPercent)
 
             // Color and Style
             c.save();
@@ -968,7 +967,7 @@ class Bullet extends Sprite{
         this.other = other;
         this.liveFrames = liveFrames;
         this.framesMax = framesMax;
-        this.isUnblockable = this.isUnblockable
+        this.isUnblockable = isUnblockable;
         
         this.Direction = {
             left: this.velocity.x < 0,

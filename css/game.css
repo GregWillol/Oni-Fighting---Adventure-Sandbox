@@ -5,23 +5,37 @@ canvas{
 }
 
 #Gioco {
-    position: relative; 
-    width: 100vw;       /* Prende tutta la larghezza dello schermo... */
-    height: 100vh;      /* ...e tutta l'altezza, sempre! */
-    display: flex; 
-    align-items: center; 
-    justify-content: center;
-    background-color: #000;
-    overflow: hidden;
+    position: relative;
+    width: 1280px; 
+    max-width: 100%;
+    margin: 0 auto; 
     touch-action: none;
 }
 
 #Game {
-    max-width: 100%;    /* Non uscirà mai fuori dallo schermo in larghezza */
-    max-height: 100%;   /* Non uscirà mai in altezza */
-    aspect-ratio: 16 / 9; /* Mantiene la forma a rettangolo perfetto! */
-    object-fit: contain;
-    box-shadow: 0 0 20px rgba(0,0,0,0.5); 
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
+@media (max-width: 1024px) {
+    body, html {
+        background-color: #000;
+    }
+    
+    #Gioco {
+        width: 100vw;
+        height: 100dvh; 
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    #Game {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
 }
 #Interface {
     top: 0;
@@ -231,30 +245,50 @@ canvas{
     transform: scale(0.95);
 }
 
-/* BLOCCO E ADATTAMENTO SCHERMO INTERO */
-#Gioco:fullscreen {
+#Gioco:fullscreen, #Gioco:-webkit-full-screen {
     width: 100vw;
     height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: #000; /* Sfondo nero nei bordi */
-    overflow: hidden;
+    background-color: #000;
 }
 
-#Gioco:fullscreen canvas {
-    max-width: 100vw;
-    max-height: 100vh;
-    object-fit: contain; /* Mantiene la proporzione 16:9 senza sformare */
+#Gioco:fullscreen #Game, #Gioco:-webkit-full-screen #Game {
+    width: 100vw;
+    height: 100vh;
+    object-fit: contain;
 }
-* {
-    /* Disabilita la selezione del testo (fondamentale per Safari) */
-    -webkit-user-select: none;
-    user-select: none;
 
-    /* Rimuove l'alone grigio di default che appare quando tappi un pulsante su iOS */
-    -webkit-tap-highlight-color: transparent;
 
-    /* Disabilita il menu popup (copia/incolla/condividi) che esce tenendo premuto */
-    -webkit-touch-callout: none;
+/*choosing enemies styles*/
+#choosing-enemies{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap : 4%;
+}
+.spawn-enemies{
+    background: linear-gradient(to bottom, #000,#b8870b48);
+    color: #ffd700;
+    font-family: 'Press Start 2P', cursive; 
+    font-size: 16px;
+    padding : 20px 40px;
+    border: 2px solid orange;
+    box-shadow: 4px 4px 0px #000;
+    transition: all 0.1s;
+    display: block;
+    margin: 20px auto;
+}
+
+.spawn-enemies:hover {
+    background: linear-gradient(to bottom, #ffd900a8,#b8870b96);
+    animation: arcade-pulse 5s ease-in-out infinite;
+}
+
+.spawn-enemies:active {
+    transform: translate(4px, 4px);
+    box-shadow: 0px 0px 0px #000;
+    animation : none;
 }

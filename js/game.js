@@ -9,10 +9,9 @@ g.loadMap(map);
 // - - - CONSTANTS - - - 
 const Player1 = Fighter.createFighters(1)
 const Player2 = Fighter.createFighters(2)
-const Player3 =  Fighter.createFighters(3)
-const Player4 =  Fighter.createFighters(4)
 
-g.Fighters = [Player1,Player2,Player3,Player4];
+
+g.Fighters = [Player1,Player2];
 
 const Mask1 = Mask.CreateMask(Math.random());
 const Aura1 = Sprite.CreateAura(1);
@@ -60,8 +59,7 @@ const Lamp1 = new Sprite ({
 
 g.Pointers.push(FloatingPointers.createPointers(Player1));
 g.Pointers.push(FloatingPointers.createPointers(Player2));
-g.Pointers.push(FloatingPointers.createPointers(Player3));
-g.Pointers.push(FloatingPointers.createPointers(Player4));
+
 
 function Gameloop (currentTime){
     if (!g.FlagGame){
@@ -98,9 +96,17 @@ function Gameloop (currentTime){
         }
 
         // - - - MASK UPDATE - - -
-        if (Mask1.Placed && !Mask1.GotTaken){
-            Mask1.update(dt);
-        }
+        // - - - MASK UPDATE - - -
+for (let i = g.Potions.length - 1; i >= 0; i--) {
+    const mask = g.Potions[i];
+    
+    if (mask.Placed && !mask.GotTaken) {
+        mask.update(dt);
+    } else if (mask.GotTaken) {
+        // Se la pozione è stata presa, la polverizziamo dall'array
+        g.Potions.splice(i, 1);
+    }
+}
 
         
       
@@ -245,8 +251,12 @@ function initMobileControls() {
         { 
             id: 'btn-attack', 
             key: 'attack', 
-            // Innesca l'attacco al tocco come farebbe il keydown della tastiera
-            onPress: () => { if (Player1 && Player1.attack) Player1.attack(); } 
+            // FIX: Scatta solo se Player1 NON sta già attaccando
+            onPress: () => { 
+                if (Player1 && Player1.attack && !Player1.isAttacking) {
+                    Player1.attack(); 
+                } 
+            } 
         }
     ];
 
@@ -259,9 +269,13 @@ function initMobileControls() {
             if (!Player1 || !Player1.keys[key]) return;
 
             Player1.keys[key].pressed = true;
-            if (Player1.ControlKeys && Player1.ControlKeys[key]) {
+            
+            // FIX: Aggiorniamo LastKeyPressed SOLO se stiamo muovendoci a destra o sinistra.
+            // In questo modo, saltare, difendersi o attaccare non fermerà la corsa!
+            if ((key === 'left' || key === 'right') && Player1.ControlKeys && Player1.ControlKeys[key]) {
                 Player1.LastKeyPressed = Player1.ControlKeys[key];
             }
+            
             if (onPress) onPress();
         };
 

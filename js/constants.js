@@ -386,9 +386,9 @@ const MASK_STATS= {
         DamageMult : 2,
         KnockBack : 1,
         // - - - ANIMATION SPRITES / IMAGES SETTINGS - - -
-        imageSrc : './img/PowerUp/PowerUp.png',
-        framesMax : 50,
-        scale : 0.4, 
+        imageSrc : './img/PowerUp/purpleVial.png',
+        framesMax : 22,
+        scale : 2, 
         offset : {x: -2, y:0},        
     },
     2 : {
@@ -406,9 +406,9 @@ const MASK_STATS= {
         DamageMult : 1,
         KnockBack: 2,
         // - - - ANIMATION SPRITES / IMAGES SETTINGS - - -
-        imageSrc : './img/PowerUp/PowerUp.png',
-        framesMax : 50,
-        scale : 0.4, 
+        imageSrc : './img/PowerUp/purpleVial.png',
+        framesMax : 22,
+        scale : 2, 
         offset : {x: -2, y:0},        
     }
 }

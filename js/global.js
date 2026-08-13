@@ -68,6 +68,7 @@ class GameContext {
         this.Pointers = [];
         this.Bullets = [];
         this.Fighters = [];
+        this.Potions = [];
 
         //- - - GENERAL PURPOSES - - - 
         let lastTime = 0;
