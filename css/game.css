@@ -67,7 +67,8 @@ canvas{
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    left : 4%
+    right:4%;
+    
 }
 #Interface {
     top: 0;
