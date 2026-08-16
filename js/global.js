@@ -9,6 +9,7 @@ class GameContext {
         this.Announcement = document.getElementById("Announcement")
         this.P1DOM = document.getElementById('P1')
         this.P2DOM =document.getElementById('P2')
+        this.PressToStart = document.getElementById('press-to-start');
         this.maskTitle = null ; 
 
         // - - - CAMERA - - -

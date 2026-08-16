@@ -20,6 +20,22 @@ canvas{
     margin: 0 auto; 
     touch-action: none;
 }
+#press-to-start{
+    position: absolute;
+    width: 1280px; 
+    height: 720px;
+    margin: 0 auto; 
+    backdrop-filter: blur(12px);
+    display:flex;
+    z-index :200;
+    align-items: center;
+    justify-content: center;
+}
+#text-press-to-start{
+    font-size: clamp(20px, 4vw, 40px);
+    animation: pulseFade 5s ease-in-out infinite;
+}
+
 
 #Game {
     width: 100%;
@@ -46,18 +62,25 @@ canvas{
         object-fit: contain;
     }
 }
+#Fullscreen{
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    left : 4%
+}
 #Interface {
     top: 0;
     left: 0;
-    width: 100%; /* Prende tutto lo schermo sui telefoni... */
-    max-width: 1280px; /* ...ma non sborda su PC! */
+    width: 100%;
+    max-width: 1280px;
     height: clamp(60px, 12vh, 100px); 
     position: absolute; 
     display: flex;
     align-items: center;
     flex-direction: row;
     justify-content: space-between; 
-    padding: 0 3vw; 
+    padding: 0 2vw; 
     box-sizing: border-box; 
     z-index: 10;
 }
@@ -131,7 +154,16 @@ canvas{
     letter-spacing: 2px;
     /*paint-order: stroke fill;*/
 }
-
+@keyframes pulseFade {
+  0%, 100% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
 @keyframes bounceIn {
     0% {
         transform: translate(-50%, -50%) scale(0); 
@@ -295,3 +327,7 @@ canvas{
     box-shadow: 0px 0px 0px #000;
     animation : none;
 }
+
+
+
+

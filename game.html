@@ -14,7 +14,18 @@
         <meta name="mobile-web-app-capable" content="yes">
     </head>
     <body>
+        <div id = "Fullscreen">
+                <button id="btn-fullscreen">⛶</button>
+            </div> 
+        
+        <div id ="press-to-start">
+            <div id="text-press-to-start" class="text-gold">
+                Press "Enter" to start 
+            </div>
+            
+        </div>
         <div id ="Gioco">
+            
             <div id ="Interface">
                 <div id = "Giocatore">
                     <div class ="NomeGiocatore" id ="P1"></div>
@@ -28,11 +39,13 @@
                     </div>
                 </div>
                 <div id ="Timer" class="text-gold">60</div>
-                <button id="btn-fullscreen">⛶</button>
+                
             </div>
+            
             <div id ="Announcement" class="text-gold" ></div>
             <canvas width = "1280" height = "720" id ="Game"></canvas>
             <div id="mobile-controls">
+                
     <div class="dpad">
         <button id="btn-left">◀</button>
         <button id="btn-right">▶</button>
@@ -43,12 +56,14 @@
         <button id="btn-attack">⚔️</button>
     </div>
 </div>
+<!--
 <div id ="choosing-enemies">
             <button class = "spawn-enemies" onclick = "IncrementEnemies(2)">Launcher</button>
             <button class = "spawn-enemies" onclick = "IncrementEnemies(3)">BigAhhLauncher</button>
             <button class = "spawn-enemies" onclick = "IncrementEnemies(4)">Base</button>
             <button class = "spawn-enemies" onclick = "DropPotions()">Potion</button>
         </div>
+    -->
         </div>
         
         
@@ -57,6 +72,7 @@
         <script src="./js/constants.js"></script>
         <script src="./js/classes.js"></script>
         <script src="./js/getAPI.js"></script>
+        <script src="./js/audio.js"></script>
         <script src="./js/game.js"></script>
         
     </body>

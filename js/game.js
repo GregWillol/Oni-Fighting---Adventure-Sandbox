@@ -95,7 +95,7 @@ function Gameloop (currentTime){
             Aura1.update(dt);
         }
 
-        // - - - MASK UPDATE - - -
+        
         // - - - MASK UPDATE - - -
 for (let i = g.Potions.length - 1; i >= 0; i--) {
     const mask = g.Potions[i];
@@ -150,7 +150,9 @@ for (let i = g.Potions.length - 1; i >= 0; i--) {
         window.requestAnimationFrame(Gameloop)
     }
 }
-g.startTimer();
+
+
+
 
 Gameloop();
 
@@ -161,6 +163,7 @@ document.addEventListener("keydown",e=>{
     switch (KeyPressed) {
         case 'w': 
             Player1.keys.up.pressed = true; 
+            
             break;
         case 'a': 
             Player1.keys.left.pressed = true; 
@@ -204,6 +207,9 @@ document.addEventListener("keydown",e=>{
                 Player2.LastKeyPressed = KeyPressed; 
             }
             break; 
+        case 'enter':
+            g.startTimer();
+            g.PressToStart.style.display = "none";
     }
 })
 
@@ -239,7 +245,9 @@ document.addEventListener("keyup",e=>{
             Player2.keys.defend.pressed=false; 
             Player2.Defending = false;
             break;
+            
     }
+    
 })
 
 function initMobileControls() {
@@ -297,6 +305,17 @@ function initMobileControls() {
 
 // Invocala all'avvio del gioco
 initMobileControls();
+
+if (g.PressToStart) {
+    const handleStartGame = (e) => {
+        e.preventDefault();
+        g.startTimer();
+        g.PressToStart.style.display = "none";
+    };
+
+    g.PressToStart.addEventListener('touchstart', handleStartGame, { once: true, passive: false });
+    g.PressToStart.addEventListener('click', handleStartGame, { once: true });
+}
 
 const btnFullscreen = document.getElementById('btn-fullscreen');
 
