@@ -69,7 +69,7 @@ class GameContext {
         this.Pointers = [];
         this.Bullets = [];
         this.Fighters = [];
-        this.Potions = [];
+        this.PowerUps = [];
 
         //- - - GENERAL PURPOSES - - - 
         let lastTime = 0;
@@ -159,6 +159,13 @@ class GameContext {
         if (this.TimerIntervalId) clearInterval(this.TimerIntervalId);
         this.timer = 10;
         this.TimerIntervalId= setInterval(reduceTimer,1000)
+        // Da mettere dove decidi di far finire l'ondata
+        let centerX = g.MAX_WIDTH / 2;
+            
+        // Spawna 3 maschere distanziate di 300 pixel l'una dall'altra
+        g.PowerUps.push(Mask.CreateMask(centerX - 300)); // Maschera a sinistra
+        g.PowerUps.push(Mask.CreateMask(centerX));       // Maschera al centro
+        g.PowerUps.push(Mask.CreateMask(centerX + 300)); // Maschera a destra
     }
     
 }

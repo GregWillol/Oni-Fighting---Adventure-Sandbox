@@ -129,6 +129,8 @@ class Fighter extends Sprite{
         this.staminaBar = 0;
         this.staminaTimer = 300;
         this.imploded = false;
+        this.inventory = [];
+        this.hasShot = false;
     
         // for AI checking if it's stuck
         this.checkStuckTimer = 0;
@@ -160,18 +162,18 @@ class Fighter extends Sprite{
             if (this.keys.right.pressed && this.LastKeyPressed === this.ControlKeys.right && !this.Defending && !this.Dead && !this.isAttacking && !this.imploded) {
                 this.Direction.right = true; 
                 this.Direction.left = false; 
-                this.velocity.x = 5.5*dt;
+                this.velocity.x = 5.5*dt*(this.speedMult || 1);
                 CreateVFX(this,"RUN")
                 
             } else if (this.keys.left.pressed && this.LastKeyPressed === this.ControlKeys.left && !this.Defending && !this.Dead && !this.isAttacking) {
                 this.Direction.left = true;
                 this.Direction.right = false; 
-                this.velocity.x = -5.5*dt;
+                this.velocity.x = -5.5*dt*(this.speedMult || 1);
                 CreateVFX(this,"RUN")
             }
             //- - - VERIFYING JUMP CONDITION - - - 
             if (this.keys.up.pressed && this.OnGround && !this.Defending && !this.Dead && !this.isAttacking) {
-                this.velocity.y = -15;
+                this.velocity.y = -20 + (this.jumpPower || 0);;
                 this.OnGround = false;
             }
         }
@@ -247,6 +249,24 @@ class Fighter extends Sprite{
     // Check if the animation has reached the active impact frame
     if (this.framesCurrent == this.attackFrame) {
 
+        // --- MAGIC CASTER (PROIETTILI) ---
+        if (this.canShoot && !this.hasShot) {
+            const dir = this.Direction.right ? 1 : -1;
+            g.Bullets.push(new Bullet({
+                position: { x: this.AttackBox.position.x, y: this.AttackBox.position.y },
+                velocity: { x: 15 * dir, y: 0 },
+                size: { x: 40, y: 15 },
+                color: "#8f00ff",
+                imageSrc: './img/fireball.jpg', // <-- ECCO LA TUA FIREBALL!
+                framesMax: 1, // Se la fireball ha un'animazione a più frame, cambialo
+                Damage: this.Damage,
+                KnockBack: this.KnockBack,
+                caster: this
+            }));
+            this.hasShot = true; 
+        }
+        
+
         // Determine active targets based on the current game mode
             let targets = [];
                 if (this.Player === 1) {
@@ -293,6 +313,10 @@ class Fighter extends Sprite{
                     victim.HealthPoints -= this.Damage * mult;
                     ReduceAddHP(victim);
                     victim.hurt();
+                    if (this.lifeSteal) {
+                        this.HealthPoints += Math.floor(this.Damage * this.lifeSteal);
+                        ReduceAddHP(this); // Aggiorna la barra della vita
+                    }
 
                 } else {
                     // --- BLOCKED ATTACK LOGIC ---
@@ -799,10 +823,7 @@ class Mask extends Sprite{
     
         if (!this.GotTaken){
             if (CheckCollisions({rectangle1 : this, rectangle2 : Player1})){
-                this.MaskTaken(Player1,Player2);
-            }
-            else if (CheckCollisions({rectangle1 : this, rectangle2 : Player2})){
-                this.MaskTaken(Player2,Player1);
+                this.MaskTaken(Player1);
             }
         }
         // - - - COLLISIONS WITH PLATFORMS - - - 
@@ -815,50 +836,101 @@ class Mask extends Sprite{
 
         this.Draw();
     }
-    MaskTaken(player,other){
-        player.PoweredUp = true ;
-        //player is winning so less power 
-        const Mult = player.HealthPoints > other.HealthPoints ? 0.5 : 1;
+    MaskTaken(player) {
+        player.PoweredUp = true;
         
-        player.Damage = this.DamageMult !== 1 ? player.Damage*this.DamageMult*(Mult) : player.Damage;
-        player.KnockBack *= this.KnockBack;
-        player.HealthPoints+= Math.floor(this.CuringHealth*Mult);
+        // 1. Danno e Knockback base (senza il malus del PvP)
+        if (this.DamageMult && this.DamageMult !== 1) {
+            player.Damage = Math.floor(player.Damage * this.DamageMult);
+        }
+        if (this.KnockBack) player.KnockBack *= this.KnockBack;
         
-        CreateVFX(player,"MASK")
-        ReduceAddHP(player);
+        // 2. Salute Massima e Cura
+        if (this.MaxHealthUp) player.MaxHealthPoints += this.MaxHealthUp;
+        
+        if (this.CuringHealth) player.HealthPoints += this.CuringHealth;
+        
+        // Sicurezza: non farlo andare oltre la vita massima
+        if (player.HealthPoints > player.MaxHealthPoints) {
+            player.HealthPoints = player.MaxHealthPoints;
+        }
+        
+        // 3. Nuove abilità speciali (se presenti nella maschera)
+        if (this.CanShoot) player.canShoot = true;
+        if (this.LifeSteal) player.lifeSteal = this.LifeSteal;
+        if (this.SpeedMult) player.speedMult = this.SpeedMult;
+        if (this.JumpBoost) player.jumpPower = (player.jumpPower || -15) + this.JumpBoost;
+        
+        
+        CreateVFX(player, "MASK", this.name);
+        ReduceAddHP(player); // Aggiorna la UI della vita
+        // --- LOGICA DOM INVENTARIO ---
+        const inventoryDiv = document.getElementById('inventory-container');
+        if (inventoryDiv) {
+            const icon = document.createElement('img');
+            icon.src = this.image.src; // Prende la source dell'immagine del Canvas
+            icon.style.width = "35px";
+            icon.style.height = "35px";
+            icon.style.border = "2px solid #ffbf00"; // Bordino dorato carino
+            icon.style.borderRadius = "5px";
+            inventoryDiv.appendChild(icon);
+        }
+        // -----------------------------
+
+        // Diciamo a tutte le pozioni nell'array che la scelta è stata fatta
+        g.PowerUps.forEach(p => p.GotTaken = true);
         this.GotTaken = true;
     }
-    static CreateMask(val){
-        // 50 % that power up has knockback and less curing health
-        const config = val < 0.5 ? MASK_STATS[1] : MASK_STATS[2]
-        g.maskTitle = val < 0.5  ? "Damage Mult." : "KnockBack Mult.";
+    static CreateMask(xPos) {
+        const chance = Math.floor(Math.random() * 100) + 1;
+        let selectedId = 1;
 
-        const randomX = val < 0.5 
-            ? Math.floor(Math.random() * (g.MAX_WIDTH - 200) + 50) 
-            : Math.floor(Math.random() * (g.MAX_WIDTH / 2) + 478);
-        
-        return new Mask ({
-            position : {x : randomX, y:0},
-            size : config.size,
-            CuringHealth:config.CuringHealth,
-            DamageMult : config.DamageMult,
-            KnockBack : config.KnockBack,
-            imageSrc : config.imageSrc,
-            framesMax : config.framesMax,
+        // Probabilità (da bilanciare come preferisci):
+        // 40% Cura(1), 20% Danno(2), 15% Proiettili(3)
+        // 10% Vampiro(4), 10% Velocità(5), 5% Tank(6)
+        if (chance <= 40) selectedId = 1;
+        else if (chance <= 60) selectedId = 2;
+        else if (chance <= 75) selectedId = 3;
+        else if (chance <= 85) selectedId = 4;
+        else if (chance <= 95) selectedId = 5;
+        else selectedId = 6;
+
+        const config = MASK_STATS[selectedId];
+
+        let newMask = new Mask({
+            position: { x: xPos, y: 0 },
+            size: config.size,
+            CuringHealth: config.CuringHealth,
+            DamageMult: config.DamageMult,
+            KnockBack: config.KnockBack,
+            imageSrc: config.imageSrc,
+            framesMax: config.framesMax,
             scale: config.scale,
             offset: config.offset
         });
+        
+        // Passiamo le stats extra se la maschera le ha
+        newMask.MaxHealthUp = config.MaxHealthUp;
+        newMask.CanShoot = config.CanShoot;
+        newMask.LifeSteal = config.LifeSteal;
+        newMask.SpeedMult = config.SpeedMult;
+        newMask.JumpBoost = config.JumpBoost;
+        newMask.name = config.name;
+        newMask.Placed = true;
+
+        return newMask;
     }
     
 }
 class FloatingText{
-    constructor({position = {x: 0, y:0},velocity = {x:0, y:-0.5},text,opacity = 1,color ="white"}){
+    constructor({position = {x: 0, y:0},velocity = {x:0, y:-0.5},text,opacity = 1,color ="white",fadeSpeed = 0.02}){
         this.position = position;
         this.velocity = velocity;
         this.text = text;
         this.color = color;
         this.opacity = opacity;
         this.dead = false;
+        this.fadeSpeed = fadeSpeed;
     }
     draw(){
 
@@ -883,7 +955,7 @@ class FloatingText{
         this.draw();
         this.position.y +=this.velocity.y;
         this.position.x +=this.velocity.x;
-        this.opacity -= 0.02;
+        this.opacity -= this.fadeSpeed;
         if (this.opacity<= 0 ){
             this.opacity = 0 ; 
             this.dead= true;
@@ -1067,38 +1139,43 @@ class Bullet extends Sprite{
                     console.log(g.Bullets);
             }
     
-        else if (!this.hasHit && this.other && !this.other.Dead) {
-            
-            if (CheckCollisions({ rectangle1: this, rectangle2: this.other })) {
-                this.hasHit = true;
-                this.Dead = true; // Segna il proiettile per l'eliminazione
-               
+       else if (!this.hasHit) {
+            // Troviamo i bersagli (se sei P1 colpisci tutti i mob, se sei un mob colpisci P1)
+            const targets = this.caster.Player === 1 
+                ? g.Fighters.filter(f => f.Player !== 1 && !f.Dead) 
+                : g.Fighters.filter(f => f.Player === 1 && !f.Dead);
 
-                if (!this.other.Defending || this.isUnblockable) {
-                    
-                    this.other.HealthPoints -= this.Damage;
-                    ReduceAddHP(this.other);
-                    this.other.hurt();
-                    CreateVFX(this.other, "HIT");
-                    CreateVFX(this.other, "DAM");
-
-                    // Knockback coerente: spinge nella direzione del VOLO del proiettile
-                    const pushDir = this.velocity.x >= 0 ? 1 : -1;
-                    this.other.velocity.x = pushDir * this.KnockBack;
-                } else {
-                    CreateVFX(this.other, "DEF");
-                    if (this.other.staminaBar< 3){
-                        this.other.staminaBar++;
-                        ReduceAddStamina(this.other);
-                    }
-                }
-                const index =  g.Bullets.indexOf(this);
+            // Controlliamo se la fireball tocca uno qualsiasi dei bersagli
+            for (let i = 0; i < targets.length; i++) {
+                let victim = targets[i];
+                
+                if (CheckCollisions({ rectangle1: this, rectangle2: victim })) {
                     this.hasHit = true;
-                    if (index !== -1){
-                        g.Bullets.splice(index,1);
+                    this.Dead = true;
+
+                    if (!victim.Defending || this.isUnblockable) {
+                        victim.HealthPoints -= this.Damage;
+                        ReduceAddHP(victim);
+                        victim.hurt();
+                        CreateVFX(victim, "HIT");
+                        CreateVFX(victim, "DAM");
+                        const pushDir = this.velocity.x >= 0 ? 1 : -1;
+                        victim.velocity.x = pushDir * this.KnockBack;
+                    } else {
+                        CreateVFX(victim, "DEF");
+                        if (victim.staminaBar < 3) {
+                            victim.staminaBar++;
+                            ReduceAddStamina(victim);
+                        }
                     }
-                    CreateVFX(this, "DISAPPEAR","",false)
                     
+                    // Distrugge il proiettile
+                    const index = g.Bullets.indexOf(this);
+                    if (index !== -1) g.Bullets.splice(index, 1);
+                    CreateVFX(this, "DISAPPEAR", "", false);
+                    
+                    break; // Usciamo dal ciclo: la fireball esplode sul primo che tocca!
+                }
             }
         }
         

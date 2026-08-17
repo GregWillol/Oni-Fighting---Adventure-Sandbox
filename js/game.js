@@ -8,10 +8,10 @@ g.loadMap(map);
 
 // - - - CONSTANTS - - - 
 const Player1 = Fighter.createFighters(1)
-const Player2 = Fighter.createFighters(2)
 
 
-g.Fighters = [Player1,Player2];
+
+g.Fighters = [Player1];
 
 const Mask1 = Mask.CreateMask(Math.random());
 const Aura1 = Sprite.CreateAura(1);
@@ -58,7 +58,7 @@ const Lamp1 = new Sprite ({
 
 
 g.Pointers.push(FloatingPointers.createPointers(Player1));
-g.Pointers.push(FloatingPointers.createPointers(Player2));
+
 
 
 function Gameloop (currentTime){
@@ -88,23 +88,21 @@ function Gameloop (currentTime){
         Lamp2.update(dt);
 
         // - - - AURA UPDATE - - -
-        if (Player2.PoweredUp && !Player2.Dead){
-            Aura2.update(dt);
-        }
-        else if (Player1.PoweredUp && !Player1.Dead){
+        
+         if (Player1.PoweredUp && !Player1.Dead){
             Aura1.update(dt);
         }
 
         
         // - - - MASK UPDATE - - -
-for (let i = g.Potions.length - 1; i >= 0; i--) {
-    const mask = g.Potions[i];
+for (let i = g.PowerUps.length - 1; i >= 0; i--) {
+    const mask = g.PowerUps[i];
     
     if (mask.Placed && !mask.GotTaken) {
         mask.update(dt);
     } else if (mask.GotTaken) {
         // Se la pozione è stata presa, la polverizziamo dall'array
-        g.Potions.splice(i, 1);
+        g.PowerUps.splice(i, 1);
     }
 }
 
@@ -127,7 +125,7 @@ for (let i = g.Potions.length - 1; i >= 0; i--) {
         
         
         // - - - VICTORY UPDATE - - -
-        CheckVictory({player1:Player1 , player2:Player2, timerId : g.TimerIntervalId});
+        CheckVictory({player1:Player1 ,timerId : g.TimerIntervalId});
 
         // --- VISUAL EFFECTS --- 
         // inverted because are inserted in the opposite order

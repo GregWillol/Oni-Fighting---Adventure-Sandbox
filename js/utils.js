@@ -143,19 +143,24 @@ function reduceTimer(){
 
 
 
-function ReduceAddHP(player){
-    if (player.HealthPoints <=0) {
+function ReduceAddHP(player) {
+    // Gestione dei limiti base
+    if (player.HealthPoints <= 0) {
         player.HealthPoints = 0;
     }
-    else if (player.Player !== 1 && player.HealthPoints>=100) player.HealthPoints=100;
+    if (player.HealthPoints >= player.MaxHealthPoints) {
+        player.HealthPoints = player.MaxHealthPoints;
+    }
 
-    
     if (player.isAI || player.Player > 2) return;
     
     // - - - DOM - - -
-    const HealthBar = document.getElementById("P"+player.Player+"HP")
-    if (player.HealthPoints>=player.MaxHealthPoints) player.HealthPoints= player.MaxHealthPoints;
-        HealthBar.style.width=player.HealthPoints+"%" 
+    const HealthBar = document.getElementById("P" + player.Player + "HP");
+    if (!HealthBar) return;
+    
+    const width = Math.floor((player.HealthPoints / player.MaxHealthPoints) * 100);
+   console.log("HP attuali:", player.HealthPoints, "Max:", player.MaxHealthPoints, "Width %:", width);
+    HealthBar.style.width = width + "%";
 }
 function ReduceAddStamina(player){
 
@@ -275,7 +280,7 @@ function CreateVFX(player,typo,text,bool = true){
             HIT : {text : "HIT", color :"#fff",offset : {x:player.size.x,y:player.size.y},velocity : {x: 0, y:-0.5},count : 1},
             HP : {text : "+HP", color :"#8f00ff",offset : {x:player.size.x,y:player.size.y},velocity : {x: 0, y:-0.5}, count : 1},
             DEF : {text : "BLOCKED", color : "#6d8df5ff",offset : {x:player.size.x,y:player.size.y},velocity : {x: 0, y:-0.5},count : 1},
-            MASK : {text : "鬼" , color : player.Player === 1 ? "#FF3126" : "#8f00ff",offset : {x:0,y:player.size.y},velocity : {x: 0, y:-0.5}, count :1},
+            MASK : {text : text || "POWER UP!" , color : player.Player === 1 ? "#FF3126" : "#8f00ff",offset : {x:0,y:player.size.y},velocity : {x: 0, y:-0.5}, count :1},
             RUN : {text : "", color : player.Player === 1 ? "#FF3126" : "#8f00ff",offset : {x:0,y:0},velocity : {x: 0 , y :-Math.random()*2},count :1},
             JUMP : {text : "", color :player.Player === 1 ? "#FF3126" : "#8f00ff", offset: {x: 0, y:0},velocity : {x:0,y:0},count : 2},
             DASH : {text : "", color : player.Player === 1 ? "#FF3126" : "#8f00ff", offset: {x: player.size.x/2 , y:player.size.y/2},velocity: {x:0 , y:0},count : 30},
@@ -321,6 +326,7 @@ function CreateVFX(player,typo,text,bool = true){
             text : i === 0 ? vfx[typo].text : "",
             opacity : opacity,
             color : vfx[typo].color,
+            fadeSpeed: typo === "MASK" ? 0.005 : 0.02
         }))
     }
     if (player.jumpBuffer >0 )player.jumpBuffer--;
@@ -379,14 +385,26 @@ function ApplyKnockback(gotHit, Attacker) {
 function updateCamera() {
     if (!Player1 || Player1.Dead) return;
 
-    const enemies = g.Fighters.filter(f => f !== Player1 && !f.Dead);
+    // Nemici "in gioco" per la camera = solo quelli entro un certo raggio da Player1.
+    // Un nemico vivo ma lontano (livello ancora da esplorare) non deve più
+    // tirare la camera via dal giocatore principale.
+    const CAMERA_ENGAGE_RANGE = 1200; // px — regola in base al tuo level design
 
-    let targetX = Player1.position.x + Player1.size.x / 2;
-    // 1. IL TARGET Y ORA SEGUE IL GIOCATORE (spostato un po' in su per farti vedere cosa cade dal cielo)
-    let targetY = Player1.position.y - 100; 
+    const playerCenterX = Player1.position.x + Player1.size.x / 2;
+    const playerCenterY = Player1.position.y + Player1.size.y / 2;
+
+    const enemies = g.Fighters.filter(f => {
+        if (f === Player1 || f.Dead) return false;
+        const dx = (f.position.x + f.size.x / 2) - playerCenterX;
+        const dy = (f.position.y + f.size.y / 2) - playerCenterY;
+        return (dx * dx + dy * dy) < CAMERA_ENGAGE_RANGE * CAMERA_ENGAGE_RANGE;
+    });
+
+    let targetX = playerCenterX;
+    let targetY = Player1.position.y - 100;
     let targetZoom = 1;
 
-    // --- MODALITÀ BATTAGLIA (Nemici Vivi) ---
+    // --- MODALITÀ BATTAGLIA (nemici vicini e vivi) ---
     if (enemies.length > 0) {
         let minX = targetX;
         let maxX = targetX;
@@ -397,60 +415,50 @@ function updateCamera() {
             if (mobX > maxX) maxX = mobX;
         });
 
-        targetX = (minX + maxX) / 2; 
-
+        targetX = (minX + maxX) / 2;
         const spread = maxX - minX;
-        
-        targetZoom = g.canvas.width / (spread + 1400); 
-        
-        if (targetZoom < 0.6) targetZoom = 0.6; 
-        if (targetZoom > 1.0) targetZoom = 1.0;     
+
+        targetZoom = g.canvas.width / (spread + 1400);
+        if (targetZoom < 0.6) targetZoom = 0.6;
+        if (targetZoom > 1.0) targetZoom = 1.0;
     }
     else {
         const lookAheadOffset = Player1.Direction.right ? 150 : -150;
-        targetX = Player1.position.x + Player1.size.x / 2 + lookAheadOffset;
-        targetZoom = 0.9; 
+        targetX = playerCenterX + lookAheadOffset;
+        targetZoom = 0.9;
     }
 
-    // 2. SMOOTHING "SNAPPY" (Ora anche per la Y)
-    const smooth = 0.04; 
+    if (!g.Camera.camera.initialized) {
+        g.Camera.camera.x = targetX;
+        g.Camera.camera.y = targetY;
+        g.Camera.camera.zoom = targetZoom;
+        g.Camera.camera.initialized = true;
+    }
 
-    if (!g.Camera.camera.x) g.Camera.camera.x = targetX;
-    if (!g.Camera.camera.y) g.Camera.camera.y = targetY; // Inizializza Y
-    if (!g.Camera.camera.zoom) g.Camera.camera.zoom = targetZoom;
-
-    g.Camera.camera.x += (targetX - g.Camera.camera.x) * smooth;
-    g.Camera.camera.y += (targetY - g.Camera.camera.y) * smooth; // Smoothing verticale
-    g.Camera.camera.zoom += (targetZoom - g.Camera.camera.zoom) * smooth;
-
-    // 3. LIMITI DELLA MAPPA (Clamping a prova di bomba X e Y)
-    const WORLD_WIDTH = g.MAX_WIDTH; 
-    const WORLD_HEIGHT = g.MAX_HEIGHT; // Prendiamo l'altezza del mondo
+    const WORLD_WIDTH = g.MAX_WIDTH;
+    const WORLD_HEIGHT = g.MAX_HEIGHT;
 
     const halfViewWidth = (g.canvas.width / 2) / g.Camera.camera.zoom;
-    const halfViewHeight = (g.canvas.height / 2) / g.Camera.camera.zoom; // Calcoliamo metà schermo verticale
+    const halfViewHeight = (g.canvas.height / 2) / g.Camera.camera.zoom;
 
-    // --- CLAMPING ASSE X ---
     if (halfViewWidth * 2 >= WORLD_WIDTH) {
-        g.Camera.camera.x = WORLD_WIDTH / 2; 
-    } 
-    else {
-        if (g.Camera.camera.x - halfViewWidth < 0) g.Camera.camera.x = halfViewWidth; 
-        if (g.Camera.camera.x + halfViewWidth > WORLD_WIDTH) g.Camera.camera.x = WORLD_WIDTH - halfViewWidth; 
+        targetX = WORLD_WIDTH / 2;
+    } else {
+        if (targetX - halfViewWidth < 0) targetX = halfViewWidth;
+        if (targetX + halfViewWidth > WORLD_WIDTH) targetX = WORLD_WIDTH - halfViewWidth;
     }
 
-    // --- CLAMPING ASSE Y (La novità!) ---
     if (halfViewHeight * 2 >= WORLD_HEIGHT) {
-        g.Camera.camera.y = WORLD_HEIGHT / 2; // Se lo zoom inquadra tutto, centrati
-    } 
-    else {
-        if (g.Camera.camera.y - halfViewHeight < 0) {
-            g.Camera.camera.y = halfViewHeight; // Non far vedere il vuoto sopra il soffitto
-        }
-        if (g.Camera.camera.y + halfViewHeight > WORLD_HEIGHT) {
-            g.Camera.camera.y = WORLD_HEIGHT - halfViewHeight; // Non far vedere il vuoto sotto il pavimento
-        }
+        targetY = WORLD_HEIGHT / 2;
+    } else {
+        if (targetY - halfViewHeight < 0) targetY = halfViewHeight;
+        if (targetY + halfViewHeight > WORLD_HEIGHT) targetY = WORLD_HEIGHT - halfViewHeight;
     }
+
+    const smooth = 0.04;
+    g.Camera.camera.x += (targetX - g.Camera.camera.x) * smooth;
+    g.Camera.camera.y += (targetY - g.Camera.camera.y) * smooth;
+    g.Camera.camera.zoom += (targetZoom - g.Camera.camera.zoom) * smooth;
 }
 function RandomOffsetVFX(player){
     return {
@@ -492,27 +500,62 @@ function DropPotions() {
 function RoomHandler(){
     const newVal = getDifficultyScaling();
 
-    // spawning enemies 
+    // --- 1. COSTRUZIONE ARENA RANDOM ---
+    const randomMappa = Math.floor(Math.random() * ArenaLayouts.length);
+    const layoutScelto = ArenaLayouts[randomMappa];
+
+    g.Platforms = []; 
+    layoutScelto.forEach(p => {
+        // NOTA: Se usi una classe specifica per le piattaforme (es. new Sprite), mettila qui al posto di questo oggetto
+        g.Platforms.push({
+            position: { x: p.x, y: p.y },
+            size: { x: p.w, y: p.h },
+            color: p.color,
+            imageSrc: undefined, 
+            scale: 1, 
+            offset: {x: 0, y: 0},
+            Draw() {
+                c.fillStyle = this.color;
+                c.fillRect(this.position.x, this.position.y, this.size.x, this.size.y);
+            }
+        });
+    });
+
+    // --- 2. PULIZIA CADAVERI E PROIETTILI ---
+    g.Bullets = []; 
+    g.Fighters = g.Fighters.filter(f => f.Player === 1); 
+    if (g.Pointers) g.Pointers = g.Pointers.filter(p => !p.isMob); 
+    g.VisualEffects = []; 
+
+    // --- 3. SPAWNING NEMICI INTELLIGENTE ---
     for (let i = 0 ; i < newVal.enemyCount ; i++){
         let enemyType = Math.floor(Math.random() * 3) + 2;
-        let enemy = Fighter.createFighters(enemyType)
+        let enemy = Fighter.createFighters(enemyType);
     
-        //new buffs
-        enemy.MaxHealthPoints = Math.floor(enemy.MaxHealthPoints * newVal.hpMult);
+        // Buff statistiche
+        let baseHealth = enemy.MaxHealthPoints || enemy.HealthPoints;
+        enemy.MaxHealthPoints = Math.floor(baseHealth * newVal.hpMult);
         enemy.HealthPoints = enemy.MaxHealthPoints;
         enemy.Damage = Math.floor(enemy.Damage * newVal.dmgMult);
-        //spawning pointers and pushing new Enemy 
+        
+        // SMART SPAWN: Se è un cecchino e ci sono piattaforme (oltre al pavimento) lo mettiamo in alto!
+        if (enemy.type === "BigAhhLauncher" && g.Platforms.length > 1) {
+            // Sceglie una piattaforma a caso (ignorando il pavimento all'indice 0)
+            let randomPlatIndex = Math.floor(Math.random() * (g.Platforms.length - 1)) + 1;
+            let target = g.Platforms[randomPlatIndex];
+            
+            // Lo teletrasporta esattamente sopra
+            enemy.position.x = target.position.x + (target.size.x / 2) - (enemy.size.x / 2);
+            enemy.position.y = target.position.y - enemy.size.y;
+        }
+
         g.Pointers.push(FloatingPointers.createPointers(enemy));
         g.Fighters.push(enemy);
     }
-    g.RoomHandler = 'FIGHTING';
-    console.log("check flags:")
-    console.log(g.FlagFight)
-    console.log(g.FlagGame)
-    console.log(g.roundEnded)
     
-
-
+    
+    g.RoomHandler = 'FIGHTING';
+    console.log("Round:", g.difficulty, "- Generata Mappa:", randomMappa);
 }
 // In util.js o tra le tue funzioni globali
 function getDifficultyScaling() {
