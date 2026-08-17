@@ -107,6 +107,13 @@ function reduceTimer(){
     if (g.timer > 0) {
         g.timer--;
     }
+    if (g.RoomHandler === 'COOLDOWN'){
+        Timer.textContent = g.timer+3;
+        if (g.timer === 3){
+            g.RoomHandler = 'FIGHTING';
+            g.startTimer();
+        }
+    }
     if(g.timer <= 60){
         Timer.textContent = g.timer;
     } else {
@@ -129,10 +136,7 @@ function reduceTimer(){
             TriggerAnnouncement("FIGHT");
             g.FlagFight = true
             break; 
-        case g.MaskRandomTime: 
-            TriggerAnnouncement(g.maskTitle,true);
-            if(typeof Mask1 !== 'undefined') Mask1.Placed = true;
-            break;
+        
     }
 }
 
@@ -143,14 +147,14 @@ function ReduceAddHP(player){
     if (player.HealthPoints <=0) {
         player.HealthPoints = 0;
     }
-    else if (player.HealthPoints>=100) player.HealthPoints= 100;
+    else if (player.Player !== 1 && player.HealthPoints>=100) player.HealthPoints=100;
 
     
     if (player.isAI || player.Player > 2) return;
     
     // - - - DOM - - -
     const HealthBar = document.getElementById("P"+player.Player+"HP")
-    if (player.HealthPoints>=100) player.HealthPoints= 100;
+    if (player.HealthPoints>=player.MaxHealthPoints) player.HealthPoints= player.MaxHealthPoints;
         HealthBar.style.width=player.HealthPoints+"%" 
 }
 function ReduceAddStamina(player){
@@ -236,8 +240,12 @@ function CheckVictory({ player1, timerId }) {
         g.roundEnded = true;
         clearInterval(timerId);
         
-        const p1Name = window.P1_NAME || "P1";
-        TriggerAnnouncement(p1Name + " WINS !!!", true);
+        
+        TriggerAnnouncement("Round "+g.difficulty+" completed", true);
+        setTimeout(RemoveAnnouncement,5000);
+        g.RoomHandler = 'COOLDOWN';
+        g.startCountdown();
+        g.difficulty++;
     }
 }
 
@@ -459,4 +467,45 @@ function DropPotions() {
    
     NewMask.Placed = true;
     g.Potions.push(NewMask);
+}
+
+function RoomHandler(){
+    const newVal = getDifficultyScaling();
+
+    // spawning enemies 
+    for (let i = 0 ; i < newVal.enemyCount ; i++){
+        let enemyType = Math.floor(Math.random() * 3) + 2;
+        let enemy = Fighter.createFighters(enemyType)
+    
+        //new buffs
+        enemy.MaxHealthPoints = Math.floor(enemy.MaxHealthPoints * newVal.hpMult);
+        enemy.HealthPoints = enemy.MaxHealthPoints;
+        enemy.Damage = Math.floor(enemy.Damage * newVal.dmgMult);
+        //spawning pointers and pushing new Enemy 
+        g.Pointers.push(FloatingPointers.createPointers(enemy));
+        g.Fighters.push(enemy);
+    }
+    g.RoomHandler = 'FIGHTING';
+    console.log("check flags:")
+    console.log(g.FlagFight)
+    console.log(g.FlagGame)
+    console.log(g.roundEnded)
+    
+
+
+}
+// In util.js o tra le tue funzioni globali
+function getDifficultyScaling() {
+    const d = g.difficulty;
+    return {
+        // Quanti nemici spawnare in totale per questa stanza
+        enemyCount: 2 + Math.floor(d * 1.5), 
+        
+        // Moltiplicatori di statistiche
+        hpMult: 1 + (d - 1) * 0.20,    // +20% HP a stanza
+        dmgMult: 1 + (d - 1) * 0.15,   // +15% Danno a stanza
+        
+        // Possibilità che spawni un Launcher o un nemico forte
+        launcherChance: Math.min(0.1 + (d * 0.05), 0.6) // max 60%
+    };
 }

@@ -86,7 +86,7 @@ class Sprite{
 
 
 class Fighter extends Sprite{
-    constructor ({position,velocity = {x:0 , y:0},size = {x: 0, y:0},color,keys = {up : {pressed : false},left : {pressed : false},attack : {pressed : false},right : {pressed : false},defend : {pressed: false}},ControlKeys,AttackBox = {position : {x: 0, y:0}, size : {x:StandardAttBoxWid, y:g.HitHeight},shape : ""},Direction = {right : false, left : false},Player,imageSrc,scale = 1,framesMax=1, offset = {x : 0 , y : 0},sprites,Damage = 10,isAI,attackFrame,type}){
+    constructor ({position,velocity = {x:0 , y:0},size = {x: 0, y:0},color,HealthPoints,MaxHealthPoints = 100 ,keys = {up : {pressed : false},left : {pressed : false},attack : {pressed : false},right : {pressed : false},defend : {pressed: false}},ControlKeys,AttackBox = {position : {x: 0, y:0}, size : {x:StandardAttBoxWid, y:g.HitHeight},shape : ""},Direction = {right : false, left : false},Player,imageSrc,scale = 1,framesMax=1, offset = {x : 0 , y : 0},sprites,Damage = 10,isAI,attackFrame,type}){
         super({
             position,
             size,
@@ -106,7 +106,8 @@ class Fighter extends Sprite{
         this.ControlKeys = ControlKeys; 
         this.AttackBox = AttackBox;
         this.Direction = Direction; 
-        this.HealthPoints = 100;
+        this.HealthPoints = HealthPoints || MaxHealthPoints;
+        this.MaxHealthPoints = MaxHealthPoints;
         this.Player = Player;
         this.Defending = false; 
         this.isAttacking = false;
@@ -311,34 +312,50 @@ class Fighter extends Sprite{
         this.attackCooldown = this.staminaBar >= 3 ? 10 : 90;
         this.hitEnemies.length = 0; // Fast array reset without memory re-allocation
         // --- RIFLESSIONE PROIETTILI ---
-        g.Bullets.forEach(bullet => {
-            // Controlla se la tua AttackBox tocca il proiettile
-            if (CheckCollisions({ rectangle1: this.AttackBox, rectangle2: bullet }) && !this.isAI) {
-                if (bullet.isUnblockable) return;
-                const isMoving = Math.abs(this.velocity.x) > 1 || Math.abs(this.velocity.y) > 1;
+        // --- RIFLESSIONE PROIETTILI ---
+// --- RIFLESSIONE PROIETTILI ---
+g.Bullets.forEach(bullet => {
+    // IGNORA: proiettili già colpiti, imparabili o sparati da te
+    if (bullet.Dead || bullet.hasHit || bullet.caster === this || bullet.isUnblockable) return;
 
-                if (isMoving && Math.random() < 0.4) {
-                    return; // Interrompe l'azione: il proiettile ti colpirà in pieno nell'update successivo!
-                }
-                
-                // 1. Inverte la direzione e lo fa schizzare via più veloce
-                bullet.velocity.x *= -1.5; 
-                bullet.velocity.y = -3; // Gli dà un piccolo sbalzo verso l'alto per l'impatto
-                
-                // 2. Scambia i ruoli (tu diventi il proprietario, il vecchio proprietario diventa il bersaglio)
-                const originalCaster = bullet.caster;
-                bullet.caster = this;
-                bullet.other = originalCaster; 
-                
-                // 3. Resetta lo stato del proiettile
-                bullet.hasHit = false;
-                bullet.liveFrames = 0; 
-                
-                // 4. Effetto visivo per la parata/respinta
-                CreateVFX(bullet, "DEF"); 
-                
-            }
-        });
+    // Se la tua AttackBox tocca QUESTO specifico proiettile nemico:
+    if (CheckCollisions({ rectangle1: this.AttackBox, rectangle2: bullet }) && !this.isAI) {
+        
+        const isMoving = Math.abs(this.velocity.x) > 1 || Math.abs(this.velocity.y) > 1;
+        if (isMoving && Math.random() < 0.4) {
+            return; // Fallimento parata in movimento
+        }
+
+        // 1. Spegniamo il proiettile nemico originale
+        bullet.hasHit = true;
+        bullet.Dead = true;
+        CreateVFX(bullet, "DEF");
+
+        const originalCaster = bullet.caster;
+        const dir = this.Direction.right ? 1 : -1;
+
+        // 2. Generiamo i 3 frammenti SOLO E UNICAMENTE dalle coordinate del proiettile parato
+        for (let i = -1; i <= 1; i++) {
+            const fragment = new Bullet({
+                position: { x: bullet.position.x, y: bullet.position.y },
+                velocity: { x: 18 * dir, y: i * 5 }, // Ventaglio: uno su, uno dritto, uno giù
+                size: { x: bullet.size.x * 0.6, y: bullet.size.y * 0.6 },
+                color: bullet.color,
+                imageSrc : bullet.image.src, // CORRETTO, pesca l'URL dall'immagine vera,
+                framesMax: bullet.framesMax,
+                scale: bullet.scale * 0.6,
+                offset: bullet.offset,
+                Damage: bullet.Damage / 3,
+                KnockBack: bullet.KnockBack,
+                caster: this,
+                other: originalCaster
+            });
+
+            // Aggiungiamo i frammenti all'array
+            g.Bullets.push(fragment);
+        }
+    }
+});
     }
 
     
@@ -666,24 +683,27 @@ class Fighter extends Sprite{
     } 
 
     castBullet(caster, type = 1) {
-        if (g.Bullets.length >= 3) return ; 
+        if (caster.attackCooldown >0) return ; 
         const New = Bullet.CreateBullet(type, caster);
         g.Bullets.push(New);
     }
-    static createFighters(ids){
-
-        let configData = ids === 1 ? FIGHTER_STATS.Sekiro : FIGHTER_STATS.Night ; 
-            if (ids === 3){
-                configData = FIGHTER_STATS.Night3;
-            }
-            else if (ids === 4){
-                configData = FIGHTER_STATS.Night2;
-            }
+    static createFighters(ids) {
+        // 1. Mappiamo gli ID direttamente ai loro dati (molto più scalabile!)
+        const configMap = {
+            1: FIGHTER_STATS.Sekiro,
+            2: FIGHTER_STATS.Night,
+            3: FIGHTER_STATS.Night3,
+            4: FIGHTER_STATS.Night2
+        };
+    
+        // Prende i dati giusti in base all'ID, se non lo trova usa Night di default
+        const configData = configMap[ids] || FIGHTER_STATS.Night; 
+    
         const basePos = ids === 1 ? g.StartingPositionP1 : g.StartingPositionP2;
-
         let spawnPos =  { x : basePos.x, y: basePos.y };
-        if (ids > 2){
-                spawnPos.x -= Math.random()*300;
+        
+        if (ids > 2) {
+            spawnPos.x -= Math.random() * 300;
         }
 
         // --- FIX DEL BUG DEI CLONI ---
@@ -718,6 +738,8 @@ class Fighter extends Sprite{
             isAI : configData.isAI,
             attackFrame : configData.attackFrame,
             type : configData.type,
+            HealthPoints : configData.HealthPoints,
+            MaxHealthPoints : configData.MaxHealthPoints,
         })
     }
 }

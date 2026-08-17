@@ -67,8 +67,8 @@ canvas{
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    right:4%;
-    
+    right:50%;
+
 }
 #Interface {
     top: 0;
@@ -196,7 +196,7 @@ canvas{
     white-space: nowrap;
     overflow: hidden;
     font-size : 40px;
-    animation: bounceIn 4s cubic-bezier(0.68,-0.55,0.27,1.55) infinite;
+    animation: bounceIn 6s cubic-bezier(0.68,-0.55,0.27,1.55) infinite;
 }
 .fight-announcement{
     display: flex !important;

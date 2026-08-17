@@ -104,7 +104,9 @@ const FIGHTER_STATS={
         },
         attackFrame : 5,
         type : undefined,
-        Damage : 50
+        Damage : 100,
+        HealthPoints : 200000,
+        MaxHealthPoints : 4000000,
         
     },
     Night : {
@@ -180,6 +182,7 @@ const FIGHTER_STATS={
             },
         },
         attackFrame : 9,
+        HealthPoints : 100,
         
 
     },
@@ -256,6 +259,7 @@ const FIGHTER_STATS={
             },
         },
         attackFrame : 9,
+        HealthPoints : 100,
         
 
     },
@@ -332,6 +336,7 @@ const FIGHTER_STATS={
             },
         },
         attackFrame : 9,
+        HealthPoints : 100,
     }
 }
 const AURA_STATS={

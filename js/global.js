@@ -74,6 +74,13 @@ class GameContext {
         //- - - GENERAL PURPOSES - - - 
         let lastTime = 0;
         this.isAdventure = false;
+
+
+        // - - - ROOM STATS - - -
+        this.difficulty = 1; 
+        this.roomState = 'FIGHTING';
+
+        
     }
     loadMap(id){
         const data = MAP_CONFIG[id]; 
@@ -136,10 +143,24 @@ class GameContext {
         if (this.Background) this.Background.update();
     }
     startTimer(){
+        RoomHandler();
         if (this.TimerIntervalId) clearInterval(this.TimerIntervalId);
+        this.timer = 63
+        g.FlagFight = false;
+        g.roundEnded = false;
+        Player1.position.x = g.StartingPositionP1.x;
+        Player1.position.y = g.StartingPositionP1.y;
+        Player1.Direction.right = true;
+        Player1.Direction.left= false;
         this.TimerIntervalId= setInterval(reduceTimer,1000)
 
     }
+    startCountdown(){
+        if (this.TimerIntervalId) clearInterval(this.TimerIntervalId);
+        this.timer = 10;
+        this.TimerIntervalId= setInterval(reduceTimer,1000)
+    }
+    
 }
 const g = new GameContext();
 const c = g.c;

@@ -208,6 +208,7 @@ document.addEventListener("keydown",e=>{
             }
             break; 
         case 'enter':
+            if (g.FlagGame) return;
             g.startTimer();
             g.PressToStart.style.display = "none";
     }
