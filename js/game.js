@@ -158,6 +158,7 @@ Gameloop();
 
 //- - - COMMANDS - - -
 document.addEventListener("keydown",e=>{
+    console.log(e)
     e.preventDefault(); 
     const KeyPressed = e.key.toLowerCase();
     switch (KeyPressed) {
@@ -207,10 +208,7 @@ document.addEventListener("keydown",e=>{
                 Player2.LastKeyPressed = KeyPressed; 
             }
             break; 
-        case 'enter':
-            if (g.FlagGame) return;
-            g.startTimer();
-            g.PressToStart.style.display = "none";
+        
     }
 })
 

@@ -6,8 +6,8 @@ const MAP_CONFIG = {
         background : {
             link : "./img/BackGround/Background1.png",
             framesMax : 1,
-            offset : {x:600,y:330},
-            scale : 1.1
+            offset : {x:0,y:0},
+            scale : 1.4
         },
         // - - - PLAYERS POSITIONS - - -
         StartPos: null,

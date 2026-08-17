@@ -345,18 +345,32 @@ function SaveStatistics(Id, Won, OtherHealth) {
     .catch(err => console.error(err));
 }
 
-
-function ApplyKnockback(gotHit,Attacker){
-    let force = Attacker.Damage + ( (100 - gotHit.HealthPoints) * 0.8 )*Attacker.KnockBack;
-    if (Attacker.Direction.left){
-        gotHit.velocity.x -=force;
+function ApplyKnockback(gotHit, Attacker) {
+    // 1. Calcoliamo la percentuale di vita PERSA (da 0.0 a 1.0)
+    // Usiamo MaxHealthPoints per adattarci a qualsiasi nemico (da 100 a 40.000 HP)
+    let damagePercent = 1 - (gotHit.HealthPoints / gotHit.MaxHealthPoints);
+    if (damagePercent < 0) damagePercent = 0; // Sicurezza per evitare numeri negativi
+    
+    // 2. Forza base del colpo (indipendente dal Danno numerico!)
+    let baseForce = 5 * Attacker.KnockBack;
+    
+    // 3. Forza extra calcolata in base a quanto è ferito 
+    // (Se è quasi morto, damagePercent è ~1, quindi aggiunge 15 di forza alla spinta)
+    let extraForce = 15 * damagePercent * Attacker.KnockBack;
+    
+    let force = baseForce + extraForce;
+    
+    // 4. Applichiamo la direzione
+    if (Attacker.Direction.left) {
+        gotHit.velocity.x -= force;
+    } 
+    else if (Attacker.Direction.right) {
+        gotHit.velocity.x += force;
     }
-    else if (Attacker.Direction.right){
-        gotHit.velocity.x +=force;
-    }
-    gotHit.velocity.y -=6; 
+    
+    gotHit.velocity.y -= 6; 
     gotHit.OnGround = false; 
-    gotHit.HitStun = 20 ;
+    gotHit.HitStun = 20;
 }
 
 
@@ -365,11 +379,11 @@ function ApplyKnockback(gotHit,Attacker){
 function updateCamera() {
     if (!Player1 || Player1.Dead) return;
 
-    // 1. Troviamo TUTTI i nemici vivi
     const enemies = g.Fighters.filter(f => f !== Player1 && !f.Dead);
 
     let targetX = Player1.position.x + Player1.size.x / 2;
-    let targetY = g.MAX_HEIGHT / 2 + 100; 
+    // 1. IL TARGET Y ORA SEGUE IL GIOCATORE (spostato un po' in su per farti vedere cosa cade dal cielo)
+    let targetY = Player1.position.y - 100; 
     let targetZoom = 1;
 
     // --- MODALITÀ BATTAGLIA (Nemici Vivi) ---
@@ -387,48 +401,54 @@ function updateCamera() {
 
         const spread = maxX - minX;
         
-        // CORREZIONE 1: Usare g.canvas.width, non g.MAX_WIDTH!
-        // Aumenta il numero sommato (es. 1200 o 1400) per tenere la camera più distante
         targetZoom = g.canvas.width / (spread + 1400); 
         
-        // Abbassiamo i limiti per permettere un FOV molto più grande
-        if (targetZoom < 0.6) targetZoom = 0.6; // Limite in allontanamento
-        if (targetZoom > 1.0) targetZoom = 1.0; // Limite in avvicinamento (così non ti zooma troppo addosso)     
+        if (targetZoom < 0.6) targetZoom = 0.6; 
+        if (targetZoom > 1.0) targetZoom = 1.0;     
     }
     else {
-        // Guarda un po' più avanti di te
         const lookAheadOffset = Player1.Direction.right ? 150 : -150;
         targetX = Player1.position.x + Player1.size.x / 2 + lookAheadOffset;
-        
-        // PRIMA ERA 0.95. Mettilo a 0.75 per avere subito un FOV enorme quando esplori!
         targetZoom = 0.9; 
     }
 
-    // 2. SMOOTHING "SNAPPY"
+    // 2. SMOOTHING "SNAPPY" (Ora anche per la Y)
     const smooth = 0.04; 
 
     if (!g.Camera.camera.x) g.Camera.camera.x = targetX;
+    if (!g.Camera.camera.y) g.Camera.camera.y = targetY; // Inizializza Y
     if (!g.Camera.camera.zoom) g.Camera.camera.zoom = targetZoom;
 
     g.Camera.camera.x += (targetX - g.Camera.camera.x) * smooth;
+    g.Camera.camera.y += (targetY - g.Camera.camera.y) * smooth; // Smoothing verticale
     g.Camera.camera.zoom += (targetZoom - g.Camera.camera.zoom) * smooth;
-    g.Camera.camera.y = targetY - 50; 
 
-    // 3. LIMITI DELLA MAPPA (Clamping a prova di bomba)
+    // 3. LIMITI DELLA MAPPA (Clamping a prova di bomba X e Y)
     const WORLD_WIDTH = g.MAX_WIDTH; 
-    const halfViewWidth = (g.canvas.width / 2) / g.Camera.camera.zoom;
+    const WORLD_HEIGHT = g.MAX_HEIGHT; // Prendiamo l'altezza del mondo
 
-    // Se la visuale è diventata più larga di tutta la mappa...
+    const halfViewWidth = (g.canvas.width / 2) / g.Camera.camera.zoom;
+    const halfViewHeight = (g.canvas.height / 2) / g.Camera.camera.zoom; // Calcoliamo metà schermo verticale
+
+    // --- CLAMPING ASSE X ---
     if (halfViewWidth * 2 >= WORLD_WIDTH) {
-        g.Camera.camera.x = WORLD_WIDTH / 2; // ...centrati perfettamente a metà stage e non muoverti!
+        g.Camera.camera.x = WORLD_WIDTH / 2; 
     } 
-    // Altrimenti fai scorrere normalmente i bordi
     else {
-        if (g.Camera.camera.x - halfViewWidth < 0) {
-            g.Camera.camera.x = halfViewWidth; // Muro Sinistro
+        if (g.Camera.camera.x - halfViewWidth < 0) g.Camera.camera.x = halfViewWidth; 
+        if (g.Camera.camera.x + halfViewWidth > WORLD_WIDTH) g.Camera.camera.x = WORLD_WIDTH - halfViewWidth; 
+    }
+
+    // --- CLAMPING ASSE Y (La novità!) ---
+    if (halfViewHeight * 2 >= WORLD_HEIGHT) {
+        g.Camera.camera.y = WORLD_HEIGHT / 2; // Se lo zoom inquadra tutto, centrati
+    } 
+    else {
+        if (g.Camera.camera.y - halfViewHeight < 0) {
+            g.Camera.camera.y = halfViewHeight; // Non far vedere il vuoto sopra il soffitto
         }
-        if (g.Camera.camera.x + halfViewWidth > WORLD_WIDTH) {
-            g.Camera.camera.x = WORLD_WIDTH - halfViewWidth; // Muro Destro
+        if (g.Camera.camera.y + halfViewHeight > WORLD_HEIGHT) {
+            g.Camera.camera.y = WORLD_HEIGHT - halfViewHeight; // Non far vedere il vuoto sotto il pavimento
         }
     }
 }

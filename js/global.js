@@ -40,8 +40,8 @@ class GameContext {
         
 
         // - - - GAME/AMBIENT - - -
-        this.MAX_WIDTH = 1280; 
-        this.MAX_HEIGHT= 720;
+        this.MAX_WIDTH = 3000; 
+        this.MAX_HEIGHT= 2000;
         this.Gravity_Acceleration = 0.82; 
 
         // - - - MAP SETTINGS - - -

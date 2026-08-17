@@ -375,7 +375,7 @@ g.Bullets.forEach(bullet => {
             this.defenseBuffer--;
             if (this.defenseBuffer>40){
                 this.Defending= true;
-                this.velocity.x = this.Direction.right ? 25*dt : -25*dt;
+                this.velocity.x = this.Direction.right ? 100*dt : -100*dt;
             }
             else {
                 this.Defending = false;
@@ -409,7 +409,7 @@ g.Bullets.forEach(bullet => {
         // - - - ATTACK SCENARIO - - -
         if (
             this.image === this.sprites.attack.image && 
-            this.framesCurrent < this.sprites.attack.framesMax - 1
+            this.framesCurrent < this.sprites.attack.framesMax - 1 && spriteName !== 'death'
         )   return;  
 
         // - - - HURT SCENARIO - - -
