@@ -278,7 +278,7 @@ function HandleMovement(player){
 function CreateVFX(player,typo,text,bool = true){
     const vfx = {CRIT: {text : "CRITICAL HIT!",color : "#FF3126",offset : {x:player.size.x,y:player.size.y},velocity:{x:0,y:-2},count : 1},
             HIT : {text : "HIT", color :"#fff",offset : {x:player.size.x,y:player.size.y},velocity : {x: 0, y:-0.5},count : 1},
-            HP : {text : "+HP", color :"#8f00ff",offset : {x:player.size.x,y:player.size.y},velocity : {x: 0, y:-0.5}, count : 1},
+            HP : {text : "+HP", color : player.Player === 1 ? "#FF3126" : "#8f00ff",offset : {x:player.size.x,y:player.size.y},velocity : {x: 0, y:-0.5}, count : 1},
             DEF : {text : "BLOCKED", color : "#6d8df5ff",offset : {x:player.size.x,y:player.size.y},velocity : {x: 0, y:-0.5},count : 1},
             MASK : {text : text || "POWER UP!" , color : player.Player === 1 ? "#FF3126" : "#8f00ff",offset : {x:0,y:player.size.y},velocity : {x: 0, y:-0.5}, count :1},
             RUN : {text : "", color : player.Player === 1 ? "#FF3126" : "#8f00ff",offset : {x:0,y:0},velocity : {x: 0 , y :-Math.random()*2},count :1},
@@ -420,7 +420,7 @@ function updateCamera() {
 
         targetZoom = g.canvas.width / (spread + 1400);
         if (targetZoom < 0.6) targetZoom = 0.6;
-        if (targetZoom > 1.0) targetZoom = 1.0;
+        if (targetZoom > 1.0) targetZoom = 1.7;
     }
     else {
         const lookAheadOffset = Player1.Direction.right ? 150 : -150;
@@ -449,7 +449,7 @@ function updateCamera() {
     }
 
     if (halfViewHeight * 2 >= WORLD_HEIGHT) {
-        targetY = WORLD_HEIGHT / 2;
+        targetY = WORLD_HEIGHT / 1.5;
     } else {
         if (targetY - halfViewHeight < 0) targetY = halfViewHeight;
         if (targetY + halfViewHeight > WORLD_HEIGHT) targetY = WORLD_HEIGHT - halfViewHeight;
@@ -556,6 +556,7 @@ function RoomHandler(){
     
     g.RoomHandler = 'FIGHTING';
     console.log("Round:", g.difficulty, "- Generata Mappa:", randomMappa);
+    g.P1DOM.textContent= g.difficulty;
 }
 // In util.js o tra le tue funzioni globali
 function getDifficultyScaling() {

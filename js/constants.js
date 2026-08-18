@@ -1,68 +1,83 @@
-
 const ArenaLayouts = [
-    // Mappa 0: "Classica" (2 piattaforme medie ai lati)
+    // 0: "Classica" - Piattaforme ai lati, buco in mezzo. Arena bilanciata.
     [
-        { x: -50, y: 1800, w: 3100, h: 240, color: "#1a1a1a" }, // Pavimento
-        { x: 300, y: 1550, w: 300, h: 20, color: "#444" },
-        { x: 2400, y: 1550, w: 300, h: 20, color: "#444" }
+        { x: -50, y: g.MAX_HEIGHT - 600, w: g.MAX_WIDTH + 100, h: 240, color: "#1a1a1a" },
+        { x: 400, y: g.MAX_HEIGHT - 860, w: 500, h: 20, color: "#444" },
+        { x: g.MAX_WIDTH - 900, y: g.MAX_HEIGHT - 860, w: 500, h: 20, color: "#444" }
     ],
-    // Mappa 1: "Altare" (1 al centro bassa, 2 alte ai lati)
+    // 1: "Altare" - Una grande piattaforma centrale, e due piccole rifugio ai bordi in alto.
     [
-        { x: -50, y: 1800, w: 3100, h: 240, color: "#1a1a1a" },
-        { x: 1200, y: 1600, w: 600, h: 20, color: "#444" }, 
-        { x: 200, y: 1400, w: 250, h: 20, color: "#444" },  
-        { x: 2550, y: 1400, w: 250, h: 20, color: "#444" }  
+        { x: -50, y: g.MAX_HEIGHT - 600, w: g.MAX_WIDTH + 100, h: 240, color: "#1a1a1a" },
+        { x: g.MAX_WIDTH / 2 - 400, y: g.MAX_HEIGHT - 860, w: 800, h: 20, color: "#444" },
+        { x: 100, y: g.MAX_HEIGHT - 1120, w: 250, h: 20, color: "#444" },
+        { x: g.MAX_WIDTH - 350, y: g.MAX_HEIGHT - 1120, w: 250, h: 20, color: "#444" }
     ],
-    // Mappa 2: "Scalinata" (Asimmetrica, ottima per scappare)
+    // 2: "Scalinata" - Ottima per saltare in obliquo e scappare dal boss.
     [
-        { x: -50, y: 1800, w: 3100, h: 240, color: "#1a1a1a" },
-        { x: 500, y: 1600, w: 250, h: 20, color: "#444" },
-        { x: 1100, y: 1400, w: 250, h: 20, color: "#444" },
-        { x: 1700, y: 1200, w: 250, h: 20, color: "#444" }
+        { x: -50, y: g.MAX_HEIGHT - 600, w: g.MAX_WIDTH + 100, h: 240, color: "#1a1a1a" },
+        { x: 300, y: g.MAX_HEIGHT - 860, w: 300, h: 20, color: "#444" },
+        { x: 1100, y: g.MAX_HEIGHT - 1120, w: 300, h: 20, color: "#444" },
+        { x: 1900, y: g.MAX_HEIGHT - 1380, w: 300, h: 20, color: "#444" }
+    ],
+    // 3: "La Gabbia" - Tante piccole piattaforme in alto, perfetto per i cecchini.
+    [
+        { x: -50, y: g.MAX_HEIGHT - 600, w: g.MAX_WIDTH + 100, h: 240, color: "#1a1a1a" },
+        { x: 500, y: g.MAX_HEIGHT - 860, w: 200, h: 20, color: "#444" },
+        { x: 1000, y: g.MAX_HEIGHT - 1120, w: 200, h: 20, color: "#444" },
+        { x: 1500, y: g.MAX_HEIGHT - 1380, w: 200, h: 20, color: "#444" },
+        { x: 2000, y: g.MAX_HEIGHT - 1120, w: 200, h: 20, color: "#444" },
+        { x: 2500, y: g.MAX_HEIGHT - 860, w: 200, h: 20, color: "#444" }
+    ],
+    // 4: "Muri Gemelli" - Due colonne massicce con un vicolo cieco al centro. Letale per il corpo a corpo.
+    [
+        { x: -50, y: g.MAX_HEIGHT - 600, w: g.MAX_WIDTH + 100, h: 240, color: "#1a1a1a" },
+        { x: 600, y: g.MAX_HEIGHT - 860, w: 400, h: 20, color: "#444" },
+        { x: 2000, y: g.MAX_HEIGHT - 860, w: 400, h: 20, color: "#444" },
+        { x: 800, y: g.MAX_HEIGHT - 1120, w: 200, h: 20, color: "#444" }, // Rifugio sopra la colonna SX
+        { x: 2000, y: g.MAX_HEIGHT - 1120, w: 200, h: 20, color: "#444" } // Rifugio sopra la colonna DX
+    ],
+    // 5: "Piramidi" - Due formazioni a piramide per scontri verticali molto vicini.
+    [
+        { x: -50, y: g.MAX_HEIGHT - 600, w: g.MAX_WIDTH + 100, h: 240, color: "#1a1a1a" },
+        { x: 400, y: g.MAX_HEIGHT - 860, w: 600, h: 20, color: "#444" }, // Base piramide Sx
+        { x: 550, y: g.MAX_HEIGHT - 1120, w: 300, h: 20, color: "#444" }, // Punta piramide Sx
+        { x: 1800, y: g.MAX_HEIGHT - 860, w: 600, h: 20, color: "#444" }, // Base piramide Dx
+        { x: 1950, y: g.MAX_HEIGHT - 1120, w: 300, h: 20, color: "#444" }  // Punta piramide Dx
+    ],
+    // 6: "Arena PiPiatta" - Zero piattaforme. Solo un'enorme arena per combattimento duro a terra (alla Smash Bros su Final Destination).
+    [
+        { x: -50, y: g.MAX_HEIGHT - 600, w: g.MAX_WIDTH + 100, h: 240, color: "#1a1a1a" }
+    ],
+    // 7: "Le Forche Caudine" - Un tunnel lungo e stretto fatto da piattaforme, ti costringe a passare da sotto o farci il giro.
+    [
+        { x: -50, y: g.MAX_HEIGHT - 600, w: g.MAX_WIDTH + 100, h: 240, color: "#1a1a1a" },
+        { x: 200, y: g.MAX_HEIGHT - 880, w: 2600, h: 20, color: "#444" } // Un po' più alta per farci passare sotto bene
     ]
 ];
 const MAP_CONFIG = {
     1 : {
-        // - - - ANIMATION SPRITES / IMAGES SETTINGS - - - 
         background : {
             link : "./img/BackGround/Background1.png",
             framesMax : 1,
             offset : {x:0,y:0},
             scale : 1.4
         },
-        // - - - PLAYERS POSITIONS - - -
         StartPos: null,
-        //- - - PLATFORMS POSITIONS - - -
         Platforms : [
-            // 1. Pavimento principale
-            { 
-                position: { x: 0, y: g.MAX_HEIGHT - 600 }, 
-                size: { x: g.MAX_WIDTH, y: 240 }, 
-                imageSrc: undefined, scale: 1.2, offset: { x: 0, y: 1200 }, color: "blue" 
-            },
-        
-            // 2. Rudere basso (a sinistra, facilissimo da saltare)
-            { 
-                position: { x: 300, y: g.MAX_HEIGHT - 750 }, 
-                size: { x: 180, y: 20 }, 
-                imageSrc: undefined, scale: 1, offset: { x: 0, y: 0 }, color: "green" 
-            },
-        
-            // 3. Impalcatura media (al centro, ci salti dal rudere basso)
-            { 
-                position: { x: 650, y: g.MAX_HEIGHT - 900 }, 
-                size: { x: 180, y: 20 }, 
-                imageSrc: undefined, scale: 1, offset: { x: 0, y: 0 }, color: "yellow" 
-            },
-        
-            // 4. Balcone alto (a destra, lo spot perfetto per il cecchino)
-            { 
-                position: { x: 1100, y: g.MAX_HEIGHT - 1050 }, 
-                size: { x: 180, y: 20 }, 
-                imageSrc: undefined, scale: 1, offset: { x: 0, y: 0 }, color: "red" 
-            }
+            // Pavimento (Base: -600)
+            { position: { x: 0, y: g.MAX_HEIGHT - 600 }, size: { x: g.MAX_WIDTH, y: 240 }, imageSrc: undefined, scale: 1.2, offset: { x: 0, y: 1200 }, color: "blue" },
+            
+            // Scalino basso (Gap: 400px sopra il pavimento)
+            { position: { x: 300, y: g.MAX_HEIGHT - 1000 }, size: { x: 250, y: 20 }, imageSrc: undefined, scale: 1, offset: { x: 0, y: 0 }, color: "green" },
+            
+            // Impalcatura media (Gap: 350px sopra lo scalino)
+            { position: { x: 800, y: g.MAX_HEIGHT - 1350 }, size: { x: 250, y: 20 }, imageSrc: undefined, scale: 1, offset: { x: 0, y: 0 }, color: "yellow" },
+            
+            // Balcone altissimo
+            { position: { x: 1400, y: g.MAX_HEIGHT - 1700 }, size: { x: 250, y: 20 }, imageSrc: undefined, scale: 1, offset: { x: 0, y: 0 }, color: "red" }
         ]
     },
+
     2:{
         // - - - ANIMATION SPRITES / IMAGES SETTINGS - - -
         background : {
@@ -484,8 +499,8 @@ const MASK_STATS = {
         CuringHealth: 0,
         DamageMult: 1,
         KnockBack: 1,
-        SpeedMult: 1.5, // Moltiplichi la velocity.x del player
-        JumpBoost: -1.2,  // Aggiungi potenza al salto
+        SpeedMult: 1.1, // Moltiplichi la velocity.x del player
+        JumpBoost: -1.1,  // Aggiungi potenza al salto
         imageSrc: './img/PowerUp/purpleVial.png',
         framesMax: 22,
         scale: 2,

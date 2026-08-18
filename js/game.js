@@ -71,9 +71,27 @@ function Gameloop (currentTime){
             let dt = (currentTime - g.lastTime) / (1000 / 60);
             g.lastTime = currentTime;
 
-            if (isNaN(dt) || dt > 1.5 || dt < 0) dt = 1;
+        if (isNaN(dt) || dt > 1.5 || dt < 0) dt = 1;
+
+        if (g.hitStopFrames > 0) {
+            g.hitStopFrames--; // Scala un frame di blocco
+            dt = 0;            // Congela il tempo per tutto il gioco!
+        }
+        
         // - - - CLEANING CANVAS - - -
         c.clearRect(0,0,g.MAX_WIDTH,g.MAX_HEIGHT)
+        /* --- APPLICA LO SCREEN SHAKE ---
+        c.save(); // Salva lo stato pulito del canvas
+        if (g.cameraShake > 0) {
+            // Genera un offset casuale piccolissimo (es. tra -3 e 3 pixel)
+            const shakeX = (Math.random() - 0.5) * g.cameraShake;
+            const shakeY = (Math.random() - 0.5) * g.cameraShake;
+            c.translate(shakeX, shakeY);
+            
+            g.cameraShake *= 0.9; // Fa scemare la scossa dolcemente frame dopo frame
+            if (g.cameraShake < 0.2) g.cameraShake = 0; // La spegne quando è quasi zero
+        }
+            */
         
         //- - - TELECAMERA SETTINGS - - -
         updateCamera();
@@ -172,6 +190,11 @@ document.addEventListener("keydown",e=>{
         case 's': 
             if(!e.repeat && Player1.attackCooldown === 0 && !Player1.isAttacking){
                 Player1.attack();
+            }
+            break; 
+        case 'q': 
+            if(!e.repeat && Player1.attackCooldown === 0 && !Player1.isAttacking){
+                Player1.keys.slam.pressed = true;
             }
             break; 
         case 'd': 
@@ -319,6 +342,8 @@ const btnFullscreen = document.getElementById('btn-fullscreen');
 if (btnFullscreen) {
     const toggleFullscreen = (e) => {
         e.preventDefault(); // Blocca click fantasma
+        e.target.blur();    // Rimuove il focus dal bottone
+        
         const gioco = document.getElementById('Gioco');
 
         if (!document.fullscreenElement) {
@@ -343,4 +368,12 @@ if (btnFullscreen) {
     // Ascoltiamo sia il click (PC) che il rilascio del tocco (Mobile)
     btnFullscreen.addEventListener('click', toggleFullscreen);
     btnFullscreen.addEventListener('touchend', toggleFullscreen);
+
+    // Reset del delta time al cambio di schermo
+    document.addEventListener('fullscreenchange', () => {
+        g.lastTime = 0;
+    });
+    document.addEventListener('webkitfullscreenchange', () => {
+        g.lastTime = 0;
+    });
 }

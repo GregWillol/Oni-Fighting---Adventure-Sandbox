@@ -71,7 +71,7 @@ canvas{
 
 }
 #Interface {
-    top: 0;
+    top: 2vw;
     left: 0;
     width: 100%;
     max-width: 1280px;
@@ -81,7 +81,7 @@ canvas{
     align-items: center;
     flex-direction: row;
     justify-content: space-between; 
-    padding: 0 2vw; 
+    padding: 0 1vw; 
     box-sizing: border-box; 
     z-index: 10;
 }
@@ -125,7 +125,7 @@ canvas{
     width: clamp(50px, 8vw, 100px); 
     height: clamp(35px, 6vh, 60px);
     display: flex ;
-    align-items: flex-start;
+    align-items: center;
     justify-content: center;
     font-size: clamp(14px, 3vw, 30px);
     font-weight: 800;
@@ -210,6 +210,7 @@ canvas{
     align-items: flex-start;
     justify-content: center;
     gap: 8px; 
+    position: relative;
 }
 
 #stamina-bar-container {
@@ -328,7 +329,23 @@ canvas{
     box-shadow: 0px 0px 0px #000;
     animation : none;
 }
+#inventory-container {
+    position: absolute; /* <-- FLUTTUA, QUINDI NON SPOSTA LE BARRE */
+    top: 100%; /* Si attacca al bordo in basso del contenitore */
+    left: 0;
+    display: flex;
+    flex-wrap: wrap; 
+    gap: 4px; 
+    width: 100%; 
+    margin-top: 8px; /* Spazio dalla barra della stamina */
+}
 
-
-
+.inventory-item {
+    /* Usiamo clamp per farli piccoli ma leggibili */
+    width: clamp(15px, 2.5vh, 25px); 
+    height: clamp(15px, 2.5vh, 25px);
+    border: 2px solid #ffbf00;
+    border-radius: 3px;
+    object-fit: contain; 
+}
 

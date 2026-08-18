@@ -72,8 +72,10 @@ class GameContext {
         this.PowerUps = [];
 
         //- - - GENERAL PURPOSES - - - 
-        let lastTime = 0;
+        this.lastTime = 0;
         this.isAdventure = false;
+        this.StopFrames = 0;
+        this.cameraShake = 0 ;
 
 
         // - - - ROOM STATS - - -

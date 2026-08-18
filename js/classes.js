@@ -86,7 +86,7 @@ class Sprite{
 
 
 class Fighter extends Sprite{
-    constructor ({position,velocity = {x:0 , y:0},size = {x: 0, y:0},color,HealthPoints,MaxHealthPoints = 100 ,keys = {up : {pressed : false},left : {pressed : false},attack : {pressed : false},right : {pressed : false},defend : {pressed: false}},ControlKeys,AttackBox = {position : {x: 0, y:0}, size : {x:StandardAttBoxWid, y:g.HitHeight},shape : ""},Direction = {right : false, left : false},Player,imageSrc,scale = 1,framesMax=1, offset = {x : 0 , y : 0},sprites,Damage = 10,isAI,attackFrame,type}){
+    constructor ({position,velocity = {x:0 , y:0},size = {x: 0, y:0},color,HealthPoints,MaxHealthPoints = 100 ,keys = {up : {pressed : false},left : {pressed : false},attack : {pressed : false},right : {pressed : false},defend : {pressed: false},slam : {pressed : false}},ControlKeys,AttackBox = {position : {x: 0, y:0}, size : {x:StandardAttBoxWid, y:g.HitHeight},shape : ""},Direction = {right : false, left : false},Player,imageSrc,scale = 1,framesMax=1, offset = {x : 0 , y : 0},sprites,Damage = 10,isAI,attackFrame,type}){
         super({
             position,
             size,
@@ -131,6 +131,7 @@ class Fighter extends Sprite{
         this.imploded = false;
         this.inventory = [];
         this.hasShot = false;
+        this.isPlunging = false; 
     
         // for AI checking if it's stuck
         this.checkStuckTimer = 0;
@@ -155,9 +156,9 @@ class Fighter extends Sprite{
         this.Draw(); 
         this.animateFrames(dt);
         //Setting X-Component of Velocity to 0 each frame for boundaries limits 
-        this.velocity.x *= 0.8*dt ;  
+        this.velocity.x *= 0.8 ;  
         //- - - DIRECTION SETTING - - - 
-        if (!isKnockedBack && this.HitStun === 0 && g.FlagFight){
+        if (!isKnockedBack && this.HitStun === 0 && g.FlagFight ){
             //Setting direction of the Sprite using the LastKeyPressed on X-Axis (so left or right)
             if (this.keys.right.pressed && this.LastKeyPressed === this.ControlKeys.right && !this.Defending && !this.Dead && !this.isAttacking && !this.imploded) {
                 this.Direction.right = true; 
@@ -173,8 +174,19 @@ class Fighter extends Sprite{
             }
             //- - - VERIFYING JUMP CONDITION - - - 
             if (this.keys.up.pressed && this.OnGround && !this.Defending && !this.Dead && !this.isAttacking) {
-                this.velocity.y = -20 + (this.jumpPower || 0);;
+                this.velocity.y = -25 + (this.jumpPower || 0);;
                 this.OnGround = false;
+            }
+            // - - - SCHIANTO A TERRA (GROUND SLAM) - - -
+            if (this.keys.slam.pressed && !this.OnGround && this.staminaBar >= 1 && !this.isPlunging) {
+                this.keys.slam.pressed = false; // Consuma l'input
+                this.staminaBar--;                // Togli una stamina
+                if (!this.isAI) ReduceAddStamina(this); // Aggiorna UI
+                
+                this.isPlunging = true;
+                this.velocity.x = 0;   // Ti fermi a mezz'aria
+                this.velocity.y = 35;  // Cadi come un meteorite!
+                this.switchSprite('attack'); // Mettiamo l'animazione di attacco mentre cade
             }
         }
         //Before needs to check the inputs 
@@ -192,7 +204,7 @@ class Fighter extends Sprite{
         }
         // Y-Axis :Gravity,Velocity updating
         this.velocity.y+=g.Gravity_Acceleration * dt;
-        this.position.y +=this.velocity.y;
+        this.position.y +=this.velocity.y*dt;
         //Collisions with platforms 
         g.Platforms.forEach(c =>{
             if(CheckCollisions({rectangle1: this, rectangle2 : c})){
@@ -213,6 +225,44 @@ class Fighter extends Sprite{
             
             CreateVFX(this,"JUMP")
             this.OnGround = true;
+        }
+        // - - - IMPATTO DEL GROUND SLAM - - -
+        if (this.OnGround && this.isPlunging) {
+            this.isPlunging = false; // Spegne la picchiata
+            
+            // 1. Danno ad area (Trova i nemici vicini)
+            const bersagli = g.Fighters.filter(f => f !== this && !f.Dead && f.Player !== this.Player);
+            bersagli.forEach(victim => {
+                const distanzaX = Math.abs(victim.position.x - this.position.x);
+                const distanzaY = Math.abs(victim.position.y - this.position.y);
+                
+                // Se sono entro 200 pixel di distanza...
+                if (distanzaX < 200 && distanzaY < 150) {
+                    victim.HealthPoints -= (this.Damage * 1.5); // Danno bonus!
+                    victim.velocity.y = -18; // Lanciati in aria
+                    
+                    // Spinta orizzontale a destra o sinistra a seconda di dove si trovano
+                    const pushDir = victim.position.x > this.position.x ? 1 : -1;
+                    victim.velocity.x = 10 * pushDir;
+                    
+                    ReduceAddHP(victim);
+                    victim.hurt();
+                    CreateVFX(victim, "HIT");
+                }
+            });
+
+            // 2. SPAWN DELL'EFFETTO VISIVO BLU
+            // Usiamo il tuo array g.Bullets per "barare" e creare un VFX senza scrivere array nuovi!
+            g.Bullets.push(new Shockwave({ 
+                position: { 
+                    x: this.position.x + this.size.x / 2, 
+                    y: this.position.y + this.size.y 
+                } 
+            }));
+            
+            // Un bel salto all'indietro o rimbalzo per chiudere l'animazione
+            this.velocity.y = -10; 
+            this.OnGround = false;
         }
         // - - - ATTACK BOX - - -
          //Obj going right so AttackBox direction need to be directed to the right
@@ -250,20 +300,21 @@ class Fighter extends Sprite{
     if (this.framesCurrent == this.attackFrame) {
 
         // --- MAGIC CASTER (PROIETTILI) ---
-        if (this.canShoot && !this.hasShot) {
+        if (this.CanShoot && !this.hasShot) {
             const dir = this.Direction.right ? 1 : -1;
             g.Bullets.push(new Bullet({
                 position: { x: this.AttackBox.position.x, y: this.AttackBox.position.y },
-                velocity: { x: 15 * dir, y: 0 },
-                size: { x: 40, y: 15 },
+                velocity: { x: 40 * dir, y: 4 },
+                size: { x: 60, y: 60 },
                 color: "#8f00ff",
-                imageSrc: './img/fireball.jpg', // <-- ECCO LA TUA FIREBALL!
-                framesMax: 1, // Se la fireball ha un'animazione a più frame, cambialo
+                imageSrc: './img/VFX/Bullets/Fireball.png', // <-- ECCO LA TUA FIREBALL!
+                framesMax: 5, // Se la fireball ha un'animazione a più frame, cambialo
                 Damage: this.Damage,
                 KnockBack: this.KnockBack,
-                caster: this
+                caster: this,
+                scale: 4
             }));
-            this.hasShot = true; 
+            this.CanShoot = true; 
         }
         
 
@@ -287,10 +338,13 @@ class Fighter extends Sprite{
             if (CheckAttackCollision({ attacker: this, victim: victim })) {
 
                 // Register victim immediately to prevent multiple hits per swing
+
                 this.hitEnemies.push(victim);
 
                 if (!victim.Defending) {
                     // --- SUCCESSFUL HIT LOGIC ---
+                    g.hitStopFrames = 6;
+                    g.cameraShake = 6;
                     CreateVFX(victim, "HIT");
                     CreateVFX(victim, "DAM");
                     ApplyKnockback(victim, this);
@@ -313,9 +367,11 @@ class Fighter extends Sprite{
                     victim.HealthPoints -= this.Damage * mult;
                     ReduceAddHP(victim);
                     victim.hurt();
+                    
                     if (this.lifeSteal) {
                         this.HealthPoints += Math.floor(this.Damage * this.lifeSteal);
                         ReduceAddHP(this); // Aggiorna la barra della vita
+                        CreateVFX(this,"HP");
                     }
 
                 } else {
@@ -388,7 +444,7 @@ g.Bullets.forEach(bullet => {
         
 
         // - - - DEFENSE - - -
-        if (this.keys.defend.pressed && this.LastKeyPressed === this.ControlKeys.defend && !this.isAttacking && g.FlagFight && this.defenseBuffer === 0){ //These 2 lines can be placed in eventlisteners
+        if (this.keys.defend.pressed && this.LastKeyPressed === this.ControlKeys.defend && !this.isAttacking && g.FlagFight && this.defenseBuffer === 0 && !this.Dead){ //These 2 lines can be placed in eventlisteners
             this.keys.defend.pressed = false
             this.defenseBuffer = 50 ; 
             CreateVFX(this,"DASH")
@@ -399,7 +455,7 @@ g.Bullets.forEach(bullet => {
             this.defenseBuffer--;
             if (this.defenseBuffer>40){
                 this.Defending= true;
-                this.velocity.x = this.Direction.right ? 100*dt : -100*dt;
+                this.velocity.x = this.Direction.right ? 60*dt : -60*dt;
             }
             else {
                 this.Defending = false;
@@ -856,7 +912,7 @@ class Mask extends Sprite{
         }
         
         // 3. Nuove abilità speciali (se presenti nella maschera)
-        if (this.CanShoot) player.canShoot = true;
+        if (this.CanShoot) player.CanShoot = true;
         if (this.LifeSteal) player.lifeSteal = this.LifeSteal;
         if (this.SpeedMult) player.speedMult = this.SpeedMult;
         if (this.JumpBoost) player.jumpPower = (player.jumpPower || -15) + this.JumpBoost;
@@ -864,15 +920,12 @@ class Mask extends Sprite{
         
         CreateVFX(player, "MASK", this.name);
         ReduceAddHP(player); // Aggiorna la UI della vita
-        // --- LOGICA DOM INVENTARIO ---
+       // --- LOGICA DOM INVENTARIO ---
         const inventoryDiv = document.getElementById('inventory-container');
         if (inventoryDiv) {
             const icon = document.createElement('img');
-            icon.src = this.image.src; // Prende la source dell'immagine del Canvas
-            icon.style.width = "35px";
-            icon.style.height = "35px";
-            icon.style.border = "2px solid #ffbf00"; // Bordino dorato carino
-            icon.style.borderRadius = "5px";
+            icon.src = this.image.src; 
+            icon.classList.add('inventory-item'); // <-- Assegniamo solo una classe
             inventoryDiv.appendChild(icon);
         }
         // -----------------------------
@@ -1266,5 +1319,40 @@ class Bullet extends Sprite{
             color : config.color,
             isUnblockable: isMeteor // La meteora (2) non si para
         });
+    }
+}
+class Shockwave extends Sprite {
+    constructor({ position }) {
+        super({ position });
+        this.radius = 10;
+        this.opacity = 1;
+        this.Dead = false; 
+        this.hasHit = true; // Così non fa danni come un proiettile normale
+    }
+    
+    update(dt) {
+        this.draw();
+        this.radius += 15 * dt; // Si allarga a una velocità assurda
+        this.opacity -= 0.05 * dt; // Svanisce gradualmente
+        
+        if (this.opacity <= 0) {
+            this.Dead = true; // Il gioco lo cancellerà in automatico
+        }
+    }
+    
+    draw() {
+        c.save();
+        c.globalAlpha = Math.max(0, this.opacity);
+        c.beginPath();
+        // Disegna un'ellisse per simulare l'onda schiacciata a terra
+        c.ellipse(this.position.x, this.position.y, this.radius * 1.5, this.radius * 0.5, 0, 0, Math.PI * 2);
+        
+        c.fillStyle = "rgba(0, 150, 255, 0.4)"; // Fiamma blu interna
+        c.fill();
+        
+        c.lineWidth = 5;
+        c.strokeStyle = "rgba(0, 255, 255, 0.9)"; // Bordo ciano super luminoso
+        c.stroke();
+        c.restore();
     }
 }

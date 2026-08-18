@@ -18,17 +18,21 @@
                 <button id="btn-fullscreen">⛶</button>
             </div> 
         
-        <div id ="press-to-start">
+       
+        <div id ="Gioco">
+             <div id ="press-to-start">
             <div id="text-press-to-start" class="text-gold">
                 Click/Touch to start 
             </div>
             
         </div>
-        <div id ="Gioco">
             
-            <div id ="Interface">
+           <div id ="Interface">
                 <div id = "Giocatore">
+                    <!-- 1. Nome -->
                     <div class ="NomeGiocatore" id ="P1"></div>
+                    
+                    <!-- 2. Div interno (Vita e Stamina) -->
                     <div id = "P1-container">
                         <div class="health-bar-container">
                             <div id ="P1HP" class="health-bar"></div>
@@ -36,15 +40,18 @@
                         <div id = "stamina-bar-container">
                             <div id ="stamina-bar"></div>
                         </div>
-                        <div id="inventory-container" style="display: flex; gap: 5px; margin-top: 10px; height: 40px;"></div>
+                        
+                        <!-- L'INVENTARIO VA ESATTAMENTE QUI DENTRO -->
+                        <div id="inventory-container"></div>
                     </div>
-                </div>
+                </div> <!-- CHIUSURA DI "Giocatore" CHE MANCAVA -->
+
                 <div id ="Timer" class="text-gold">60</div>
-                
-            </div>
+            </div> <!-- CHIUSURA DI "Interface" -->
             
             <div id ="Announcement" class="text-gold" ></div>
             <canvas width = "1280" height = "720" id ="Game"></canvas>
+            <!--
             <div id="mobile-controls">
                 
     <div class="dpad">
@@ -57,7 +64,7 @@
         <button id="btn-attack">⚔️</button>
     </div>
 </div>
-<!--
+
 <div id ="choosing-enemies">
             <button class = "spawn-enemies" onclick = "IncrementEnemies(2)">Launcher</button>
             <button class = "spawn-enemies" onclick = "IncrementEnemies(3)">BigAhhLauncher</button>
