@@ -314,7 +314,7 @@ class Fighter extends Sprite{
                 caster: this,
                 scale: 4
             }));
-            this.CanShoot = true; 
+            this.CanShoot = false; 
         }
         
 
