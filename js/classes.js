@@ -1324,35 +1324,87 @@ class Bullet extends Sprite{
 class Shockwave extends Sprite {
     constructor({ position }) {
         super({ position });
-        this.radius = 10;
+        this.radius = 5;
         this.opacity = 1;
-        this.Dead = false; 
-        this.hasHit = true; // Così non fa danni come un proiettile normale
-    }
-    
-    update(dt) {
-        this.draw();
-        this.radius += 15 * dt; // Si allarga a una velocità assurda
-        this.opacity -= 0.05 * dt; // Svanisce gradualmente
-        
-        if (this.opacity <= 0) {
-            this.Dead = true; // Il gioco lo cancellerà in automatico
+        this.Dead = false;
+        this.hasHit = false; // non fa danni come un Bullet normale
+
+        // Lingue di fiamma che si alzano dal punto d'impatto
+        this.flames = [];
+        const flameCount = 14;
+        for (let i = 0; i < flameCount; i++) {
+            this.flames.push({
+                angle: (Math.PI / (flameCount - 1)) * i, // ventaglio verso l'alto
+                dist: 0,
+                maxDist: 30 + Math.random() * 60,
+                height: 30 + Math.random() * 40,
+                width: 4 + Math.random() * 5,
+                wobble: Math.random() * Math.PI * 2,
+                wobbleSpeed: 0.15 + Math.random() * 0.15,
+                life: 1,
+                decay: 0.015 + Math.random() * 0.015,
+                delay: Math.random() * 6 // partenze sfalsate = più organico
+            });
         }
     }
-    
+
+    update(dt) {
+        this.radius += 10 * dt;
+        this.opacity -= 0.035 * dt;
+
+        this.flames.forEach(f => {
+            if (f.delay > 0) { f.delay -= dt; return; }
+            f.dist = Math.min(f.dist + 2.5 * dt, f.maxDist);
+            f.wobble += f.wobbleSpeed * dt;
+            f.life -= f.decay * dt;
+        });
+
+        this.draw();
+        if (this.opacity <= 0) this.Dead = true;
+    }
+
     draw() {
         c.save();
-        c.globalAlpha = Math.max(0, this.opacity);
+        c.globalCompositeOperation = "lighter";
+
+        // Alone/anello a terra
+        c.globalAlpha = Math.max(0, this.opacity) * 0.5;
+        const ringGrad = c.createRadialGradient(
+            this.position.x, this.position.y, 0,
+            this.position.x, this.position.y, this.radius * 1.6
+        );
+        ringGrad.addColorStop(0, "rgba(140,220,255,0.9)");
+        ringGrad.addColorStop(0.5, "rgba(0,150,255,0.5)");
+        ringGrad.addColorStop(1, "rgba(0,80,255,0)");
         c.beginPath();
-        // Disegna un'ellisse per simulare l'onda schiacciata a terra
-        c.ellipse(this.position.x, this.position.y, this.radius * 1.5, this.radius * 0.5, 0, 0, Math.PI * 2);
-        
-        c.fillStyle = "rgba(0, 150, 255, 0.4)"; // Fiamma blu interna
+        c.ellipse(this.position.x, this.position.y, this.radius * 1.6, this.radius * 0.45, 0, 0, Math.PI * 2);
+        c.fillStyle = ringGrad;
         c.fill();
-        
-        c.lineWidth = 5;
-        c.strokeStyle = "rgba(0, 255, 255, 0.9)"; // Bordo ciano super luminoso
-        c.stroke();
+
+        // Lingue di fiamma
+        c.globalAlpha = 1;
+        this.flames.forEach(f => {
+            if (f.life <= 0 || f.delay > 0) return;
+
+            const baseX = this.position.x + Math.cos(f.angle) * f.dist;
+            const baseY = this.position.y - Math.sin(f.angle) * f.dist * 0.3;
+            const sway = Math.sin(f.wobble) * 6;
+            const h = f.height * f.life;
+
+            const grad = c.createLinearGradient(baseX, baseY, baseX + sway, baseY - h);
+            grad.addColorStop(0, `rgba(180,240,255,${0.9 * f.life})`);
+            grad.addColorStop(0.4, `rgba(40,150,255,${0.7 * f.life})`);
+            grad.addColorStop(1, `rgba(10,40,180,0)`);
+
+            c.beginPath();
+            c.moveTo(baseX - f.width / 2, baseY);
+            c.quadraticCurveTo(baseX + sway * 0.6, baseY - h * 0.5, baseX + sway, baseY - h);
+            c.quadraticCurveTo(baseX + sway * 0.4, baseY - h * 0.5, baseX + f.width / 2, baseY);
+            c.closePath();
+            c.fillStyle = grad;
+            c.fill();
+        });
+
         c.restore();
     }
 }
