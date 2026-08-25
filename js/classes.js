@@ -132,6 +132,7 @@ class Fighter extends Sprite{
         this.inventory = [];
         this.hasShot = false;
         this.isPlunging = false; 
+        this.stepTimer = 0;
     
         // for AI checking if it's stuck
         this.checkStuckTimer = 0;
@@ -159,6 +160,7 @@ class Fighter extends Sprite{
         this.velocity.x *= 0.8 ;  
         //- - - DIRECTION SETTING - - - 
         if (!isKnockedBack && this.HitStun === 0 && g.FlagFight ){
+            
             //Setting direction of the Sprite using the LastKeyPressed on X-Axis (so left or right)
             if (this.keys.right.pressed && this.LastKeyPressed === this.ControlKeys.right && !this.Defending && !this.Dead && !this.isAttacking && !this.imploded) {
                 this.Direction.right = true; 
@@ -188,6 +190,17 @@ class Fighter extends Sprite{
                 this.velocity.y = 35;  // Cadi come un meteorite!
                 this.switchSprite('attack'); // Mettiamo l'animazione di attacco mentre cade
             }
+        }
+        if (Math.abs(this.velocity.x) > 1 && this.OnGround && this.Player === 1) {
+            if (this.stepTimer <= 0) {
+                SoundManager.play('steps'); // Suona un passo casuale!
+                this.stepTimer = 25; // Aspetta 20 frame prima del prossimo passo (regola questo numero se i passi sono troppo veloci/lenti)
+            } else {
+                this.stepTimer--;
+            }
+        } else {
+            // Se si ferma o salta, resetta il timer così il primo passo è immediato appena riparte
+            this.stepTimer = 0; 
         }
         //Before needs to check the inputs 
         this.position.x +=this.velocity.x; 
@@ -293,6 +306,11 @@ class Fighter extends Sprite{
         }
 
         else if (this.isAttacking && !this.Dead && this.attackCooldown === 0) {
+            if (!this.attackSoundPlayed && this.Player === 1 ) {
+                    SoundManager.play('blade');
+                    this.attackSoundPlayed = true; // Chiude il lucchetto!
+                }
+            
             
             
 
@@ -405,6 +423,7 @@ g.Bullets.forEach(bullet => {
         if (isMoving && Math.random() < 0.4) {
             return; // Fallimento parata in movimento
         }
+        SoundManager.play('parry');
 
         // 1. Spegniamo il proiettile nemico originale
         bullet.hasHit = true;
@@ -413,6 +432,7 @@ g.Bullets.forEach(bullet => {
 
         const originalCaster = bullet.caster;
         const dir = this.Direction.right ? 1 : -1;
+        
 
         // 2. Generiamo i 3 frammenti SOLO E UNICAMENTE dalle coordinate del proiettile parato
         for (let i = -1; i <= 1; i++) {
@@ -526,6 +546,8 @@ g.Bullets.forEach(bullet => {
             this.framesCurrent = 0; 
             this.framesElapsed = 0;
             this.hitEnemies = [];
+            // - - - AUDIO - - - 
+            this.attackSoundPlayed = false;
         }
         else return ; 
     }
@@ -540,9 +562,11 @@ g.Bullets.forEach(bullet => {
             this.keys.left.pressed = false;
             this.keys.right.pressed = false;
             this.velocity.x = 0; 
+            
 
             // Se è il BigAhhLauncher spara la meteora (tipo 2), altrimenti il proiettile base (tipo 1)
             const bulletType = this.type === "BigAhhLauncher" ? 2 : 1;
+            this.type === "BigAhhLauncher" ? SoundManager.play('BigFireballs') : SoundManager.play('SmallFireballs');
             this.castBullet(this, bulletType);
             
             // Il boss ha un cooldown più lungo (circa 3 secondi e mezzo)
@@ -1183,6 +1207,7 @@ class Bullet extends Sprite{
 
         // - - - COLLISIONS WITH PLAYERS - - - 
         if (this.liveFrames > 300){
+                    SoundManager.play('fireExplosion');
                     const index =  g.Bullets.indexOf(this);
                     this.hasHit = true;
                     if (index !== -1){
@@ -1203,6 +1228,7 @@ class Bullet extends Sprite{
                 let victim = targets[i];
                 
                 if (CheckCollisions({ rectangle1: this, rectangle2: victim })) {
+                    SoundManager.play('fireExplosion');
                     this.hasHit = true;
                     this.Dead = true;
 

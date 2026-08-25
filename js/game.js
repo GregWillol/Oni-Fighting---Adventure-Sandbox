@@ -169,6 +169,7 @@ for (let i = g.PowerUps.length - 1; i >= 0; i--) {
 
 
 
+SoundManager.init();
 
 Gameloop();
 
@@ -331,6 +332,7 @@ if (g.PressToStart) {
         e.preventDefault();
         g.startTimer();
         g.PressToStart.style.display = "none";
+        SoundManager.playMusic('intro');
     };
 
     g.PressToStart.addEventListener('touchstart', handleStartGame, { once: true, passive: false });
