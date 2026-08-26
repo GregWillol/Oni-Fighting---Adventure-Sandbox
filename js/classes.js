@@ -183,7 +183,7 @@ class Fighter extends Sprite{
             }
             //- - - VERIFYING JUMP CONDITION - - - 
             if (this.keys.up.pressed && this.OnGround && !this.Defending && !this.Dead && !this.isAttacking) {
-                this.velocity.y = -25 + (this.jumpPower || 0);;
+                this.velocity.y = -30 + (this.jumpPower || 0);;
                 this.OnGround = false;
             }
             // - - - SCHIANTO A TERRA (GROUND SLAM) - - -

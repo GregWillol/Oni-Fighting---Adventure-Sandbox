@@ -584,6 +584,7 @@ function ShowPerks(){
         g.PowerUps.push(Mask.CreateMask(0)); 
         g.PowerUps.push(Mask.CreateMask(0));       
         g.PowerUps.push(Mask.CreateMask(0)); 
+        const priceMultplier = Math.floor(g.difficulty * 1.1);
     // using child append.child
     
     
@@ -591,22 +592,23 @@ function ShowPerks(){
         
         const NewPerk = document.createElement("button");
         NewPerk.classList.add("perks-button");
-        NewPerk.textContent = p.name + " "+ p.price;
+        NewPerk.textContent = p.name + " "+ (p.price*priceMultplier);
         NewPerk.addEventListener("click", () => {
-            getPerked(p);
+            getPerked(p,priceMultplier);
         });
         g.PerksChoosingContainer.appendChild(NewPerk);
     });
     
     g.PerksContainer.style.display = "flex";
 }
-function getPerked(mask){
+function getPerked(mask,priceMultplier){
     
-    if (mask.value > Player1.coins){
+    if (Player1.coins < mask.price*priceMultplier ){
+        alert("Non hai abbastanza soldi Brokie")
         return;
     }
     else {
-        Player1.coins-=parseInt(mask.value);
+        Player1.coins-=(mask.price * priceMultplier);
         mask.MaskTaken(Player1);
         g.isPerked = true;
         RemovePerks();
