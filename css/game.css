@@ -20,7 +20,7 @@ canvas{
     margin: 0 auto; 
     touch-action: none;
 }
-#press-to-start{
+.menu{
     position: absolute;
     width: 1280px; 
     height: 720px;
@@ -30,6 +30,61 @@ canvas{
     z-index :200;
     align-items: center;
     justify-content: center;
+}
+#perks{
+    display : none;
+    
+}
+#choosing-perks{
+    display: flex;
+
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap : 8vw;
+}
+.perks-button{
+    display : flex; 
+    align-items: center;
+    justify-content: center;
+    background : linear-gradient(to bottom, rgb(255, 166, 0) ,rgb(255,166,0,0.6));
+    padding : 10px;
+    box-shadow: 2px 2px 0px #000 , 0 0 15px #ffd700;
+    
+
+}
+
+.perks-button:hover{
+    animation : arcade-pulse 1s ease-in-out infinite ; 
+}
+.perks-button.selected{
+    transform: scale(1.1);
+    animation : arcade-pulse 1s linear infinite ; 
+}
+@keyframes arcade-pulse {
+    0% {
+        box-shadow: 4px 4px 0px #000; 
+        filter: brightness(100%);
+    }
+    30%{
+        box-shadow: 2px 2px 0px #000, 0 0 15px #ffd700;
+        filter: brightness(80%); 
+        border-color: #fff;
+    }
+    60%{
+        box-shadow: 4px 4px 0px #000, 0 0 15px #ffd700;
+        filter: brightness(120%); 
+        border-color: #fff;
+    }
+    80%{
+        box-shadow: 2px 2px 0px #000, 0 0 15px #ffd700;
+        filter: brightness(80%); 
+        border-color: #fff;
+    }
+    100% {
+        box-shadow: 4px 4px 0px #000; 
+        filter: brightness(100%);
+    }
 }
 #text-press-to-start{
     font-size: clamp(20px, 4vw, 40px);

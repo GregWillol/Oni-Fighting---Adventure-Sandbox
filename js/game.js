@@ -97,6 +97,7 @@ function Gameloop (currentTime){
         updateCamera();
         g.cameraMovement();
         
+        
         // - - - PLATFORMS DRAWING - - -
         g.Platforms.forEach(platform=>{
             platform.Draw();
@@ -130,7 +131,9 @@ for (let i = g.PowerUps.length - 1; i >= 0; i--) {
         // - - - PLAYERS UPDATE - - -
         g.Fighters.forEach(fighter => {
             HandleMovement(fighter);
-            if (!fighter.imploded) fighter.update(dt);
+            if (!fighter.imploded) {
+                fighter.update(dt);
+            }
         });
 
 
@@ -175,7 +178,6 @@ Gameloop();
 
 //- - - COMMANDS - - -
 document.addEventListener("keydown",e=>{
-    console.log(e)
     e.preventDefault(); 
     const KeyPressed = e.key.toLowerCase();
     switch (KeyPressed) {

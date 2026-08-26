@@ -103,14 +103,18 @@ function CheckAttackCollision({ attacker, victim }) {
     }
 }
 function reduceTimer(){
-    if (g.FlagFight) RemoveAnnouncement() ; 
+    if(g.isPerked){
+        g.isPerked = false;
+        RemovePerks();
+    }
+    
     if (g.timer > 0) {
         g.timer--;
     }
-    if (g.RoomHandler === 'COOLDOWN'){
+    if (g.roomState === 'COOLDOWN'){
         Timer.textContent = g.timer+3;
         if (g.timer === 3){
-            g.RoomHandler = 'FIGHTING';
+            g.roomState = 'FIGHTING';
             g.startTimer();
         }
     }
@@ -134,6 +138,7 @@ function reduceTimer(){
         // - - - FIGHT / MASK announcements - - -
         case 60: 
             TriggerAnnouncement("FIGHT");
+            setTimeout(RemoveAnnouncement,2000);
             g.FlagFight = true
             break; 
         
@@ -214,7 +219,9 @@ function CheckVictory({ player1, timerId }) {
     // 1. GESTIONE STATO: Chi ha 0 HP avvia la morte e setta .Dead = true
     g.Fighters.forEach(f => {
         if (f.HealthPoints <= 0 && f.image !== f.sprites.death.image) {
-            if (f.death) f.death();
+            if (f.death) {
+                    f.death();
+            }
         }
     });
 
@@ -248,7 +255,7 @@ function CheckVictory({ player1, timerId }) {
         
         TriggerAnnouncement("Round "+g.difficulty+" completed", true);
         setTimeout(RemoveAnnouncement,5000);
-        g.RoomHandler = 'COOLDOWN';
+        g.roomState = 'COOLDOWN';
         g.startCountdown();
         g.difficulty++;
     }
@@ -499,14 +506,12 @@ function DropPotions() {
 
 function RoomHandler(){
     const newVal = getDifficultyScaling();
-
-    // --- 1. COSTRUZIONE ARENA RANDOM ---
-    const randomMappa = Math.floor(Math.random() * ArenaLayouts.length);
-    const layoutScelto = ArenaLayouts[randomMappa];
+    const randomMap = Math.floor(Math.random() * ArenaLayouts.length);
+    const choosenLayout = ArenaLayouts[randomMap];
 
     g.Platforms = []; 
-    layoutScelto.forEach(p => {
-        // NOTA: Se usi una classe specifica per le piattaforme (es. new Sprite), mettila qui al posto di questo oggetto
+    choosenLayout.forEach(p => {
+        
         g.Platforms.push({
             position: { x: p.x, y: p.y },
             size: { x: p.w, y: p.h },
@@ -521,7 +526,7 @@ function RoomHandler(){
         });
     });
 
-    // --- 2. PULIZIA CADAVERI E PROIETTILI ---
+    // - - - CLEANING ROOM - - -
     g.Bullets = []; 
     g.Fighters = g.Fighters.filter(f => f.Player === 1); 
     if (g.Pointers) g.Pointers = g.Pointers.filter(p => !p.isMob); 
@@ -554,8 +559,8 @@ function RoomHandler(){
     }
     
     
-    g.RoomHandler = 'FIGHTING';
-    console.log("Round:", g.difficulty, "- Generata Mappa:", randomMappa);
+    g.roomState = 'FIGHTING';
+    console.log("Round:", g.difficulty, "- Generata Mappa:", randomMap);
     g.P1DOM.textContent= g.difficulty;
 }
 // In util.js o tra le tue funzioni globali
@@ -572,4 +577,45 @@ function getDifficultyScaling() {
         // Possibilità che spawni un Launcher o un nemico forte
         launcherChance: Math.min(0.1 + (d * 0.05), 0.6) // max 60%
     };
+}
+
+
+function ShowPerks(){
+        g.PowerUps.push(Mask.CreateMask(0)); 
+        g.PowerUps.push(Mask.CreateMask(0));       
+        g.PowerUps.push(Mask.CreateMask(0)); 
+    // using child append.child
+    
+    
+    g.PowerUps.forEach(p => {
+        
+        const NewPerk = document.createElement("button");
+        NewPerk.classList.add("perks-button");
+        NewPerk.textContent = p.name + " "+ p.price;
+        NewPerk.addEventListener("click", () => {
+            getPerked(p);
+        });
+        g.PerksChoosingContainer.appendChild(NewPerk);
+    });
+    
+    g.PerksContainer.style.display = "flex";
+}
+function getPerked(mask){
+    
+    if (mask.value > Player1.coins){
+        return;
+    }
+    else {
+        Player1.coins-=parseInt(mask.value);
+        mask.MaskTaken(Player1);
+        g.isPerked = true;
+        RemovePerks();
+        return;
+    }
+}
+function RemovePerks (){
+    const Perks = document.querySelectorAll(".perks-button");
+    Perks.forEach(b => b.remove());
+    g.PerksContainer.style.display = "none";
+    
 }

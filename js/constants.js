@@ -244,6 +244,7 @@ const FIGHTER_STATS={
         },
         attackFrame : 9,
         HealthPoints : 100,
+        value : 4
         
 
     },
@@ -321,6 +322,7 @@ const FIGHTER_STATS={
         },
         attackFrame : 9,
         HealthPoints : 100,
+        value : 2
         
 
     },
@@ -398,6 +400,7 @@ const FIGHTER_STATS={
         },
         attackFrame : 9,
         HealthPoints : 100,
+        value : 6
     }
 }
 const AURA_STATS={
@@ -448,7 +451,8 @@ const MASK_STATS = {
         imageSrc: './img/PowerUp/purpleVial.png',
         framesMax: 22,
         scale: 2,
-        offset: { x: 0, y: 0 }
+        offset: { x: 0, y: 0 },
+        price : 0
     },
     // 2: IL BERSERKER (Danni e knockback enormi)
     2: {
@@ -461,7 +465,8 @@ const MASK_STATS = {
         imageSrc: './img/PowerUp/purpleVial.png', // Cambierai sprite poi
         framesMax: 22,
         scale: 2,
-        offset: { x: -2, y: 0 }
+        offset: { x: -2, y: 0 },
+        price : 10
     },
     // 3: IL TIRATORE SCELTO (Sblocca i proiettili)
     3: {
@@ -475,7 +480,8 @@ const MASK_STATS = {
         imageSrc: './img/PowerUp/purpleVial.png',
         framesMax: 22,
         scale: 2,
-        offset: { x: 0, y: 0 }
+        offset: { x: 0, y: 0 },
+        price : 12
     },
     // 4: IL VAMPIRO (Ruba vita a ogni colpo)
     4: {
@@ -489,7 +495,8 @@ const MASK_STATS = {
         imageSrc: './img/PowerUp/purpleVial.png',
         framesMax: 22,
         scale: 2,
-        offset: { x: 0, y: 0 }
+        offset: { x: 0, y: 0 }, 
+        price : 15
     },
     // 5: IL FULMINE (Velocità di movimento e salto)
     5: {
@@ -504,7 +511,8 @@ const MASK_STATS = {
         imageSrc: './img/PowerUp/purpleVial.png',
         framesMax: 22,
         scale: 2,
-        offset: { x: 0, y: 0 }
+        offset: { x: 0, y: 0 },
+        price : 20
     },
     // 6: IL TANK (Aumenta la salute massima permanentemente)
     6: {
@@ -518,7 +526,8 @@ const MASK_STATS = {
         imageSrc: './img/PowerUp/purpleVial.png',
         framesMax: 22,
         scale: 2,
-        offset: { x: 0, y: 0 }
+        offset: { x: 0, y: 0 },
+        price : 30
     }
 }
 const BULLET_STATS= {

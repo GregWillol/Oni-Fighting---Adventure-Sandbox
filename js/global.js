@@ -10,6 +10,8 @@ class GameContext {
         this.P1DOM = document.getElementById('P1')
         this.P2DOM =document.getElementById('P2')
         this.PressToStart = document.getElementById('press-to-start');
+        this.PerksContainer = document.getElementById('perks');
+        this.PerksChoosingContainer = document.getElementById('choosing-perks');
         this.maskTitle = null ; 
 
         // - - - CAMERA - - -
@@ -42,7 +44,7 @@ class GameContext {
         // - - - GAME/AMBIENT - - -
         this.MAX_WIDTH = 3000; 
         this.MAX_HEIGHT= 2000;
-        this.Gravity_Acceleration = 0.82; 
+        this.Gravity_Acceleration = 0.90; 
 
         // - - - MAP SETTINGS - - -
         this.Platforms = [];
@@ -56,6 +58,7 @@ class GameContext {
         this.Fighter2Height = 120;
         this.StandardAttBoxWid = 100;
         this.HitHeight = 30 ; 
+        this.isPerked = false;
 
          // - - - PLAYER MAP POSITION - - -
         this.StartingPositionP1 = {x: 0 , y: 0};  
@@ -71,6 +74,7 @@ class GameContext {
         this.Fighters = [];
         this.PowerUps = [];
 
+
         //- - - GENERAL PURPOSES - - - 
         this.lastTime = 0;
         this.isAdventure = false;
@@ -81,6 +85,8 @@ class GameContext {
         // - - - ROOM STATS - - -
         this.difficulty = 1; 
         this.roomState = 'FIGHTING';
+
+
 
         
     }
@@ -163,11 +169,8 @@ class GameContext {
         this.TimerIntervalId= setInterval(reduceTimer,1000)
         // Da mettere dove decidi di far finire l'ondata
         let centerX = g.MAX_WIDTH / 2;
-            
-        // Spawna 3 maschere distanziate di 300 pixel l'una dall'altra
-        g.PowerUps.push(Mask.CreateMask(centerX - 300)); // Maschera a sinistra
-        g.PowerUps.push(Mask.CreateMask(centerX));       // Maschera al centro
-        g.PowerUps.push(Mask.CreateMask(centerX + 300)); // Maschera a destra
+        
+        ShowPerks();
     }
     
 }

@@ -86,7 +86,7 @@ class Sprite{
 
 
 class Fighter extends Sprite{
-    constructor ({position,velocity = {x:0 , y:0},size = {x: 0, y:0},color,HealthPoints,MaxHealthPoints = 100 ,keys = {up : {pressed : false},left : {pressed : false},attack : {pressed : false},right : {pressed : false},defend : {pressed: false},slam : {pressed : false}},ControlKeys,AttackBox = {position : {x: 0, y:0}, size : {x:StandardAttBoxWid, y:g.HitHeight},shape : ""},Direction = {right : false, left : false},Player,imageSrc,scale = 1,framesMax=1, offset = {x : 0 , y : 0},sprites,Damage = 10,isAI,attackFrame,type}){
+    constructor ({position,velocity = {x:0 , y:0},size = {x: 0, y:0},color,value = 0 ,HealthPoints,MaxHealthPoints = 100 ,keys = {up : {pressed : false},left : {pressed : false},attack : {pressed : false},right : {pressed : false},defend : {pressed: false},slam : {pressed : false}},ControlKeys,AttackBox = {position : {x: 0, y:0}, size : {x:StandardAttBoxWid, y:g.HitHeight},shape : ""},Direction = {right : false, left : false},Player,imageSrc,scale = 1,framesMax=1, offset = {x : 0 , y : 0},sprites,Damage = 10,isAI,attackFrame,type}){
         super({
             position,
             size,
@@ -133,12 +133,18 @@ class Fighter extends Sprite{
         this.hasShot = false;
         this.isPlunging = false; 
         this.stepTimer = 0;
+        this.coins = 0;
+        this.hasPaid = false;
+
+        this.value = value; 
     
         // for AI checking if it's stuck
         this.checkStuckTimer = 0;
         this.previousPositionX = this.position.x;
+        this.previousPositionY = this.position.y;
     }
     update(dt){ 
+        this.previousPositionY = this.position.y;
         
         if (this.isAI) {
             this.aiTimer++;
@@ -147,6 +153,7 @@ class Fighter extends Sprite{
             }
 
         }
+
         
         
         //first thing before it can be changed
@@ -165,13 +172,13 @@ class Fighter extends Sprite{
             if (this.keys.right.pressed && this.LastKeyPressed === this.ControlKeys.right && !this.Defending && !this.Dead && !this.isAttacking && !this.imploded) {
                 this.Direction.right = true; 
                 this.Direction.left = false; 
-                this.velocity.x = 5.5*dt*(this.speedMult || 1);
+                this.velocity.x = 10*(this.speedMult || 1);
                 CreateVFX(this,"RUN")
                 
             } else if (this.keys.left.pressed && this.LastKeyPressed === this.ControlKeys.left && !this.Defending && !this.Dead && !this.isAttacking) {
                 this.Direction.left = true;
                 this.Direction.right = false; 
-                this.velocity.x = -5.5*dt*(this.speedMult || 1);
+                this.velocity.x = -10*(this.speedMult || 1);
                 CreateVFX(this,"RUN")
             }
             //- - - VERIFYING JUMP CONDITION - - - 
@@ -203,7 +210,7 @@ class Fighter extends Sprite{
             this.stepTimer = 0; 
         }
         //Before needs to check the inputs 
-        this.position.x +=this.velocity.x; 
+        this.position.x +=this.velocity.x * dt; 
         //this condition needs to be here beacause velocity.x variable could not maintain the value given before with the EventListeners
         // - - - BOUNDARIES - - -
         //Bound X-Axis
@@ -216,16 +223,39 @@ class Fighter extends Sprite{
             this.position.x = 0;
         }
         // Y-Axis :Gravity,Velocity updating
-        this.velocity.y+=g.Gravity_Acceleration * dt;
+        this.velocity.y+=g.Gravity_Acceleration*dt;
+        const MAX_FALL_SPEED = 50; 
+        if (this.velocity.y > MAX_FALL_SPEED) {
+                this.velocity.y = MAX_FALL_SPEED;
+            }
         this.position.y +=this.velocity.y*dt;
         //Collisions with platforms 
-        g.Platforms.forEach(c =>{
-            if(CheckCollisions({rectangle1: this, rectangle2 : c})){
-                PlatformCollisions({rectangle1: this, rectangle2 : c});
-                CreateVFX(this,"JUMP")
+       g.Platforms.forEach(c => {
+            // 1. Calcoliamo la posizione dei piedi PRIMA e ADESSO
+            const prevBottom = this.previousPositionY + this.size.y;
+            const currentBottom = this.position.y + this.size.y;
+                            // 2. Controllo Orizzontale: Il personaggio è in corrispondenza della piattaforma?
+            const isHorizontallyAligned = 
+                this.position.x + this.size.x >= c.position.x && 
+                this.position.x <= c.position.x + c.size.x;
+                            // 3. LA MAGIA: I piedi prima erano SOPRA (o pari), e adesso sono SOTTO (o pari)?
+            const crossedPlatform = prevBottom <= c.position.y && currentBottom >= c.position.y;
+                            // 4. Se si sta muovendo verso il basso (cadendo) e attraversa la linea, LO BLOCCIAMO!
+            if (isHorizontallyAligned && crossedPlatform && this.velocity.y >= 0) {
                 
+                // Lo costringiamo fisicamente a stare esattamente sopra la piattaforma
+                this.position.y = c.position.y - this.size.y; 
+                
+                this.velocity.y = 0; // Azzera la velocità di caduta
+                this.OnGround = true; // Diciamo al gioco che è a terra
+                
+                // Se c'è lo schianto a terra, serve resettarlo o non capisce che è atterrato
+                
+                             // Le tue funzioni originali per gli effetti e altre meccaniche
+                PlatformCollisions({rectangle1: this, rectangle2: c}); 
+                CreateVFX(this, "JUMP");
             }
-        })
+        });
         if (!this.OnGround && g.FlagFight){
             this.jumpBuffer =20;
         }
@@ -500,6 +530,7 @@ g.Bullets.forEach(bullet => {
             utilStaminaTimer(this);
             CreateVFX(this,"UP");
         }
+        console.log(Player1.coins)
 
         
         
@@ -526,6 +557,12 @@ g.Bullets.forEach(bullet => {
             this.framesCurrent === this.sprites.death.framesMax-1
         ){
             this.imploded = true;
+            if(!this.hasPaid && !Player1.Dead){
+                this.hasPaid = true;
+                Player1.coins += this.value;
+                
+            }
+            
         }
         
         if (!this.sprites[spriteName]) return;
@@ -583,6 +620,7 @@ g.Bullets.forEach(bullet => {
         this.Dead=true;
         this.PoweredUp = false;
         this.switchSprite('death') 
+        
         
     }
     defend (){
@@ -806,7 +844,7 @@ g.Bullets.forEach(bullet => {
         const basePos = ids === 1 ? g.StartingPositionP1 : g.StartingPositionP2;
         let spawnPos =  { x : basePos.x, y: basePos.y };
         
-        if (ids > 2) {
+        if (ids >= 2) {
             spawnPos.x -= Math.random() * 300;
         }
 
@@ -844,12 +882,13 @@ g.Bullets.forEach(bullet => {
             type : configData.type,
             HealthPoints : configData.HealthPoints,
             MaxHealthPoints : configData.MaxHealthPoints,
+            value : configData.value
         })
     }
 }
 
 class Mask extends Sprite{
-    constructor({position,velocity = {x: 0 , y : 0},size ,color = "black",imageSrc,sprites,scale = 1 , framesMax=1 ,offset = {x:0, y:0},CuringHealth,DamageMult = 1,KnockBack = 1}){
+    constructor({position,velocity = {x: 0 , y : 0},size ,price,color = "black",imageSrc,sprites,scale = 1 , framesMax=1 ,offset = {x:0, y:0},CuringHealth,DamageMult = 1,KnockBack = 1}){
         super({
             position,
             size,
@@ -866,6 +905,7 @@ class Mask extends Sprite{
         this.KnockBack = KnockBack;
         this.GotTaken = false;
         this.Placed = false;
+        this.price = price;
     }
     update(dt){
         this.animateFrames(dt);
@@ -983,7 +1023,8 @@ class Mask extends Sprite{
             imageSrc: config.imageSrc,
             framesMax: config.framesMax,
             scale: config.scale,
-            offset: config.offset
+            offset: config.offset,
+            price : config.price
         });
         
         // Passiamo le stats extra se la maschera le ha
