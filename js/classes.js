@@ -328,6 +328,8 @@ class Fighter extends Sprite{
                 this.AttackBox.position.x = this.position.x+this.size.x-this.AttackBox.size.x-AttackOffset;     // X position of AttackBox
             } 
             
+            
+            
         // - - - ATTACK - - - 
         if (this.attackCooldown >0){ 
             this.isAttacking=false;
@@ -530,7 +532,65 @@ g.Bullets.forEach(bullet => {
             utilStaminaTimer(this);
             CreateVFX(this,"UP");
         }
-        console.log(Player1.coins)
+        
+        if (this.staminaBar >= 3){
+            utilStaminaTimer(this);
+            CreateVFX(this,"UP");
+        }
+        
+        
+        // --- INCOLLA QUI IL DEBUG HITBOXES ---
+        c.save();
+
+        // 1. Hurtbox (Rettangolo verde)
+        c.strokeStyle = "rgba(0, 255, 0, 1)";
+        c.lineWidth = 2;
+        c.strokeRect(this.position.x, this.position.y, this.size.x, this.size.y);
+
+        // 2. AttackBox
+        if (this.AttackBox) {
+            if (this.debugHitboxTimer === undefined) this.debugHitboxTimer = 0;
+            
+            // Si attiva nel frame esatto dell'attacco
+            if (this.isAttacking && this.framesCurrent === this.attackFrame) {
+                this.debugHitboxTimer = 20; 
+            }
+
+            if (this.debugHitboxTimer > 0) {
+                this.debugHitboxTimer--;
+            }
+
+            const showActive = this.debugHitboxTimer > 0;
+            c.strokeStyle = showActive ? "rgba(255, 0, 0, 1)" : "rgba(255, 165, 0, 0.5)";
+            
+            const radiusX = this.AttackBox.size.x / 2;
+            const radiusY = this.AttackBox.size.y / 2;
+            const centerX = this.AttackBox.position.x + radiusX;
+            const centerY = this.AttackBox.position.y + radiusY;
+            
+            const startAngle = this.Direction.left ? Math.PI / 2 : -Math.PI / 2;
+            const endAngle = this.Direction.left ? (3 * Math.PI) / 2 : Math.PI / 2;
+
+            c.beginPath();
+            if (this.Player === 1) {
+                c.ellipse(centerX, centerY, radiusX, radiusY, 0, startAngle, endAngle);
+            } else {
+                c.arc(centerX, centerY, radiusX, startAngle, endAngle);
+            }
+            c.closePath();
+            c.stroke();
+
+            // Rettangolo vero dell'AttackBox
+            c.strokeStyle = "rgba(0, 0, 255, 0.3)";
+            c.strokeRect(this.AttackBox.position.x, this.AttackBox.position.y, this.AttackBox.size.x, this.AttackBox.size.y);
+        }
+        c.restore();
+        // --- FINE DEBUG ---
+
+    } // <-- Questa è la fine del metodo update(dt)
+    
+    switchSprite(spriteName) {
+        
 
         
         
@@ -564,6 +624,12 @@ g.Bullets.forEach(bullet => {
             }
             
         }
+        // - - - PLUNGE SCENARIO - - -
+        else if (
+            this.sprites.slam && // <-- EVITA IL CRASH SE LO SPRITE NON ESISTE
+            this.image === this.sprites.slam.image && 
+            this.framesCurrent < this.sprites.slam.framesMax - 1
+        ) return;
         
         if (!this.sprites[spriteName]) return;
 
@@ -712,6 +778,9 @@ g.Bullets.forEach(bullet => {
                     this.Direction.left = true;
                 }
             }
+        if (Math.random() < 0.01 && !this.OnGround  && diffX > 0){
+            this.isPlunging = true;
+        }
         
 
         // - - - ATTACK - - -
@@ -732,6 +801,7 @@ g.Bullets.forEach(bullet => {
                 this.LastKeyPressed=this.ControlKeys.defend;
             }
         }
+        
     }
        else if (this.type === "launcher") {
 
@@ -1391,6 +1461,9 @@ class Bullet extends Sprite{
 class Shockwave extends Sprite {
     constructor({ position }) {
         super({ position });
+
+        this.size = { x: 0, y: 0 }; 
+        this.isUnblockable = true;
         this.radius = 5;
         this.opacity = 1;
         this.Dead = false;

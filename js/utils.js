@@ -103,7 +103,7 @@ function CheckAttackCollision({ attacker, victim }) {
     }
 }
 function reduceTimer(){
-    if(g.isPerked){
+    if(g.roomState === "FIGHTING"){
         g.isPerked = false;
         RemovePerks();
     }
@@ -278,6 +278,9 @@ function HandleMovement(player){
     }
     else if (player.velocity.y !== 0){
         pAction="jump";
+    }
+    else if(player.isPlunging && player.Player !== 1){
+        pAction="plunge";
     }
     player.switchSprite(pAction);
 }
@@ -592,7 +595,7 @@ function ShowPerks(){
         
         const NewPerk = document.createElement("button");
         NewPerk.classList.add("perks-button");
-        NewPerk.textContent = p.name + " "+ (p.price*priceMultplier);
+        NewPerk.textContent = p.name + ": "+ (p.price*priceMultplier) ;
         NewPerk.addEventListener("click", () => {
             getPerked(p,priceMultplier);
         });
@@ -616,8 +619,10 @@ function getPerked(mask,priceMultplier){
     }
 }
 function RemovePerks (){
+    
     const Perks = document.querySelectorAll(".perks-button");
     Perks.forEach(b => b.remove());
+    g.PowerUps.forEach(p => p.GotTaken());
     g.PerksContainer.style.display = "none";
     
 }

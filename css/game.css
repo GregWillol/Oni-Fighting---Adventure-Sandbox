@@ -41,17 +41,19 @@ canvas{
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    gap : 8vw;
+    gap : 2vw;
 }
 .perks-button{
-    display : flex; 
-    align-items: center;
-    justify-content: center;
-    background : linear-gradient(to bottom, rgb(255, 166, 0) ,rgb(255,166,0,0.6));
-    padding : 10px;
-    box-shadow: 2px 2px 0px #000 , 0 0 15px #ffd700;
-    
-
+    background: linear-gradient(to bottom, #000,#b8870b48);
+    color: #ffd700;
+    font-family: 'Press Start 2P', cursive; 
+    font-size: 16px;
+    padding : 20px 40px;
+    border: 2px solid orange;
+    box-shadow: 4px 4px 0px #000;
+    transition: all 0.1s;
+    display: block;
+    margin: 20px auto;
 }
 
 .perks-button:hover{
@@ -60,6 +62,11 @@ canvas{
 .perks-button.selected{
     transform: scale(1.1);
     animation : arcade-pulse 1s linear infinite ; 
+}
+.perks-button img{
+    height: 100%;
+    width : 100%;
+    object-fit: cover;
 }
 @keyframes arcade-pulse {
     0% {

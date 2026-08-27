@@ -264,7 +264,7 @@ const FIGHTER_STATS={
         // - - - FIGHTER STATS - - -
         size : {
             x: g.Fighter2Width,
-            y : g.Fighter2Height
+            y : g.Fighter2Height+20
         },
         Direction : {
             left : true
@@ -287,42 +287,47 @@ const FIGHTER_STATS={
         type : "base",
 
         // - - - ANIMATION SPRITES - - -
-        scale : 1.3, 
-        offset : {x: 110, y:133},
+        scale : 3.2, 
+        offset : {x: 150, y:70},
         sprites: {
             idle: {
-                imageSrc: './img/Night/idle.png',
-                framesMax: 9 
+                imageSrc: './img/Knight/knightidle.png',
+                framesMax: 8
             },
             run: {
-                imageSrc: './img/Night/run.png', 
-                framesMax: 6 
+                imageSrc: './img/Knight/knightrun.png', 
+                framesMax: 8 
             },
              jump: {
-                imageSrc: './img/Night/jump.png', 
-                framesMax: 5 
+                imageSrc: './img/Knight/knightjump.png', 
+                framesMax: 8 
             },
             attack: {
-                imageSrc: './img/Night/attack.png',
-                framesMax: 12
+                imageSrc: './img/Knight/knightattack.png',
+                framesMax: 6
             },
             hurt :{
-                imageSrc: './img/Night/hurt.png', 
-                framesMax: 5
+                imageSrc: './img/Knight/knighthurt.png', 
+                framesMax: 3
 
             },
             death : {
-                imageSrc: './img/Night/death.png', 
-                framesMax: 23 
+                imageSrc: './img/Knight/knightdeath.png', 
+                framesMax: 4 
             },
             defence : {
-                imageSrc: './img/Night/defence.png',
-                framesMax: 3 
+                imageSrc: './img/Knight/knightdash.png',
+                framesMax: 10 
             },
+            slam : {
+                imageSrc: './img/Knight/knightplunge.png',
+                framesMax: 7 
+
+            }
         },
-        attackFrame : 9,
-        HealthPoints : 100,
-        value : 2
+        attackFrame : 4,
+        HealthPoints : 130,
+        value : 3
         
 
     },
