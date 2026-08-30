@@ -80,7 +80,7 @@ function Gameloop (currentTime){
         
         // - - - CLEANING CANVAS - - -
         c.clearRect(0,0,g.MAX_WIDTH,g.MAX_HEIGHT)
-        /* --- APPLICA LO SCREEN SHAKE ---
+        // --- APPLICA LO SCREEN SHAKE ---
         c.save(); // Salva lo stato pulito del canvas
         if (g.cameraShake > 0) {
             // Genera un offset casuale piccolissimo (es. tra -3 e 3 pixel)
@@ -91,7 +91,12 @@ function Gameloop (currentTime){
             g.cameraShake *= 0.9; // Fa scemare la scossa dolcemente frame dopo frame
             if (g.cameraShake < 0.2) g.cameraShake = 0; // La spegne quando è quasi zero
         }
-            */
+        // Aggiorna la UI delle monete
+    const coinUI = document.getElementById('coin-counter');
+    if (coinUI && Player1) {
+        coinUI.innerText = `🪙 ${Player1.coins}`;
+    }
+            
         
         //- - - TELECAMERA SETTINGS - - -
         updateCamera();

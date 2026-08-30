@@ -135,6 +135,10 @@ class Fighter extends Sprite{
         this.stepTimer = 0;
         this.coins = 0;
         this.hasPaid = false;
+        this.runCoins = 0;       // Per Soul Collector
+        this.shieldTimer = 0;    // Per Static Shield
+        this.hasShield = false;  // Stato dello scudo
+        this.toxicTimer = 0;     // Per Toxic Trail
 
         this.value = value; 
     
@@ -208,6 +212,28 @@ class Fighter extends Sprite{
         } else {
             // Se si ferma o salta, resetta il timer così il primo passo è immediato appena riparte
             this.stepTimer = 0; 
+        }
+        // - - - TOXIC TRAIL (Nuovo Perk) - - -
+        if (this.ToxicTrail && Math.abs(this.velocity.x) > 1 && this.OnGround) {
+            this.toxicTimer++;
+            if (this.toxicTimer > 15) { // Lascia una scia ogni quarto di secondo
+                this.toxicTimer = 0;
+                
+                // Usiamo un Bullet invisibile/verde fisso a terra come "area velenosa"
+                g.Bullets.push(new Bullet({
+                    position: { x: this.position.x + this.size.x / 2, y: this.position.y + this.size.y - 15 },
+                    velocity: { x: 0, y: 0 }, 
+                    size: { x: 60, y: 20 },
+                    color: "rgba(57, 255, 20, 0.6)", // Verde fosforescente
+                    imageSrc: '', // Lascia vuoto per ora, usa il colore
+                    framesMax: 1,
+                    Damage: Math.floor(this.Damage * 0.1), // Danno basso ma continuo
+                    KnockBack: 0, // Non sposta i nemici
+                    caster: this,
+                    liveFrames: 150, // Muore in fretta (circa 2.5 secondi)
+                    isUnblockable: true
+                }));
+            }
         }
         //Before needs to check the inputs 
         this.position.x +=this.velocity.x * dt; 
@@ -364,7 +390,37 @@ class Fighter extends Sprite{
                 caster: this,
                 scale: 4
             }));
-            this.CanShoot = false; 
+            // --- SPLIT SHOT (Nuovo Perk) ---
+            // Se hai lo split shot, partono due colpi aggiuntivi a ventaglio!
+            if (this.SplitShot) {
+                // Proiettile che va verso l'alto
+                g.Bullets.push(new Bullet({
+                    position: { x: this.AttackBox.position.x, y: this.AttackBox.position.y },
+                    velocity: { x: 40 * dir, y: -4 }, // Va in alto in diagonale
+                    size: { x: 60, y: 60 },
+                    color: "#8f00ff",
+                    imageSrc: './img/VFX/Bullets/Fireball.png',
+                    framesMax: 5,
+                    Damage: Math.floor(this.Damage * 0.7), // Fan un po' meno danno per bilanciare
+                    KnockBack: this.KnockBack,
+                    caster: this,
+                    scale: 3 // Un pelo più piccoli
+                }));
+                // Proiettile che spiove giù drastico
+                g.Bullets.push(new Bullet({
+                    position: { x: this.AttackBox.position.x, y: this.AttackBox.position.y },
+                    velocity: { x: 40 * dir, y: 12 }, // Va in basso deciso
+                    size: { x: 60, y: 60 },
+                    color: "#8f00ff",
+                    imageSrc: './img/VFX/Bullets/Fireball.png',
+                    framesMax: 5,
+                    Damage: Math.floor(this.Damage * 0.7),
+                    KnockBack: this.KnockBack,
+                    caster: this,
+                    scale: 3
+                }));
+            }
+            
         }
         
 
@@ -390,6 +446,24 @@ class Fighter extends Sprite{
                 // Register victim immediately to prevent multiple hits per swing
 
                 this.hitEnemies.push(victim);
+                // --- STATIC SHIELD PARRY (Nuovo Perk) ---
+                if (victim.StaticShield && victim.hasShield) {
+                    victim.hasShield = false; // Rompi lo scudo
+                    CreateVFX(victim, "DEF");
+                    SoundManager.play('parry');
+
+                    // Esplosione! Usiamo la tua Shockwave blu
+                    g.Bullets.push(new Shockwave({ 
+                        position: { x: victim.position.x + victim.size.x / 2, y: victim.position.y + victim.size.y } 
+                    }));
+
+                    // Respinge te (l'attaccante) violentemente e ti stordisce
+                    this.velocity.x = (this.position.x > victim.position.x ? 25 : -25);
+                    this.velocity.y = -10;
+                    this.HitStun = 30; // Mezzo secondo di blocco comandi
+                    
+                    continue; // INTERROMPE IL COLPO: Nessun danno per il bersaglio
+                }
 
                 if (!victim.Defending) {
                     // --- SUCCESSFUL HIT LOGIC ---
@@ -400,6 +474,14 @@ class Fighter extends Sprite{
                     ApplyKnockback(victim, this);
 
                     let mult = 1;
+
+                    // --- EXECUTIONER'S MARK (Nuovo Perk) ---
+                    // Se l'attaccante ha il potere e il bersaglio ha il 30% o meno di vita massima
+                    if (this.Executioner && victim.HealthPoints <= (victim.MaxHealthPoints * 0.30)) {
+                        mult = 2.5; // Danno assurdo (colpo di grazia)
+                        CreateVFX(this, "CRIT"); 
+                        // Opzionale: SoundManager.play('execute_sound_se_lo_hai');
+                    }
 
                     // Critical hit chance for Player 1
                     if (this.Player === 1 && Math.random() <= 0.2) {
@@ -413,14 +495,16 @@ class Fighter extends Sprite{
                         CreateVFX(this, "HP");
                     }
 
-                    // Apply damage and trigger hurt state
-                    victim.HealthPoints -= this.Damage * mult;
+                    victim.HealthPoints -= Math.floor(this.Damage * mult);
                     ReduceAddHP(victim);
                     victim.hurt();
                     
                     if (this.lifeSteal) {
-                        this.HealthPoints += Math.floor(this.Damage * this.lifeSteal);
-                        ReduceAddHP(this); // Aggiorna la barra della vita
+                        this.HealthPoints += Math.floor((this.Damage * mult) * this.lifeSteal);
+                        // Limite massimo per sicurezza
+                        if(this.HealthPoints > this.MaxHealthPoints) this.HealthPoints = this.MaxHealthPoints;
+                        
+                        ReduceAddHP(this); 
                         CreateVFX(this,"HP");
                     }
 
@@ -537,6 +621,15 @@ g.Bullets.forEach(bullet => {
             utilStaminaTimer(this);
             CreateVFX(this,"UP");
         }
+        // - - - RECHARGE STATIC SHIELD (Nuovo Perk) - - -
+        if (this.StaticShield && !this.hasShield) {
+            this.shieldTimer++;
+            if (this.shieldTimer >= 900) { // 900 frame = 15 secondi
+                this.hasShield = true;
+                this.shieldTimer = 0;
+                CreateVFX(this, "UP"); // Effetto visivo quando torna lo scudo
+            }
+        }
         
         /*
         // --- INCOLLA QUI IL DEBUG HITBOXES ---
@@ -613,7 +706,7 @@ g.Bullets.forEach(bullet => {
          else if (this.image === this.sprites.death.image && 
             this.framesCurrent < this.sprites.death.framesMax -1
         ) return ;  
-        // - - - DEATH SCENARIO ENDED - - -
+       // - - - DEATH SCENARIO ENDED - - -
         else if (this.image === this.sprites.death.image && 
             this.framesCurrent === this.sprites.death.framesMax-1
         ){
@@ -622,8 +715,32 @@ g.Bullets.forEach(bullet => {
                 this.hasPaid = true;
                 Player1.coins += this.value;
                 
+                // --- SOUL COLLECTOR (Nuovo Perk) ---
+                if (Player1.SoulCollector) {
+                    // Contatore segreto monete totali
+                    if(!Player1.runCoins) Player1.runCoins = 0;
+                    Player1.runCoins += this.value;
+                    
+                    // Se superiamo la soglia di 10 monete raccolte...
+                    if (Player1.runCoins >= 10) {
+                        // Resetta e tieni il resto
+                        Player1.runCoins -= 10;
+                        
+                        // Aumenta il danno fisso (es: +1 al danno o +2%)
+                        Player1.Damage = Math.floor(Player1.Damage * 1.02); 
+                        // Feedback grafico al volo
+                        CreateVFX(Player1, "UP"); 
+                        g.FloatingTexts.push(new FloatingText({
+                            position: { x: Player1.position.x, y: Player1.position.y - 20 },
+                            velocity: { x: 0, y: -1 },
+                            text: "SOUL DMG UP!",
+                            color: "#8f00ff",
+                            fadeSpeed: 0.01
+                        }));
+                    }
+                }
+                
             }
-            
         }
         // - - - PLUNGE SCENARIO - - -
         else if (
@@ -995,7 +1112,7 @@ class Mask extends Sprite{
 
         // 3. Controllo Prossimità e Testo a schermo
         if (!this.GotTaken) {
-            const priceMultplier = Math.floor(g.difficulty * 1.1) || 1;
+            const priceMultplier = 1;
             const finalPrice = this.price * priceMultplier;
 
             // Calcola la distanza tra il centro del Player e il centro della Maschera
@@ -1070,6 +1187,12 @@ class Mask extends Sprite{
         if (this.LifeSteal) player.lifeSteal = this.LifeSteal;
         if (this.SpeedMult) player.speedMult = this.SpeedMult;
         if (this.JumpBoost) player.jumpPower = (player.jumpPower || -15) + this.JumpBoost;
+        if (this.Ricochet) player.Ricochet = true;
+        if (this.ToxicTrail) player.ToxicTrail = true;
+        if (this.Executioner) player.Executioner = true;
+        if (this.StaticShield) player.StaticShield = true;
+        if (this.SoulCollector) player.SoulCollector = true;
+        if (this.SplitShot) player.SplitShot = true;
         
         
         CreateVFX(player, "MASK", this.name);
@@ -1118,20 +1241,9 @@ class Mask extends Sprite{
         g.PowerUps.forEach(p => p.GotTaken = true);
         this.GotTaken = true;
     }
-    static CreateMask(xPos,yPos) {
-        const chance = Math.floor(Math.random() * 100) + 1;
-        let selectedId = 1;
-
-        // Probabilità (da bilanciare come preferisci):
-        // 40% Cura(1), 20% Danno(2), 15% Proiettili(3)
-        // 10% Vampiro(4), 10% Velocità(5), 5% Tank(6)
-        if (chance <= 40) selectedId = 1;
-        else if (chance <= 60) selectedId = 2;
-        else if (chance <= 75) selectedId = 3;
-        else if (chance <= 85) selectedId = 4;
-        else if (chance <= 95) selectedId = 5;
-        else selectedId = 6;
-
+    static CreateMask(xPos, yPos) {
+        // Estrae un numero a caso da 1 a 12
+        let selectedId = Math.floor(Math.random() * 12) + 1; 
         const config = MASK_STATS[selectedId];
 
         let newMask = new Mask({
@@ -1144,15 +1256,24 @@ class Mask extends Sprite{
             framesMax: config.framesMax,
             scale: config.scale,
             offset: config.offset,
-            price : config.price
+            price: config.price
         });
         
-        // Passiamo le stats extra se la maschera le ha
+        // Stats Vecchie
         newMask.MaxHealthUp = config.MaxHealthUp;
         newMask.CanShoot = config.CanShoot;
         newMask.LifeSteal = config.LifeSteal;
         newMask.SpeedMult = config.SpeedMult;
         newMask.JumpBoost = config.JumpBoost;
+        
+        // Stats Nuove (le passiamo alla maschera prima di essere presa)
+        newMask.Ricochet = config.Ricochet;
+        newMask.ToxicTrail = config.ToxicTrail;
+        newMask.Executioner = config.Executioner;
+        newMask.StaticShield = config.StaticShield;
+        newMask.SoulCollector = config.SoulCollector;
+        newMask.SplitShot = config.SplitShot;
+
         newMask.name = config.name;
         newMask.Placed = true;
 
@@ -1389,10 +1510,8 @@ class Bullet extends Sprite{
                 let victim = targets[i];
                 
                 if (CheckCollisions({ rectangle1: this, rectangle2: victim })) {
-                    SoundManager.play('fireExplosion');
-                    this.hasHit = true;
-                    this.Dead = true;
-
+                    
+                    // Applica i danni e gli effetti standard a "victim"
                     if (!victim.Defending || this.isUnblockable) {
                         victim.HealthPoints -= this.Damage;
                         ReduceAddHP(victim);
@@ -1408,13 +1527,54 @@ class Bullet extends Sprite{
                             ReduceAddStamina(victim);
                         }
                     }
-                    
-                    // Distrugge il proiettile
+
+                    // --- RICOCHET MASTER (Nuovo Perk) ---
+                    if (this.caster && this.caster.Ricochet && !this.hasBounced) {
+                        this.hasBounced = true; // Permette 1 solo rimbalzo
+                        this.Damage = Math.floor(this.Damage * 0.7); // 70% del danno
+
+                        // Trova il nemico più vicino escluso chi hai appena colpito
+                        let nearestEnemy = null;
+                        let minDist = 400; // Cerca nel raggio di 400 pixel
+                        
+                        for (let t of targets) {
+                            if (t !== victim) {
+                                const dist = Math.abs(t.position.x - this.position.x);
+                                if (dist < minDist) {
+                                    minDist = dist;
+                                    nearestEnemy = t;
+                                }
+                            }
+                        }
+
+                        // Se trova una seconda vittima, fa rimbalzare il colpo!
+                        if (nearestEnemy) {
+                            SoundManager.play('parry'); // Suono metallico per il rimbalzo
+                            
+                            const dx = nearestEnemy.position.x - this.position.x;
+                            const dy = nearestEnemy.position.y - this.position.y;
+                            const mag = Math.sqrt(dx*dx + dy*dy);
+                            
+                            // Nuova velocità verso il nemico
+                            this.velocity.x = (dx / mag) * 35;
+                            this.velocity.y = (dy / mag) * 35;
+                            this.liveFrames = 0; // Resetta la vita del bullet
+                            
+                            break; // Esce dal ciclo attuale ma il bullet CONTINUA A VOLARE
+                        }
+                    }
+
+                    // --- DISTRUZIONE STANDARD ---
+                    // Se non ha rimbalzato (o ha già rimbalzato 1 volta), esplode e muore
+                    SoundManager.play('fireExplosion');
+                    this.hasHit = true;
+                    this.Dead = true;
+
                     const index = g.Bullets.indexOf(this);
                     if (index !== -1) g.Bullets.splice(index, 1);
                     CreateVFX(this, "DISAPPEAR", "", false);
                     
-                    break; // Usciamo dal ciclo: la fireball esplode sul primo che tocca!
+                    break;
                 }
             }
         }

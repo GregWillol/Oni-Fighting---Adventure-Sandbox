@@ -467,11 +467,11 @@ const MASK_STATS = {
         CuringHealth: 0,
         DamageMult: 2.0,
         KnockBack: 1.8,
-        imageSrc: './img/PowerUp/punch.png', // Cambierai sprite poi
+        imageSrc: './img/PowerUp/punch.png', 
         framesMax: 1,
         scale: 0.2,
         offset: { x: -10, y: 0 },
-        price : 10
+        price : 5
     },
     // 3: IL TIRATORE SCELTO (Sblocca i proiettili)
     3: {
@@ -481,12 +481,12 @@ const MASK_STATS = {
         CuringHealth: 10,
         DamageMult: 1.2,
         KnockBack: 1,
-        CanShoot: true, // Quando la raccogli, setti Player1.canShoot = true
+        CanShoot: true, 
         imageSrc: './img/PowerUp/magicaster.png',
         framesMax: 1,
         scale: 0.2,
         offset: { x: -10, y: 0 },
-        price : 12
+        price : 7
     },
     // 4: IL VAMPIRO (Ruba vita a ogni colpo)
     4: {
@@ -496,12 +496,12 @@ const MASK_STATS = {
         CuringHealth: 0,
         DamageMult: 1,
         KnockBack: 1,
-        LifeSteal: 0.15, // Il player recupera il 15% del danno che infligge
+        LifeSteal: 0.15, 
         imageSrc: './img/PowerUp/demonblood.png',
         framesMax: 1,
         scale: 0.2,
         offset: { x: -10, y: 0 }, 
-        price : 15
+        price : 10
     },
     // 5: IL FULMINE (Velocità di movimento e salto)
     5: {
@@ -511,13 +511,13 @@ const MASK_STATS = {
         CuringHealth: 0,
         DamageMult: 1,
         KnockBack: 1,
-        SpeedMult: 1.1, // Moltiplichi la velocity.x del player
-        JumpBoost: -1.1,  // Aggiungi potenza al salto
+        SpeedMult: 1.1, 
+        JumpBoost: -1.001,  
         imageSrc: './img/PowerUp/hermes.png',
         framesMax: 1,
         scale: 0.2,
         offset: { x: -10, y: 0 },
-        price : 20
+        price : 8
     },
     // 6: IL TANK (Aumenta la salute massima permanentemente)
     6: {
@@ -525,16 +525,88 @@ const MASK_STATS = {
         position: { x: 0, y: 0 },
         size: { x: 100, y: 100 },
         CuringHealth: 100,
-        MaxHealthUp: 50, // Aumenta il cap massimo degli HP
+        MaxHealthUp: 50, 
         DamageMult: 1,
         KnockBack: 1.2,
         imageSrc: './img/PowerUp/titanheart.png',
         framesMax: 1,
         scale: 0.2,
         offset: { x: -10, y: 0 },
-        price : 30
+        price : 12
+    },
+    // 7: RICOCHET MASTER
+    7: {
+        name: "Ricochet Master", 
+        position: { x: 0, y: 0 }, 
+        size: { x: 100, y: 100 },
+        Ricochet: true, 
+        imageSrc: './img/PowerUp/bullets.png', 
+        framesMax: 1, 
+        scale: 0.2, 
+        offset: { x: -10, y: 0 }, 
+        price: 10
+    },
+    // 8: TOXIC TRAIL
+    8: {
+        name: "Toxic Trail", 
+        position: { x: 0, y: 0 }, 
+        size: { x: 100, y: 100 },
+        ToxicTrail: true, 
+        imageSrc: './img/PowerUp/poison.png', 
+        framesMax: 1, 
+        scale: 0.2, 
+        offset: { x: -10, y: 0 }, 
+        price: 8
+    },
+    // 9: EXECUTIONER'S MARK
+    9: {
+        name: "Executioner's Mark", 
+        position: { x: 0, y: 0 }, 
+        size: { x: 100, y: 100 },
+        Executioner: true, 
+        imageSrc: './img/PowerUp/executioner.png', 
+        framesMax: 1, 
+        scale: 0.2, 
+        offset: { x: -10, y: 0 }, 
+        price: 15
+    },
+    // 10: STATIC SHIELD
+    10: {
+        name: "Static Shield", 
+        position: { x: 0, y: 0 }, 
+        size: { x: 100, y: 100 },
+        StaticShield: true, 
+        imageSrc: './img/PowerUp/shield.png', 
+        framesMax: 1, 
+        scale: 0.2, 
+        offset: { x: -10, y: 0 }, 
+        price: 15
+    },
+    // 11: SOUL COLLECTOR
+    11: {
+        name: "Soul Collector", 
+        position: { x: 0, y: 0 }, 
+        size: { x: 100, y: 100 },
+        SoulCollector: true, 
+        imageSrc: './img/PowerUp/soul.png', 
+        framesMax: 1, 
+        scale: 0.2, 
+        offset: { x: -10, y: 0 }, 
+        price: 18
+    },
+    // 12: SPLIT SHOT
+    12: {
+        name: "Split Shot", 
+        position: { x: 0, y: 0 }, 
+        size: { x: 100, y: 100 },
+        SplitShot: true, 
+        imageSrc: './img/PowerUp/doublearrow.png', 
+        framesMax: 1, 
+        scale: 0.2, 
+        offset: { x: -10, y: 0 }, 
+        price: 12
     }
-}
+};
 const BULLET_STATS= {
     1 : {
         position : {
