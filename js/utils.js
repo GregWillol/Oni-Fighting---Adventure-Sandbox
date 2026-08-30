@@ -583,26 +583,18 @@ function getDifficultyScaling() {
 }
 
 
-function ShowPerks(){
-        g.PowerUps.push(Mask.CreateMask(0)); 
-        g.PowerUps.push(Mask.CreateMask(0));       
-        g.PowerUps.push(Mask.CreateMask(0)); 
-        const priceMultplier = Math.floor(g.difficulty * 1.1);
-    // using child append.child
-    
-    
-    g.PowerUps.forEach(p => {
-        
-        const NewPerk = document.createElement("button");
-        NewPerk.classList.add("perks-button");
-        NewPerk.textContent = p.name + ": "+ (p.price*priceMultplier) ;
-        NewPerk.addEventListener("click", () => {
-            getPerked(p,priceMultplier);
-        });
-        g.PerksChoosingContainer.appendChild(NewPerk);
-    });
-    
-    g.PerksContainer.style.display = "flex";
+function ShowPerks() {
+    const centerMap = 1500; 
+    const spacing = 150;    
+    const startX = centerMap - spacing; 
+    const startY = Player1.position.y - 20; 
+
+    for (let i = 0; i < 3; i++) {
+        // Passa startY direttamente qui
+        let nuovaMaschera = Mask.CreateMask(startX + (spacing * i), startY);
+        nuovaMaschera.timer = i; 
+        g.PowerUps.push(nuovaMaschera);
+    }
 }
 function getPerked(mask,priceMultplier){
     
@@ -618,11 +610,8 @@ function getPerked(mask,priceMultplier){
         return;
     }
 }
-function RemovePerks (){
-    
-    const Perks = document.querySelectorAll(".perks-button");
-    Perks.forEach(b => b.remove());
-    g.PowerUps.forEach(p => p.GotTaken());
-    g.PerksContainer.style.display = "none";
+function RemovePerks() {
+    // Svuota l'array del canvas per far sparire le maschere non comprate
+    g.PowerUps = [];
     
 }

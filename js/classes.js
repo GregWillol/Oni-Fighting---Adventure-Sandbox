@@ -86,7 +86,7 @@ class Sprite{
 
 
 class Fighter extends Sprite{
-    constructor ({position,velocity = {x:0 , y:0},size = {x: 0, y:0},color,value = 0 ,HealthPoints,MaxHealthPoints = 100 ,keys = {up : {pressed : false},left : {pressed : false},attack : {pressed : false},right : {pressed : false},defend : {pressed: false},slam : {pressed : false}},ControlKeys,AttackBox = {position : {x: 0, y:0}, size : {x:StandardAttBoxWid, y:g.HitHeight},shape : ""},Direction = {right : false, left : false},Player,imageSrc,scale = 1,framesMax=1, offset = {x : 0 , y : 0},sprites,Damage = 10,isAI,attackFrame,type}){
+    constructor ({position,velocity = {x:0 , y:0},size = {x: 0, y:0},color,value = 0 ,HealthPoints,MaxHealthPoints = 100 ,keys = {up : {pressed : false},left : {pressed : false},attack : {pressed : false},right : {pressed : false},defend : {pressed: false},slam : {pressed : false}, inter : {pressed : false}},ControlKeys,AttackBox = {position : {x: 0, y:0}, size : {x:StandardAttBoxWid, y:g.HitHeight},shape : ""},Direction = {right : false, left : false},Player,imageSrc,scale = 1,framesMax=1, offset = {x : 0 , y : 0},sprites,Damage = 10,isAI,attackFrame,type}){
         super({
             position,
             size,
@@ -538,7 +538,7 @@ g.Bullets.forEach(bullet => {
             CreateVFX(this,"UP");
         }
         
-        
+        /*
         // --- INCOLLA QUI IL DEBUG HITBOXES ---
         c.save();
 
@@ -586,8 +586,9 @@ g.Bullets.forEach(bullet => {
         }
         c.restore();
         // --- FINE DEBUG ---
+        */
 
-    } // <-- Questa è la fine del metodo update(dt)
+    } 
     
     switchSprite(spriteName) {
         
@@ -677,7 +678,10 @@ g.Bullets.forEach(bullet => {
         }
     }
 
-    
+    plunge(){
+        this.isPlunging = true;
+        this.switchSprite('slam');
+    }
     hurt(){
         this.isAttacking = false;
         this.switchSprite('hurt') 
@@ -779,7 +783,7 @@ g.Bullets.forEach(bullet => {
                 }
             }
         if (Math.random() < 0.01 && !this.OnGround  && diffX > 0){
-            this.isPlunging = true;
+            this.plunge();
         }
         
 
@@ -976,58 +980,74 @@ class Mask extends Sprite{
         this.GotTaken = false;
         this.Placed = false;
         this.price = price;
+        this.startY = this.position.y;
+        this.timer =0;
     }
-    update(dt){
+    update(dt) {
         this.animateFrames(dt);
+        
+        // 1. Oscillazione
+        this.timer += 0.05;
+        this.position.y = this.startY + Math.sin(this.timer) * 10;
 
-        this.velocity.x = 0 ; 
-        this.position.x += this.velocity.x ; 
-
-        // - - - BOUNDARIES - - -
-
-        //Bound X-Axis
-        if (this.position.x+this.size.x > g.MAX_WIDTH){
-            this.velocity.x = 0;
-            this.position.x = g.MAX_WIDTH-this.size.x;
-        }
-        else if (this.position.x< 0){
-            this.velocity.x = 0;
-            this.position.x = 0;
-        }
-
-        this.velocity.y+=g.Gravity_Acceleration;
-        this.position.y +=this.velocity.y;
-
-        // - - - BOUNDARIES - - -
-        //Bound Y-Axis
-        if (this.position.y+this.size.y > g.MAX_HEIGHT){
-            this.velocity.y = 0;
-            this.position.y = g.MAX_HEIGHT-this.size.y;
-        }
-        else if (this.position.y< 0){
-            this.velocity.y = 0;
-            this.position.y = 0;
-        }
-
-        // - - - COLLISIONS WITH PLAYERS - - - 
-    
-        if (!this.GotTaken){
-            if (CheckCollisions({rectangle1 : this, rectangle2 : Player1})){
-                this.MaskTaken(Player1);
-            }
-        }
-        // - - - COLLISIONS WITH PLATFORMS - - - 
-        //Collisions with platforms 
-        g.Platforms.forEach(c =>{
-            if(CheckCollisions({rectangle1: this, rectangle2 : c})){
-                PlatformCollisions({rectangle1 : this, rectangle2 : c});
-            }
-        })
-
+        // 2. Disegna lo sprite
         this.Draw();
+
+        // 3. Controllo Prossimità e Testo a schermo
+        if (!this.GotTaken) {
+            const priceMultplier = Math.floor(g.difficulty * 1.1) || 1;
+            const finalPrice = this.price * priceMultplier;
+
+            // Calcola la distanza tra il centro del Player e il centro della Maschera
+            const distX = Math.abs((this.position.x + this.size.x / 2) - (Player1.position.x + Player1.size.x / 2));
+            const distY = Math.abs((this.position.y + this.size.y / 2) - (Player1.position.y + Player1.size.y / 2));
+
+            // Se il Player è vicino (entro 100px orizzontali e 120px verticali)
+            if (distX < 100 && distY < 120) {
+                
+                // Disegna il box con prezzo e tasto direttamente nel Canvas
+                c.save();
+                c.font = "bold 12px 'Press Start 2P', sans-serif";
+                c.textAlign = "center";
+                
+                const boxX = this.position.x + this.size.x / 2;
+                const boxY = this.position.y - 40;
+
+                // Sfondo nero semitrasparente
+                c.fillStyle = "rgba(0, 0, 0, 0.8)";
+                c.fillRect(boxX - 90, boxY - 35, 180, 45);
+                
+                // Bordo dorato
+                c.strokeStyle = "gold";
+                c.lineWidth = 2;
+                c.strokeRect(boxX - 90, boxY - 35, 180, 45);
+
+                // Testo
+                c.fillStyle = "gold";
+                c.fillText(`${this.name || 'Mask'}: ${finalPrice} 🪙`, boxX, boxY - 18);
+                c.fillStyle = "#00ffcc";
+                c.fillText("[E] Compra", boxX, boxY);
+                
+                c.restore();
+
+                // Controllo pressione tasto E
+                if (Player1.keys.interact && Player1.keys.interact.pressed) {
+                    Player1.keys.interact.pressed = false; // Consuma l'input
+                    
+                    if (Player1.coins >= finalPrice) {
+                        Player1.coins -= finalPrice;
+                        this.MaskTaken(Player1);
+                        RemovePerks();
+                    } else {
+                        // Suono di errore o feedback
+                        alert("Non hai abbastanza soldi Brokie");
+                    }
+                }
+            }
+        }
     }
     MaskTaken(player) {
-        player.PoweredUp = true;
+        g.PoweredUp = true;
         
         // 1. Danno e Knockback base (senza il malus del PvP)
         if (this.DamageMult && this.DamageMult !== 1) {
@@ -1054,21 +1074,51 @@ class Mask extends Sprite{
         
         CreateVFX(player, "MASK", this.name);
         ReduceAddHP(player); // Aggiorna la UI della vita
-       // --- LOGICA DOM INVENTARIO ---
+       // --- LOGICA DOM INVENTARIO (STACKING) ---
         const inventoryDiv = document.getElementById('inventory-container');
         if (inventoryDiv) {
-            const icon = document.createElement('img');
-            icon.src = this.image.src; 
-            icon.classList.add('inventory-item'); // <-- Assegniamo solo una classe
-            inventoryDiv.appendChild(icon);
-        }
-        // -----------------------------
+            // Creiamo un ID univoco usando il nome (es. "Maschera Cura" -> "maschera-cura")
+            // Se non hai definito this.name per sbaglio, usiamo l'URL dell'immagine come fallback di sicurezza
+            let rawName = this.name ? this.name : this.image.src;
+            let perkId = rawName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+            
+            // Controlliamo se esiste già uno slot per questo perk
+            let existingSlot = inventoryDiv.querySelector(`[data-perk-id="${perkId}"]`);
 
-        // Diciamo a tutte le pozioni nell'array che la scelta è stata fatta
+            if (existingSlot) {
+                // IL PERK ESISTE GIÀ: Aggiorniamo il contatore
+                let badge = existingSlot.querySelector('.perk-badge');
+                let count = parseInt(badge.innerText.replace('x', '')) || 1;
+                count++;
+                badge.innerText = `x${count}`;
+                badge.style.display = 'block'; // Mostriamo il badge dal x2 in poi
+            } else {
+                // IL PERK È NUOVO: Creiamo l'icona
+                const slot = document.createElement('div');
+                slot.classList.add('perk-slot');
+                slot.setAttribute('data-perk-id', perkId);
+
+                const icon = document.createElement('img');
+                icon.src = this.image.src;
+                icon.classList.add('inventory-item');
+
+                const badge = document.createElement('div');
+                badge.classList.add('perk-badge');
+                badge.innerText = 'x1';
+                badge.style.display = 'none'; // A x1 lo teniamo nascosto per pulizia visiva
+
+                slot.appendChild(icon);
+                slot.appendChild(badge);
+                inventoryDiv.appendChild(slot);
+            }
+        }
+        // ----------------------------------------
+        
+        // Diciamo a tutte le maschere nell'array che la scelta è stata fatta
         g.PowerUps.forEach(p => p.GotTaken = true);
         this.GotTaken = true;
     }
-    static CreateMask(xPos) {
+    static CreateMask(xPos,yPos) {
         const chance = Math.floor(Math.random() * 100) + 1;
         let selectedId = 1;
 
@@ -1085,7 +1135,7 @@ class Mask extends Sprite{
         const config = MASK_STATS[selectedId];
 
         let newMask = new Mask({
-            position: { x: xPos, y: 0 },
+            position: { x: xPos, y: yPos },
             size: config.size,
             CuringHealth: config.CuringHealth,
             DamageMult: config.DamageMult,

@@ -449,89 +449,89 @@ const MASK_STATS = {
     1: {
         name: "Health Potion",
         position: { x: 0, y: 0 },
-        size: { x: 40, y: 70 },
+        size: { x: 100, y: 100 },
         CuringHealth: 50,
         DamageMult: 1,
         KnockBack: 1,
-        imageSrc: './img/PowerUp/purpleVial.png',
-        framesMax: 22,
-        scale: 2,
-        offset: { x: 0, y: 0 },
+        imageSrc: './img/PowerUp/heal.png',
+        framesMax: 1,
+        scale: 0.2,
+        offset: { x: -10, y: 0 },
         price : 0
     },
     // 2: IL BERSERKER (Danni e knockback enormi)
     2: {
         name: "Demon Strength",
         position: { x: 0, y: 0 },
-        size: { x: 40, y: 70 },
+        size: { x: 100, y: 100 },
         CuringHealth: 0,
         DamageMult: 2.0,
         KnockBack: 1.8,
-        imageSrc: './img/PowerUp/purpleVial.png', // Cambierai sprite poi
-        framesMax: 22,
-        scale: 2,
-        offset: { x: -2, y: 0 },
+        imageSrc: './img/PowerUp/punch.png', // Cambierai sprite poi
+        framesMax: 1,
+        scale: 0.2,
+        offset: { x: -10, y: 0 },
         price : 10
     },
     // 3: IL TIRATORE SCELTO (Sblocca i proiettili)
     3: {
         name: "Magic Caster",
         position: { x: 0, y: 0 },
-        size: { x: 40, y: 70 },
+        size: { x: 100, y: 100 },
         CuringHealth: 10,
         DamageMult: 1.2,
         KnockBack: 1,
         CanShoot: true, // Quando la raccogli, setti Player1.canShoot = true
-        imageSrc: './img/PowerUp/purpleVial.png',
-        framesMax: 22,
-        scale: 2,
-        offset: { x: 0, y: 0 },
+        imageSrc: './img/PowerUp/magicaster.png',
+        framesMax: 1,
+        scale: 0.2,
+        offset: { x: -10, y: 0 },
         price : 12
     },
     // 4: IL VAMPIRO (Ruba vita a ogni colpo)
     4: {
         name: "Vampire Blood",
         position: { x: 0, y: 0 },
-        size: { x: 40, y: 70 },
+        size: { x: 100, y: 100 },
         CuringHealth: 0,
         DamageMult: 1,
         KnockBack: 1,
         LifeSteal: 0.15, // Il player recupera il 15% del danno che infligge
-        imageSrc: './img/PowerUp/purpleVial.png',
-        framesMax: 22,
-        scale: 2,
-        offset: { x: 0, y: 0 }, 
+        imageSrc: './img/PowerUp/demonblood.png',
+        framesMax: 1,
+        scale: 0.2,
+        offset: { x: -10, y: 0 }, 
         price : 15
     },
     // 5: IL FULMINE (Velocità di movimento e salto)
     5: {
         name: "Hermes Boots",
         position: { x: 0, y: 0 },
-        size: { x: 40, y: 70 },
+        size: { x: 100, y: 100 },
         CuringHealth: 0,
         DamageMult: 1,
         KnockBack: 1,
         SpeedMult: 1.1, // Moltiplichi la velocity.x del player
         JumpBoost: -1.1,  // Aggiungi potenza al salto
-        imageSrc: './img/PowerUp/purpleVial.png',
-        framesMax: 22,
-        scale: 2,
-        offset: { x: 0, y: 0 },
+        imageSrc: './img/PowerUp/hermes.png',
+        framesMax: 1,
+        scale: 0.2,
+        offset: { x: -10, y: 0 },
         price : 20
     },
     // 6: IL TANK (Aumenta la salute massima permanentemente)
     6: {
         name: "Titan Heart",
         position: { x: 0, y: 0 },
-        size: { x: 40, y: 70 },
+        size: { x: 100, y: 100 },
         CuringHealth: 100,
         MaxHealthUp: 50, // Aumenta il cap massimo degli HP
         DamageMult: 1,
         KnockBack: 1.2,
-        imageSrc: './img/PowerUp/purpleVial.png',
-        framesMax: 22,
-        scale: 2,
-        offset: { x: 0, y: 0 },
+        imageSrc: './img/PowerUp/titanheart.png',
+        framesMax: 1,
+        scale: 0.2,
+        offset: { x: -10, y: 0 },
         price : 30
     }
 }

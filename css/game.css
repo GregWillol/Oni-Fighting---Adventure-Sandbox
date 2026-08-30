@@ -43,6 +43,23 @@ canvas{
     justify-content: center;
     gap : 2vw;
 }
+.perk-slot {
+    position: relative; 
+    display: inline-block;
+}
+.perk-badge {
+    position: absolute;
+    bottom: -6px;
+    right: -6px;
+    background-color: rgba(0, 0, 0, 0.9);
+    border: 1px solid gold;
+    color: white;
+    font-family: 'Press Start 2P', monospace; /* Come il resto del tuo gioco */
+    font-size: clamp(6px, 1vh, 10px); /* Numerino responsive */
+    padding: 2px 3px;
+    border-radius: 4px;
+    z-index: 10;
+}
 .perks-button{
     background: linear-gradient(to bottom, #000,#b8870b48);
     color: #ffd700;
@@ -392,22 +409,22 @@ canvas{
     animation : none;
 }
 #inventory-container {
-    position: absolute; /* <-- FLUTTUA, QUINDI NON SPOSTA LE BARRE */
-    top: 100%; /* Si attacca al bordo in basso del contenitore */
+    position: absolute; /* Fluttua sotto le barre */
+    top: 100%;
     left: 0;
     display: flex;
     flex-wrap: wrap; 
-    gap: 4px; 
+    gap: 8px; /* Leggermente aumentato per far respirare i badge */
     width: 100%; 
-    margin-top: 8px; /* Spazio dalla barra della stamina */
+    margin-top: 8px; 
 }
 
 .inventory-item {
-    /* Usiamo clamp per farli piccoli ma leggibili */
-    width: clamp(15px, 2.5vh, 25px); 
-    height: clamp(15px, 2.5vh, 25px);
+    width: clamp(20px, 3vh, 35px); /* Un pelo più grande per far leggere il numero */
+    height: clamp(20px, 3vh, 35px);
     border: 2px solid #ffbf00;
     border-radius: 3px;
     object-fit: contain; 
+    background: rgba(0,0,0,0.5); /* Sfondo scuro per far risaltare l'oggetto */
 }
 

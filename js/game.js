@@ -117,10 +117,12 @@ function Gameloop (currentTime){
 for (let i = g.PowerUps.length - 1; i >= 0; i--) {
     const mask = g.PowerUps[i];
     
+    // Se l'array è stato svuotato durante l'update, interrompe subito il ciclo
+    if (!mask) continue; 
+    
     if (mask.Placed && !mask.GotTaken) {
         mask.update(dt);
     } else if (mask.GotTaken) {
-        // Se la pozione è stata presa, la polverizziamo dall'array
         g.PowerUps.splice(i, 1);
     }
 }
@@ -210,28 +212,12 @@ document.addEventListener("keydown",e=>{
             Player1.LastKeyPressed = KeyPressed;
             }
             break;
-        case 'arrowup': 
-            Player2.keys.up.pressed = true; 
+        case 'e':
+            if (!Player1.keys.interact) Player1.keys.interact = { pressed: false };
+                Player1.keys.interact.pressed = true;
+                Player1.LastKeyPressed = KeyPressed;
+
             break;
-        case 'arrowleft': 
-            Player2.keys.left.pressed = true; 
-            Player2.LastKeyPressed = KeyPressed; 
-            break; 
-        case 'arrowdown': 
-            if(!e.repeat && Player2.attackCooldown === 0 && !Player2.isAttacking){
-                Player2.attack();
-            }
-            break; 
-        case 'arrowright': 
-            Player2.keys.right.pressed = true; 
-            Player2.LastKeyPressed = KeyPressed; 
-            break; 
-        case '-': 
-            if (!e.repeat){
-                Player2.keys.defend.pressed = true; 
-                Player2.LastKeyPressed = KeyPressed; 
-            }
-            break; 
         
     }
 })
@@ -253,22 +239,13 @@ document.addEventListener("keyup",e=>{
             Player1.keys.defend.pressed=false;  
             Player1.Defending = false;
             break;
-
-        case 'arrowup': 
-            Player2.keys.up.pressed = false; 
+        case 'e':
+            if (Player1.keys.interact.pressed) Player1.keys.interact.pressed = false;
             break;
-        case 'arrowleft': 
-            Player2.keys.left.pressed = false; 
-            break;  
-        
-        case 'arrowright': 
-            Player2.keys.right.pressed = false; 
+        case 'q': 
+            if (Player1.keys.slam.pressed) Player1.keys.slam.pressed = false;
             break; 
-        case '-':
-            Player2.keys.defend.pressed=false; 
-            Player2.Defending = false;
-            break;
-            
+
     }
     
 })
