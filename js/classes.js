@@ -146,6 +146,13 @@ class Fighter extends Sprite{
         this.checkStuckTimer = 0;
         this.previousPositionX = this.position.x;
         this.previousPositionY = this.position.y;
+        // - - - AI FSM (decisioni con inerzia temporale) - - -
+        this.aiState = "APPROACH";      // intenzione corrente: APPROACH | RETREAT | IDLE | ATTACK_WINDOW
+        this.aiStateTimer = 0;          // frame reali rimanenti prima di poter ricalcolare lo stato
+        this.aiReactionPending = false; // true quando la CPU ha "notato" un attacco e sta aspettando prima di reagire
+        this.aiReactionTimer = 0;       // countdown del buffer di reazione alla difesa
+
+        this.afterImages = []; // { x, y, image, framesCurrent, framesMax, right, life }
     }
     update(dt){ 
         this.previousPositionY = this.position.y;
@@ -165,6 +172,12 @@ class Fighter extends Sprite{
             this.HitStun--;
         }
         const isKnockedBack = Math.abs(this.velocity.x) > 7;
+
+        this.afterImages.forEach(a => a.life -= 0.04); // svaniscono anche a dash finito
+        this.afterImages = this.afterImages.filter(a => a.life > 0);
+        this.drawAfterImages();
+
+        
         this.Draw(); 
         this.animateFrames(dt);
         //Setting X-Component of Velocity to 0 each frame for boundaries limits 
@@ -587,12 +600,23 @@ g.Bullets.forEach(bullet => {
             CreateVFX(this,"DASH")
             this.Defending = true;
             this.defend();
+            
         }
         else if (this.defenseBuffer > 0){
             this.defenseBuffer--;
             if (this.defenseBuffer>40){
                 this.Defending= true;
                 this.velocity.x = this.Direction.right ? 60*dt : -60*dt;
+                this.afterImages.push({
+                    x: this.position.x,
+                    y: this.position.y,
+                    image: this.image,
+                    framesCurrent: this.framesCurrent,
+                    framesMax: this.framesMax,
+                    right: this.Direction.right,
+                    life: 1
+                });
+                if (this.afterImages.length > 14) this.afterImages.shift();
             }
             else {
                 this.Defending = false;
@@ -798,184 +822,212 @@ g.Bullets.forEach(bullet => {
     defend (){
         this.switchSprite('defence') 
     }
-    runAI() {
-    if (!g.FlagFight) return ;
+    drawAfterImages() {
+        c.save();
+        c.globalCompositeOperation = "lighter"; // stesso trucco dello Shockwave: dà un bagliore, non un colore piatto
 
-    // - - - FINDING NEAREST ENEMY - - -
-    let other = null; 
-    let minDist = Infinity ; 
+        this.afterImages.forEach(a => {
+            if (!a.image || !a.image.complete) return;
+            const frameWidth = a.image.width / a.framesMax;
 
-        g.Fighters.forEach(f => {
-            // finding player1
-            if (f !== this && !f.Dead && f.Player === 1) { 
-                let d = Math.abs(f.position.x - this.position.x);
-                if (d < minDist) {
-                    minDist = d;
-                    other = f;
-                }
-            }
+            c.save();
+            c.globalAlpha = Math.max(0, a.life) * 0.5;
+
+            c.translate(a.x + this.size.x / 2, a.y);
+            if (!a.right) c.scale(-1, 1); // <-- ADATTA questo flip a come lo fa già il tuo Sprite.Draw()
+
+            c.drawImage(
+                a.image,
+                a.framesCurrent * frameWidth, 0,
+                frameWidth, a.image.height,
+                -this.size.x / 2 - this.offset.x,
+                -this.offset.y,
+                frameWidth * this.scale,
+                a.image.height * this.scale
+            );
+            c.restore();
         });
 
-        if (!other) return;
-    // - - - RESET KEYS - - - 
+        c.restore();
+    }
+    runAI() {
+    if (!g.FlagFight) return;
+
+    // - - - FINDING NEAREST ENEMY - - -
+    let other = null;
+    let minDist = Infinity;
+    g.Fighters.forEach(f => {
+        if (f !== this && !f.Dead && f.Player === 1) {
+            let d = Math.abs(f.position.x - this.position.x);
+            if (d < minDist) { minDist = d; other = f; }
+        }
+    });
+    if (!other) return;
+
+    // - - - RESET KEYS - - -
     this.keys.right.pressed = false;
     this.keys.left.pressed = false;
     this.keys.up.pressed = false;
     this.keys.defend.pressed = false;
 
-    // - - - ORIENTATION - - -
     const diffX = other.position.x - this.position.x;
-    const diffY = other.position.y - this.position.y; 
+    const diffY = other.position.y - this.position.y;
     const dist = Math.abs(diffX);
 
-    if (this.type === "base"){
-            // - - - DEFENCE - - - 
-        if ((dist < this.AttackBox.size.x +other.size.x && !this.isAttacking && other.isAttacking && Math.random()<0.4)) {
-            this.keys.defend.pressed = true ;
-            this.LastKeyPressed=this.ControlKeys.defend
-            return ; 
+    if (this.type === "base") {
+
+        // - - - REAZIONE RITARDATA ALLA DIFESA - - -
+        // La CPU "nota" l'attacco solo al suo frame 0 (inizio animazione), non ogni frame,
+        // e ci mette un buffer prima di decidere se parare davvero.
+        if (other.isAttacking && other.framesCurrent === 0 && !this.aiReactionPending &&
+            dist < this.AttackBox.size.x + other.size.x + 40) {
+            this.aiReactionPending = true;
+            this.aiReactionTimer = 9 + Math.floor(Math.random() * 12); // ~150-350ms a 60fps
         }
 
-        const SafeZone = 100 ; 
-        if (dist > 250){
-            if (diffX > 0){
-                this.keys.right.pressed = true;
-                this.LastKeyPressed = this.ControlKeys.right;
-            }
-            else {
-                this.keys.left.pressed = true;
-                this.LastKeyPressed = this.ControlKeys.left;
-            }
-        }
-
-        else if (dist > SafeZone) {
-            if (Math.random() > 0.02){
-                if (diffX > 0){
-                    this.keys.right.pressed = true;
-                    this.LastKeyPressed = this.ControlKeys.right;
-                } 
-                else {
-                    this.keys.left.pressed = true;
-                    this.LastKeyPressed = this.ControlKeys.left;
-                }
-            }
-        } 
-        // too close to the player
-        else if (dist < SafeZone-this.size.x){
-            if (Math.random()<0.1){
-                if (diffX>0){
-                    this.keys.left.pressed = true;
-                    this.LastKeyPressed = this.ControlKeys.left;
-                }
-                else {
-                    this.keys.right.pressed = true;
-                    this.LastKeyPressed = this.ControlKeys.right;
+        if (this.aiReactionPending) {
+            this.aiReactionTimer -= 2; // runAI gira ogni 2 frame reali (vedi aiTimer in update)
+            if (this.aiReactionTimer <= 0) {
+                this.aiReactionPending = false;
+                // Non è garantito che ce la faccia: simula un tempo di reazione imperfetto
+                if (!this.isAttacking && Math.random() < 0.45) {
+                    this.keys.defend.pressed = true;
+                    this.LastKeyPressed = this.ControlKeys.defend;
+                    return; // questo "tick" è consumato dalla parata
                 }
             }
         }
 
-            // - - - DIRECTION - - -
-            if (!this.isAttacking){
-                if (diffX > 0) {
-                    this.Direction.right = true;
-                    this.Direction.left = false;
-                } else {
-                    this.Direction.right = false;
-                    this.Direction.left = true;
-                }
+        // - - - MACCHINA A STATI PER IL MOVIMENTO - - -
+        this.aiStateTimer -= 2;
+
+        if (this.aiStateTimer <= 0) {
+            this.aiStateTimer = 18 + Math.floor(Math.random() * 18); // ~300-600ms a 60fps
+
+            const SafeZone = 100;
+            if (dist > 250) {
+                this.aiState = "APPROACH";
+            } else if (dist < SafeZone - this.size.x) {
+                this.aiState = "RETREAT";
+            } else if (dist < this.AttackBox.size.x && !this.isAttacking) {
+                // In range: non attacca sempre, lascia aperture leggibili
+                this.aiState = Math.random() < 0.5 ? "ATTACK_WINDOW" : "IDLE";
+            } else {
+                this.aiState = Math.random() < 0.7 ? "APPROACH" : "IDLE";
             }
-        if (Math.random() < 0.01 && !this.OnGround  && diffX > 0){
+        }
+
+        // - - - ESECUZIONE DELLO STATO (ogni frame, movimento fluido senza flicker) - - -
+        switch (this.aiState) {
+            case "APPROACH":
+                if (diffX > 0) { this.keys.right.pressed = true; this.LastKeyPressed = this.ControlKeys.right; }
+                else { this.keys.left.pressed = true; this.LastKeyPressed = this.ControlKeys.left; }
+                break;
+
+            case "RETREAT":
+                if (diffX > 0) { this.keys.left.pressed = true; this.LastKeyPressed = this.ControlKeys.left; }
+                else { this.keys.right.pressed = true; this.LastKeyPressed = this.ControlKeys.right; }
+                break;
+
+            case "ATTACK_WINDOW":
+                if (dist < this.AttackBox.size.x && !this.isAttacking && !this.Dead) {
+                    this.attack();
+                    this.aiStateTimer = 0; // ricalcola subito dopo aver colpito
+                }
+                break;
+
+            case "IDLE":
+            default:
+                break; // apertura leggibile: sta fermo
+        }
+
+        // - - - DIRECTION - - -
+        if (!this.isAttacking) {
+            this.Direction.right = diffX > 0;
+            this.Direction.left = diffX <= 0;
+        }
+
+        // Ground slam casuale, invariato
+        if (Math.random() < 0.01 && !this.OnGround && diffX > 0) {
             this.plunge();
         }
-        
 
-        // - - - ATTACK - - -
-        if (dist < this.AttackBox.size.x && !this.isAttacking && !this.Dead) {
-            if (Math.random() < 0.05) { 
-                this.attack();
-            }
-        }
-        // Random defence / jump
-        if ((diffY < -100 && this.OnGround) || (Math.random()<0.005 && this.OnGround)) {
+        // Salto/difesa d'emergenza, invariato
+        if ((diffY < -100 && this.OnGround) || (Math.random() < 0.005 && this.OnGround)) {
             const ran = Math.random();
-            if (ran>0.5){
-                this.keys.up.pressed = true;
-                this.LastKeyPressed=this.ControlKeys.up;
-            }
-            else {
-                this.keys.defend.pressed = true;
-                this.LastKeyPressed=this.ControlKeys.defend;
-            }
+            if (ran > 0.5) { this.keys.up.pressed = true; this.LastKeyPressed = this.ControlKeys.up; }
+            else { this.keys.defend.pressed = true; this.LastKeyPressed = this.ControlKeys.defend; }
         }
-        
+
     }
        else if (this.type === "launcher") {
 
-            if (this.isAttacking && this.framesCurrent >= this.sprites.attack.framesMax - 1){
-                this.keys.left.pressed = false;
-                this.keys.right.pressed = false;
-                return;
+    if (this.isAttacking && this.framesCurrent >= this.sprites.attack.framesMax - 1){
+        this.keys.left.pressed = false;
+        this.keys.right.pressed = false;
+        return;
+    }
+
+    // - - - SEPARAZIONE DA ALTRI LAUNCHER (non blocca più l'attacco) - - -
+    const allies = g.Fighters.filter(f => f !== this && !f.Dead && f.type === this.type);
+    let separationX = 0;
+    allies.forEach(ally => {
+        const d = this.position.x - ally.position.x;
+        if (Math.abs(d) < 150) separationX += d > 0 ? 1 : -1;
+    });
+
+    let isSeparating = false;
+    if (separationX !== 0) {
+        this.keys.right.pressed = separationX > 0;
+        this.keys.left.pressed = separationX < 0;
+        this.LastKeyPressed = separationX > 0 ? this.ControlKeys.right : this.ControlKeys.left;
+        isSeparating = true;
+        // NIENTE return: si prosegue comunque a valutare l'attacco più sotto
+    }
+
+    // - - - KITING NORMALE - - -
+    // Si applica solo se in questo frame NON sta già muovendosi per separarsi,
+    // altrimenti le due logiche di movimento entrerebbero in conflitto
+    const MinDistance = 350;
+    const MaxDistance = 550;
+    const CornerMargin = 60;
+    const atLeftWall = this.position.x <= CornerMargin;
+    const atRightWall = (this.position.x + this.size.x) >= (g.MAX_WIDTH - CornerMargin);
+    let isCornered = false;
+
+    if (!isSeparating) {
+        if (dist < MinDistance) {
+            if (diffX > 0) {
+                if (!atLeftWall) { this.keys.left.pressed = true; this.LastKeyPressed = this.ControlKeys.left; }
+                else isCornered = true;
+            } else {
+                if (!atRightWall) { this.keys.right.pressed = true; this.LastKeyPressed = this.ControlKeys.right; }
+                else isCornered = true;
             }
-            
-            // 3. GESTIONE DISTANZA E ANGOLI (Kiting)
-            const MinDistance = 350; 
-            const MaxDistance = 550; 
-            const CornerMargin = 60; // Limite dai bordi della mappa
+        } else if (dist > MaxDistance) {
+            if (diffX > 0) { this.keys.right.pressed = true; this.LastKeyPressed = this.ControlKeys.right; }
+            else { this.keys.left.pressed = true; this.LastKeyPressed = this.ControlKeys.left; }
+        }
 
-            // Controlla se ha toccato i bordi dello schermo
-            const atLeftWall = this.position.x <= CornerMargin;
-            const atRightWall = (this.position.x + this.size.x) >= (g.MAX_WIDTH - CornerMargin);
-            let isCornered = false;
-
-            // Troppo vicino -> Scappa, MA controlla se c'è un muro!
-            if (dist < MinDistance) {
-                if (diffX > 0) { // Player a destra, scappa a sinistra
-                    if (!atLeftWall) {
-                        this.keys.left.pressed = true;
-                        this.LastKeyPressed = this.ControlKeys.left;
-                    } else {
-                        isCornered = true; // Incastrato a sinistra!
-                    }
-                } else { // Player a sinistra, scappa a destra
-                    if (!atRightWall) {
-                        this.keys.right.pressed = true;
-                        this.LastKeyPressed = this.ControlKeys.right;
-                    } else {
-                        isCornered = true; // Incastrato a destra!
-                    }
-                }
-            } 
-            // Troppo lontano -> Si avvicina
-            else if (dist > MaxDistance) {
-                if (diffX > 0) {
-                    this.keys.right.pressed = true;
-                    this.LastKeyPressed = this.ControlKeys.right;
-                } else {
-                    this.keys.left.pressed = true;
-                    this.LastKeyPressed = this.ControlKeys.left;
-                }
-            }
-
-            // 4. EVASIONE DISPERATA (Se è all'angolo o il player gli addosso)
-            if ((isCornered || dist < 120) && this.OnGround && Math.random() < 0.1) {
-                this.keys.up.pressed = true; // Salta
-                this.LastKeyPressed = this.ControlKeys.up;
-                
-                // Se è all'angolo, corre verso il player saltando per scavalcarlo
-                if (isCornered) {
-                    const runForward = atLeftWall ? 'right' : 'left';
-                    this.keys[runForward].pressed = true;
-                    this.LastKeyPressed = this.ControlKeys[runForward];
-                }
-            }
-
-            // 5. ATTACCO RANGED (Spara a distanza ottimale, OPPURE se è con le spalle al muro)
-            if (((dist >= MinDistance && dist <= MaxDistance) || isCornered) && !this.Dead) {
-                if (Math.random() < 0.04) { 
-                    this.castRangedAttack();
-                }
+        if ((isCornered || dist < 120) && this.OnGround && Math.random() < 0.1) {
+            this.keys.up.pressed = true;
+            this.LastKeyPressed = this.ControlKeys.up;
+            if (isCornered ) {
+                const runForward = atLeftWall ? 'right' : 'left';
+                this.keys[runForward].pressed = true;
+                this.LastKeyPressed = this.ControlKeys[runForward];
             }
         }
+    }
+
+    // - - - ATTACCO RANGED - - -
+    // Valutato SEMPRE, anche nei frame in cui il nemico si sta separando dagli alleati
+    if (((dist >= MinDistance && dist <= MaxDistance) || isCornered) && !this.Dead) {
+        if (Math.random() < 0.04) {
+            this.castRangedAttack();
+        }
+    }
+}
         else if (this.type === "BigAhhLauncher") {
 
             if (this.isAttacking && this.framesCurrent >= this.sprites.attack.framesMax - 1){
@@ -1005,7 +1057,7 @@ g.Bullets.forEach(bullet => {
         const New = Bullet.CreateBullet(type, caster);
         g.Bullets.push(New);
     }
-    static createFighters(ids) {
+    static createFighters(ids, index = 0 ) {
         // 1. Mappiamo gli ID direttamente ai loro dati (molto più scalabile!)
         const configMap = {
             1: FIGHTER_STATS.Sekiro,
@@ -1021,7 +1073,7 @@ g.Bullets.forEach(bullet => {
         let spawnPos =  { x : basePos.x, y: basePos.y };
         
         if (ids >= 2) {
-            spawnPos.x -= Math.random() * 300;
+            spawnPos.x -= (index * 180) + Math.random() * 60;
         }
 
         // --- FIX DEL BUG DEI CLONI ---

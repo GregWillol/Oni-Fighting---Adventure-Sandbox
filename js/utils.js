@@ -494,9 +494,9 @@ function Only3(str){
     }
 }
 
-function IncrementEnemies(ids){
+function IncrementEnemies(ids,i){
     if (g.roundEnded) return;
-    const Player = Fighter.createFighters(ids);
+    const Player = Fighter.createFighters(ids,i);
     g.Pointers.push(FloatingPointers.createPointers(Player));
     g.Fighters.push(Player);
 }
@@ -537,30 +537,46 @@ function RoomHandler(){
     g.VisualEffects = []; 
 
     // --- 3. SPAWNING NEMICI INTELLIGENTE ---
-    for (let i = 0 ; i < newVal.enemyCount ; i++){
-        let enemyType = Math.floor(Math.random() * 3) + 2;
-        let enemy = Fighter.createFighters(enemyType);
-    
-        // Buff statistiche
-        let baseHealth = enemy.MaxHealthPoints || enemy.HealthPoints;
-        enemy.MaxHealthPoints = Math.floor(baseHealth * newVal.hpMult);
-        enemy.HealthPoints = enemy.MaxHealthPoints;
-        enemy.Damage = Math.floor(enemy.Damage * newVal.dmgMult);
-        
-        // SMART SPAWN: Se è un cecchino e ci sono piattaforme (oltre al pavimento) lo mettiamo in alto!
-        if (enemy.type === "BigAhhLauncher" && g.Platforms.length > 1) {
-            // Sceglie una piattaforma a caso (ignorando il pavimento all'indice 0)
-            let randomPlatIndex = Math.floor(Math.random() * (g.Platforms.length - 1)) + 1;
-            let target = g.Platforms[randomPlatIndex];
-            
-            // Lo teletrasporta esattamente sopra
-            enemy.position.x = target.position.x + (target.size.x / 2) - (enemy.size.x / 2);
-            enemy.position.y = target.position.y - enemy.size.y;
+const usedPlatforms = new Set(); // <-- traccia le piattaforme già occupate in questo round
+
+for (let i = 0 ; i < newVal.enemyCount ; i++){
+    let enemyType = Math.floor(Math.random() * 3) + 2;
+    let enemy = Fighter.createFighters(enemyType,i);
+
+    // Buff statistiche
+    let baseHealth = enemy.MaxHealthPoints || enemy.HealthPoints;
+    enemy.MaxHealthPoints = Math.floor(baseHealth * newVal.hpMult);
+    enemy.HealthPoints = enemy.MaxHealthPoints;
+    enemy.Damage = Math.floor(enemy.Damage * newVal.dmgMult);
+
+    // SMART SPAWN: cecchino su piattaforma, evitando quelle già occupate
+    if (enemy.type === "BigAhhLauncher" && g.Platforms.length > 1) {
+        // Indici disponibili (esclude pavimento a 0 e quelli già presi)
+        const availableIndices = [];
+        for (let p = 1; p < g.Platforms.length; p++) {
+            if (!usedPlatforms.has(p)) availableIndices.push(p);
         }
 
-        g.Pointers.push(FloatingPointers.createPointers(enemy));
-        g.Fighters.push(enemy);
+        // Se le piattaforme libere sono finite, ricicla ma con un offset random sulla larghezza
+        // così anche condividendo la piattaforma non si sovrappongono esattamente
+        let target, offsetOnPlatform = 0;
+        if (availableIndices.length > 0) {
+            const pick = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+            usedPlatforms.add(pick);
+            target = g.Platforms[pick];
+        } else {
+            const pick = 1 + Math.floor(Math.random() * (g.Platforms.length - 1));
+            target = g.Platforms[pick];
+            offsetOnPlatform = (Math.random() - 0.5) * (target.size.x - enemy.size.x) * 0.8;
+        }
+
+        enemy.position.x = target.position.x + (target.size.x / 2) - (enemy.size.x / 2) + offsetOnPlatform;
+        enemy.position.y = target.position.y - enemy.size.y;
     }
+
+    g.Pointers.push(FloatingPointers.createPointers(enemy));
+    g.Fighters.push(enemy);
+}
     
     
     g.roomState = 'FIGHTING';
