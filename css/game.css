@@ -121,6 +121,7 @@ canvas{
     height: auto;
     aspect-ratio: 16 / 9;
     box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    z-index : 1;
 }
 @media (max-width: 1024px) {
     body, html {
@@ -344,6 +345,44 @@ canvas{
 .dpad, .actions {
     display: flex;
     gap: 15px;
+}
+#joystick-zone {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 50vw;
+    height: 45vh;
+    z-index: 100;
+    pointer-events: auto;
+    background: rgba(255,0,0,0.2);
+    
+}
+
+#joystick-base {
+    position: fixed;
+    width: 100px;
+    height: 100px;
+    margin-left: -50px;
+    margin-top: -50px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.25);
+    border: 2px solid rgba(255,255,255,0.3);
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    transition: opacity 0.15s;
+    pointer-events: none;
+    z-index: 999;
+}
+
+#joystick-knob {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.55);
+    transform: translate(-50%, -50%);
 }
 /* Tasto Fullscreen */
 #btn-fullscreen {

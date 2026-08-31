@@ -241,10 +241,16 @@ document.addEventListener("keyup",e=>{
             break; 
         case 'a': 
             Player1.keys.left.pressed = false; 
+            if (Player1.keys.right.pressed) {
+                Player1.LastKeyPressed = Player1.ControlKeys.right; // destra ancora premuta, riprendi da lì
+            }
             break; 
         case 'd': 
             Player1.keys.right.pressed = false; 
-            break; 
+            if (Player1.keys.left.pressed) {
+                Player1.LastKeyPressed = Player1.ControlKeys.left;
+            }
+            break;
         case 'shift':
             Player1.keys.defend.pressed=false;  
             Player1.Defending = false;
@@ -262,8 +268,7 @@ document.addEventListener("keyup",e=>{
 
 function initMobileControls() {
     const controls = [
-        { id: 'btn-left', key: 'left' },
-        { id: 'btn-right', key: 'right' },
+        
         { id: 'btn-up', key: 'up' },
         { id: 'btn-defend', key: 'defend' },
         { 
@@ -275,7 +280,17 @@ function initMobileControls() {
                     Player1.attack(); 
                 } 
             } 
+        },
+        {
+        id: 'btn-slam',
+        key: 'slam',
+        onPress: () => {
+            // Stessa condizione di guardia del tasto 'q' su desktop
+            if (Player1 && Player1.keys.slam && Player1.attackCooldown === 0 && !Player1.isAttacking) {
+                Player1.keys.slam.pressed = true;
+            }
         }
+    }
     ];
 
     controls.forEach(({ id, key, onPress }) => {
@@ -315,6 +330,84 @@ function initMobileControls() {
 
 // Invocala all'avvio del gioco
 initMobileControls();
+function initJoystick() {
+    const zone = document.getElementById('joystick-zone');
+    const base = document.getElementById('joystick-base');
+    const knob = document.getElementById('joystick-knob');
+    const maxRadius = 45; // px massimi di escursione dello knob
+    const deadzone = 12;  // sotto questa soglia = considerato fermo
+
+    let touchId = null;
+    let originX = 0, originY = 0;
+
+    function setDirection(dx) {
+        if (dx > deadzone) {
+            Player1.keys.right.pressed = true;
+            if (Player1.keys.left.pressed) {
+                Player1.keys.left.pressed = false;
+            }
+            Player1.LastKeyPressed = Player1.ControlKeys.right;
+        } else if (dx < -deadzone) {
+            Player1.keys.left.pressed = true;
+            if (Player1.keys.right.pressed) {
+                Player1.keys.right.pressed = false;
+            }
+            Player1.LastKeyPressed = Player1.ControlKeys.left;
+        } else {
+            Player1.keys.left.pressed = false;
+            Player1.keys.right.pressed = false;
+        }
+    }
+
+    function handleStart(e) {
+        e.preventDefault();
+        const touch = e.changedTouches[0];
+        touchId = touch.identifier;
+
+        originX = touch.clientX;
+        originY = touch.clientY;
+
+        base.style.left = `${originX}px`;
+        base.style.top = `${originY}px`;
+        base.style.opacity = '1';
+        knob.style.transform = 'translate(-50%, -50%)';
+    }
+
+    function handleMove(e) {
+        if (touchId === null) return;
+        const touch = [...e.changedTouches].find(t => t.identifier === touchId);
+        if (!touch) return;
+        e.preventDefault();
+
+        const dx = touch.clientX - originX;
+        const dy = touch.clientY - originY;
+        const dist = Math.min(Math.hypot(dx, dy), maxRadius);
+        const angle = Math.atan2(dy, dx);
+
+        const knobX = Math.cos(angle) * dist;
+        const knobY = Math.sin(angle) * dist;
+        knob.style.transform = `translate(calc(-50% + ${knobX}px), calc(-50% + ${knobY}px))`;
+
+        setDirection(dx);
+    }
+
+    function handleEnd(e) {
+        const touch = [...e.changedTouches].find(t => t.identifier === touchId);
+        if (!touch) return;
+
+        touchId = null;
+        base.style.opacity = '0';
+        Player1.keys.left.pressed = false;
+        Player1.keys.right.pressed = false;
+    }
+
+    zone.addEventListener('touchstart', handleStart, { passive: false });
+    zone.addEventListener('touchmove', handleMove, { passive: false });
+    zone.addEventListener('touchend', handleEnd, { passive: false });
+    zone.addEventListener('touchcancel', handleEnd, { passive: false });
+}
+
+initJoystick(); // aggiungila subito dopo initMobileControls();
 
 if (g.PressToStart) {
     const handleStartGame = (e) => {

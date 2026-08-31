@@ -5,6 +5,7 @@
         <title>Oni Fighting</title>
         <link rel ="stylesheet" href ="./css/style.css">
         <link rel ="stylesheet" href ="./css/game.css">
+        <link rel="icon" type="image/png" href="./img/CoverImage.jpg">
         <!-- Blocca lo zoom con le dita -->
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
             
@@ -58,20 +59,21 @@
             
             <div id ="Announcement" class="text-gold" ></div>
             <canvas width = "1280" height = "720" id ="Game"></canvas>
- <!--           
-            <div id="mobile-controls">
-                
-    <div class="dpad">
-        <button id="btn-left">◀</button>
-        <button id="btn-right">▶</button>
-    </div>  
+<div id="mobile-controls">
+    <div id="joystick-zone">
+        <div id="joystick-base">
+            <div id="joystick-knob"></div>
+        </div>
+    </div>
+
     <div class="actions">
         <button id="btn-up">▲</button>
         <button id="btn-defend">💨</button>
+        <button id="btn-slam">💥</button>
         <button id="btn-attack">⚔️</button>
     </div>
 </div>
-
+<!--
 <div id ="choosing-enemies">
             <button class = "spawn-enemies" onclick = "IncrementEnemies(2)">Launcher</button>
             <button class = "spawn-enemies" onclick = "IncrementEnemies(3)">BigAhhLauncher</button>
