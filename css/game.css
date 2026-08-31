@@ -314,7 +314,7 @@ canvas{
     left: 0;
     width: 100%;
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     padding: 0 40px;
     box-sizing: border-box;
     z-index: 100;
@@ -354,7 +354,7 @@ canvas{
     height: 45vh;
     z-index: 100;
     pointer-events: auto;
-    background: rgba(255,0,0,0.2);
+    
     
 }
 
