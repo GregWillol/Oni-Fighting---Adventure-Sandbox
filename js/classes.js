@@ -231,7 +231,8 @@ class Fighter extends Sprite{
                     KnockBack: 0, // Non sposta i nemici
                     caster: this,
                     liveFrames: 150, // Muore in fretta (circa 2.5 secondi)
-                    isUnblockable: true
+                    isUnblockable: true,
+                    isMute : true
                 }));
             }
         }
@@ -617,10 +618,7 @@ g.Bullets.forEach(bullet => {
             CreateVFX(this,"UP");
         }
         
-        if (this.staminaBar >= 3){
-            utilStaminaTimer(this);
-            CreateVFX(this,"UP");
-        }
+        
         // - - - RECHARGE STATIC SHIELD (Nuovo Perk) - - -
         if (this.StaticShield && !this.hasShield) {
             this.shieldTimer++;
@@ -684,13 +682,6 @@ g.Bullets.forEach(bullet => {
     } 
     
     switchSprite(spriteName) {
-        
-
-        
-        
-    }
-    
-    switchSprite(spriteName) {
         // - - - ATTACK SCENARIO - - -
         if (
             this.image === this.sprites.attack.image && 
@@ -729,14 +720,8 @@ g.Bullets.forEach(bullet => {
                         // Aumenta il danno fisso (es: +1 al danno o +2%)
                         Player1.Damage = Math.floor(Player1.Damage * 1.02); 
                         // Feedback grafico al volo
-                        CreateVFX(Player1, "UP"); 
-                        g.FloatingTexts.push(new FloatingText({
-                            position: { x: Player1.position.x, y: Player1.position.y - 20 },
-                            velocity: { x: 0, y: -1 },
-                            text: "SOUL DMG UP!",
-                            color: "#8f00ff",
-                            fadeSpeed: 0.01
-                        }));
+                        CreateVFX(Player1, "SOUL"); 
+                        
                     }
                 }
                 
@@ -1151,20 +1136,13 @@ class Mask extends Sprite{
                 if (Player1.keys.interact && Player1.keys.interact.pressed) {
                     Player1.keys.interact.pressed = false; // Consuma l'input
                     
-                    if (Player1.coins >= finalPrice) {
-                        Player1.coins -= finalPrice;
-                        this.MaskTaken(Player1);
-                        RemovePerks();
-                    } else {
-                        // Suono di errore o feedback
-                        alert("Non hai abbastanza soldi Brokie");
-                    }
+                    getPerked(this,priceMultplier);
                 }
             }
         }
     }
     MaskTaken(player) {
-        g.PoweredUp = true;
+        
         
         // 1. Danno e Knockback base (senza il malus del PvP)
         if (this.DamageMult && this.DamageMult !== 1) {
@@ -1193,13 +1171,17 @@ class Mask extends Sprite{
         if (this.StaticShield) player.StaticShield = true;
         if (this.SoulCollector) player.SoulCollector = true;
         if (this.SplitShot) player.SplitShot = true;
+        if (this.isFightTime) {
+            g.isPerked = true;
+            RemovePerks();
+        }
         
         
         CreateVFX(player, "MASK", this.name);
         ReduceAddHP(player); // Aggiorna la UI della vita
        // --- LOGICA DOM INVENTARIO (STACKING) ---
         const inventoryDiv = document.getElementById('inventory-container');
-        if (inventoryDiv) {
+        if (inventoryDiv && !this.isFightTime) {
             // Creiamo un ID univoco usando il nome (es. "Maschera Cura" -> "maschera-cura")
             // Se non hai definito this.name per sbaglio, usiamo l'URL dell'immagine come fallback di sicurezza
             let rawName = this.name ? this.name : this.image.src;
@@ -1237,13 +1219,15 @@ class Mask extends Sprite{
         }
         // ----------------------------------------
         
-        // Diciamo a tutte le maschere nell'array che la scelta è stata fatta
-        g.PowerUps.forEach(p => p.GotTaken = true);
         this.GotTaken = true;
     }
     static CreateMask(xPos, yPos) {
-        // Estrae un numero a caso da 1 a 12
         let selectedId = Math.floor(Math.random() * 12) + 1; 
+        if(g.PowerUps.length === 3){
+            selectedId = 13;
+        }
+        // Estrae un numero a caso da 1 a 12
+        
         const config = MASK_STATS[selectedId];
 
         let newMask = new Mask({
@@ -1273,6 +1257,7 @@ class Mask extends Sprite{
         newMask.StaticShield = config.StaticShield;
         newMask.SoulCollector = config.SoulCollector;
         newMask.SplitShot = config.SplitShot;
+        newMask.isFightTime = config.isFightTime;
 
         newMask.name = config.name;
         newMask.Placed = true;
@@ -1419,7 +1404,7 @@ class Platform extends Sprite{
     
 }
 class Bullet extends Sprite{
-    constructor({position,velocity = {x: 0 , y : 0},size ,color = "black",imageSrc,sprites,scale = 1 , framesMax=1 ,offset = {x:0, y:0},Damage,KnockBack,caster,other,liveFrames = 0,isUnblockable = false}){
+    constructor({position,velocity = {x: 0 , y : 0},size ,isMute = false,color = "black",imageSrc,sprites,scale = 1 , framesMax=1 ,offset = {x:0, y:0},Damage,KnockBack,caster,other,liveFrames = 0,isUnblockable = false}){
         super({
             position,
             size,
@@ -1440,6 +1425,7 @@ class Bullet extends Sprite{
         this.liveFrames = liveFrames;
         this.framesMax = framesMax;
         this.isUnblockable = isUnblockable;
+        this.isMute = isMute;
         
         this.Direction = {
             left: this.velocity.x < 0,
@@ -1462,41 +1448,17 @@ class Bullet extends Sprite{
         this.velocity.y+=g.Gravity_Acceleration/8;
         this.position.y +=this.velocity.y *dt;
 
-        // - - - BOUNDARIES - - -
-
-        /*Bound X-Axis
-        if (this.position.x+this.size.x > g.MAX_WIDTH){
-            this.velocity.x = 0;
-            this.position.x = g.MAX_WIDTH-this.size.x;
-        }
-        else if (this.position.x< 0){
-            this.velocity.x = 0;
-            this.position.x = 0;
-        }
-
-        
-
-        // - - - BOUNDARIES - - -
-        //Bound Y-Axis
-        if (this.position.y+this.size.y > g.MAX_HEIGHT){
-            this.velocity.y = 0;
-            this.position.y = g.MAX_HEIGHT-this.size.y;
-        }
-        else if (this.position.y< 0){
-            this.velocity.y = 0;
-            this.position.y = 0;
-        }*/
-
         // - - - COLLISIONS WITH PLAYERS - - - 
-        if (this.liveFrames > 300){
-                    SoundManager.play('fireExplosion');
+        if (this.liveFrames > 300 ){
+                    if (!this.isMute){
+                        SoundManager.play('fireExplosion');
+                    }
                     const index =  g.Bullets.indexOf(this);
                     this.hasHit = true;
                     if (index !== -1){
                         g.Bullets.splice(index,1);
                     }
                     CreateVFX(this, "DISAPPEAR","",false)
-                    console.log(g.Bullets);
             }
     
        else if (!this.hasHit) {
@@ -1563,7 +1525,7 @@ class Bullet extends Sprite{
                             break; // Esce dal ciclo attuale ma il bullet CONTINUA A VOLARE
                         }
                     }
-
+                    
                     // --- DISTRUZIONE STANDARD ---
                     // Se non ha rimbalzato (o ha già rimbalzato 1 volta), esplode e muore
                     SoundManager.play('fireExplosion');

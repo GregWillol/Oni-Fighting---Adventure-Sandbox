@@ -67,6 +67,11 @@ function Gameloop (currentTime){
     }
     else {
         // Delta Time
+        if(g.roomState === "RESTART" && g.roundEnded && g.isPerked){
+            g.roomState = "FIGHTING"
+            g.isPerked = false;
+            g.startTimer();
+        }
         if (!g.lastTime) g.lastTime = currentTime;
             let dt = (currentTime - g.lastTime) / (1000 / 60);
             g.lastTime = currentTime;

@@ -163,13 +163,7 @@ class GameContext {
         this.TimerIntervalId= setInterval(reduceTimer,1000)
 
     }
-    startCountdown(){
-        if (this.TimerIntervalId) clearInterval(this.TimerIntervalId);
-        this.timer = 10;
-        this.TimerIntervalId= setInterval(reduceTimer,1000)
-        // Da mettere dove decidi di far finire l'ondata
-        let centerX = g.MAX_WIDTH / 2;
-        
+    startShop(){
         ShowPerks();
     }
     

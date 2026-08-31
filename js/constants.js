@@ -605,6 +605,18 @@ const MASK_STATS = {
         scale: 0.2, 
         offset: { x: -10, y: 0 }, 
         price: 12
+    },
+    13: {
+        name: "Return To Combatment", 
+        position: { x: 0, y: 0 }, 
+        size: { x: 100, y: 100 },
+        isFightTime : true, 
+        imageSrc: './img/PowerUp/doublearrow.png', 
+        framesMax: 1, 
+        scale: 0.2, 
+        offset: { x: -10, y: 0 }, 
+        price: 0
+
     }
 };
 const BULLET_STATS= {

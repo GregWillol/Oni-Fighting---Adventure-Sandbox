@@ -256,7 +256,7 @@ function CheckVictory({ player1, timerId }) {
         TriggerAnnouncement("Round "+g.difficulty+" completed", true);
         setTimeout(RemoveAnnouncement,5000);
         g.roomState = 'COOLDOWN';
-        g.startCountdown();
+        g.startShop();
         g.difficulty++;
     }
 }
@@ -298,6 +298,7 @@ function CreateVFX(player,typo,text,bool = true){
             COOLDOWN : {text : text, color : player.Player === 1 ? "#FF3126" : "#8f00ff", offset :{x: player.size.x/2, y:player.size.y},velocity : {x:0 , y:-0.5 },count : 1},
             DISAPPEAR : {text : "", color : "orange", offset :{x: player.size.x, y:player.size.y/2},velocity : {x:0 , y: 0},count : 20},
             UP : {text : "", color : "blue", offset :{x: 0, y:Math.random()*player.size.y},velocity : {x:0 , y: 0},count : 2},
+            SOUL : {text : "+SOUL", color : "purple", offset : {x  : player.position.x , y : player.position.y}}
         };
     let Direction = 1;
     if (bool){
@@ -589,12 +590,13 @@ function ShowPerks() {
     const startX = centerMap - spacing; 
     const startY = Player1.position.y - 20; 
 
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 4; i++) {
         // Passa startY direttamente qui
         let nuovaMaschera = Mask.CreateMask(startX + (spacing * i), startY);
         nuovaMaschera.timer = i; 
         g.PowerUps.push(nuovaMaschera);
     }
+    
 }
 function getPerked(mask,priceMultplier){
     
@@ -605,13 +607,12 @@ function getPerked(mask,priceMultplier){
     else {
         Player1.coins-=(mask.price * priceMultplier);
         mask.MaskTaken(Player1);
-        g.isPerked = true;
-        RemovePerks();
         return;
     }
 }
 function RemovePerks() {
     // Svuota l'array del canvas per far sparire le maschere non comprate
     g.PowerUps = [];
+    g.roomState = "RESTART";
     
 }
