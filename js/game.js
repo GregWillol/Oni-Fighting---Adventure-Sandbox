@@ -57,7 +57,7 @@ const Lamp1 = new Sprite ({
 
 
 
-g.Pointers.push(FloatingPointers.createPointers(Player1));
+
 
 
 
@@ -85,8 +85,9 @@ function Gameloop (currentTime){
         
         // - - - CLEANING CANVAS - - -
         c.clearRect(0,0,g.MAX_WIDTH,g.MAX_HEIGHT)
+        
         // --- APPLICA LO SCREEN SHAKE ---
-        c.save(); // Salva lo stato pulito del canvas
+        /*c.save(); // Salva lo stato pulito del canvas
         if (g.cameraShake > 0) {
             // Genera un offset casuale piccolissimo (es. tra -3 e 3 pixel)
             const shakeX = (Math.random() - 0.5) * g.cameraShake;
@@ -95,7 +96,7 @@ function Gameloop (currentTime){
             
             g.cameraShake *= 0.9; // Fa scemare la scossa dolcemente frame dopo frame
             if (g.cameraShake < 0.2) g.cameraShake = 0; // La spegne quando è quasi zero
-        }
+        }*/
         // Aggiorna la UI delle monete
     const coinUI = document.getElementById('coin-counter');
     if (coinUI && Player1) {
@@ -136,6 +137,14 @@ for (let i = g.PowerUps.length - 1; i >= 0; i--) {
         g.PowerUps.splice(i, 1);
     }
 }
+// - - - UPDATE VFX - - -
+g.Vfx.forEach((effect, index) => {
+    effect.update(dt);
+    // Rimuove l'effetto quando finisce la sua animazione (usa dead o Dead in base a come l'hai scritto)
+    if (effect.dead || effect.Dead) {
+        g.Vfx.splice(index, 1);
+    }
+});
 
         
       
@@ -228,6 +237,9 @@ document.addEventListener("keydown",e=>{
                 Player1.LastKeyPressed = KeyPressed;
 
             break;
+        case 'p':
+                Player1.keys.dance.pressed = true;
+                Player1.LastKeyPressed = KeyPressed;
         
     }
 })
@@ -261,6 +273,12 @@ document.addEventListener("keyup",e=>{
         case 'q': 
             if (Player1.keys.slam.pressed) Player1.keys.slam.pressed = false;
             break; 
+            case 'p':
+                if(Player1.keys.dance.pressed) {
+                    Player1.keys.dance.pressed = false;
+                    Player1.isDancing = false;
+                }
+                
 
     }
     

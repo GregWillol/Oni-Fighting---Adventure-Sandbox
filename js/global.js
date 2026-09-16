@@ -73,6 +73,7 @@ class GameContext {
         this.Bullets = [];
         this.Fighters = [];
         this.PowerUps = [];
+        this.Vfx = [];
 
 
         //- - - GENERAL PURPOSES - - - 

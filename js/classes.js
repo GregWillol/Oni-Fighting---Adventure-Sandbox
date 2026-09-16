@@ -1,5 +1,5 @@
 class Sprite{
-    constructor({position = {x:0 , y:0},size,color,imageSrc,scale = 1,framesMax=1, offset = {x : 0 , y : 0},sprites}){
+    constructor({position = {x:0 , y:0},size,color,imageSrc,scale = 1,framesMax=1, offset = {x : 0 , y : 0},sprites,framesHold = 6}){
         this.position = position; 
         this.size = size; 
         this.color = color ; 
@@ -13,7 +13,7 @@ class Sprite{
         this.framesMax = framesMax
         this.framesCurrent = 0
         this.framesElapsed = 0
-        this.framesHold = 6
+        this.framesHold = framesHold
         this.offset = offset
         this.sprites=sprites 
         for (const sprite in this.sprites) {
@@ -26,6 +26,9 @@ class Sprite{
         //c.fillStyle = this.color;
         //c.fillRect(this.position.x, this.position.y, this.size.x, this.size.y);
         
+
+        
+        
         
         if (!this.image || !this.image.src) {
             c.fillStyle = this.color;
@@ -37,11 +40,22 @@ class Sprite{
         c.save();
 
         //Mirror Logic
+        let isFlipped = false;
         if (this.Direction && this.Direction.left) {
+            isFlipped = true;
+        }
+
+        // Se stiamo eseguendo la giravolta, invertiamo l'effetto specchio
+        if (this.sprites && this.sprites.change && this.image === this.sprites.change.image) {
+            isFlipped = !isFlipped;
+        }
+
+        if (isFlipped) {
             c.translate(this.position.x + this.size.x / 2, this.position.y + this.size.y / 2);
             c.scale(-1, 1);
             c.translate(-(this.position.x + this.size.x / 2), -(this.position.y + this.size.y / 2));
         }
+        
         c.drawImage(
             this.image,
             // CROP
@@ -86,7 +100,7 @@ class Sprite{
 
 
 class Fighter extends Sprite{
-    constructor ({position,velocity = {x:0 , y:0},size = {x: 0, y:0},color,value = 0 ,HealthPoints,MaxHealthPoints = 100 ,keys = {up : {pressed : false},left : {pressed : false},attack : {pressed : false},right : {pressed : false},defend : {pressed: false},slam : {pressed : false}, inter : {pressed : false}},ControlKeys,AttackBox = {position : {x: 0, y:0}, size : {x:StandardAttBoxWid, y:g.HitHeight},shape : ""},Direction = {right : false, left : false},Player,imageSrc,scale = 1,framesMax=1, offset = {x : 0 , y : 0},sprites,Damage = 10,isAI,attackFrame,type}){
+    constructor ({position,velocity = {x:0 , y:0},size = {x: 0, y:0},color,value = 0 ,HealthPoints,MaxHealthPoints = 100 ,keys = {dance : {pressed : false}, up : {pressed : false},left : {pressed : false},attack : {pressed : false},right : {pressed : false},defend : {pressed: false},slam : {pressed : false}, inter : {pressed : false}},ControlKeys,AttackBox = {position : {x: 0, y:0}, size : {x:StandardAttBoxWid, y:g.HitHeight},shape : ""},Direction = {right : false, left : false},Player,imageSrc,scale = 1,framesMax=1, offset = {x : 0 , y : 0},sprites,Damage = 10,isAI,attackFrame,type}){
         super({
             position,
             size,
@@ -139,8 +153,15 @@ class Fighter extends Sprite{
         this.shieldTimer = 0;    // Per Static Shield
         this.hasShield = false;  // Stato dello scudo
         this.toxicTimer = 0;     // Per Toxic Trail
+        
+
+        this.isDancing = false;
 
         this.value = value; 
+
+        // Salva i valori di base in caso le singole animazioni non ne abbiano uno specifico
+        this.baseOffset = offset;
+        this.baseScale = scale;
     
         // for AI checking if it's stuck
         this.checkStuckTimer = 0;
@@ -177,32 +198,71 @@ class Fighter extends Sprite{
         this.afterImages = this.afterImages.filter(a => a.life > 0);
         this.drawAfterImages();
 
+     
+
         
         this.Draw(); 
+
+        if (this.sprites.change && this.isTurning && this.image === this.sprites.change.image && this.framesCurrent >= this.sprites.change.framesMax - 1) {
+            this.Direction.right = !this.Direction.right;
+            this.Direction.left = !this.Direction.right;
+            
+            this.switchSprite('idle');
+        }
+
+        
         this.animateFrames(dt);
+
+        // - - - CHANGING DIR FINISHED - - -
+        
+       
         //Setting X-Component of Velocity to 0 each frame for boundaries limits 
         this.velocity.x *= 0.8 ;  
         //- - - DIRECTION SETTING - - - 
+        if(!this.keys.right.pressed && !this.keys.left.pressed && this.keys.dance.pressed){
+            this.switchSprite('dance');
+            this.isDancing = true;
+        }
+
+        
+        const isTurningAnim = this.sprites.change && this.image === this.sprites.change.image;
+
+        // 3. INIZIO GIRAVOLTA
+        if (this.OnGround && !isTurningAnim && !this.isAttacking && !this.Defending) {
+            if (this.keys.right.pressed && this.Direction.left) {
+                this.switchSprite('change');
+            } else if (this.keys.left.pressed && this.Direction.right) {
+                this.switchSprite('change');
+            }
+        }
+        
         if (!isKnockedBack && this.HitStun === 0 && g.FlagFight ){
+
             
-            //Setting direction of the Sprite using the LastKeyPressed on X-Axis (so left or right)
-            if (this.keys.right.pressed && this.LastKeyPressed === this.ControlKeys.right && !this.Defending && !this.Dead && !this.isAttacking && !this.imploded) {
-                this.Direction.right = true; 
-                this.Direction.left = false; 
-                this.velocity.x = 10*(this.speedMult || 1);
-                CreateVFX(this,"RUN")
+
+           
+            
+                //Setting direction of the Sprite using the LastKeyPressed on X-Axis (so left or right)
+                if (this.keys.right.pressed && this.LastKeyPressed === this.ControlKeys.right && !this.Defending && !this.Dead && !this.isAttacking && !this.imploded) {
+                    this.Direction.right = true; 
+                    this.Direction.left = false; 
+                    this.velocity.x = 10*(this.speedMult || 1);
+                    CreateVFX(this,"RUN")
+                    
+                } else if (this.keys.left.pressed && this.LastKeyPressed === this.ControlKeys.left && !this.Defending && !this.Dead && !this.isAttacking) {
+                    this.Direction.left = true;
+                    this.Direction.right = false; 
+                    this.velocity.x = -10*(this.speedMult || 1);
+                    CreateVFX(this,"RUN")
+                }
+            
                 
-            } else if (this.keys.left.pressed && this.LastKeyPressed === this.ControlKeys.left && !this.Defending && !this.Dead && !this.isAttacking) {
-                this.Direction.left = true;
-                this.Direction.right = false; 
-                this.velocity.x = -10*(this.speedMult || 1);
-                CreateVFX(this,"RUN")
-            }
-            //- - - VERIFYING JUMP CONDITION - - - 
-            if (this.keys.up.pressed && this.OnGround && !this.Defending && !this.Dead && !this.isAttacking) {
-                this.velocity.y = -30 + (this.jumpPower || 0);;
-                this.OnGround = false;
-            }
+                //- - - VERIFYING JUMP CONDITION - - - 
+                if (this.keys.up.pressed && this.OnGround && !this.Defending && !this.Dead && !this.isAttacking) {
+                    this.velocity.y = -30 + (this.jumpPower || 0);;
+                    this.OnGround = false;
+                }
+        }
             // - - - SCHIANTO A TERRA (GROUND SLAM) - - -
             if (this.keys.slam.pressed && !this.OnGround && this.staminaBar >= 1 && !this.isPlunging) {
                 this.keys.slam.pressed = false; // Consuma l'input
@@ -213,7 +273,7 @@ class Fighter extends Sprite{
                 this.velocity.x = 0;   // Ti fermi a mezz'aria
                 this.velocity.y = 35;  // Cadi come un meteorite!
                 this.switchSprite('attack'); // Mettiamo l'animazione di attacco mentre cade
-            }
+            
         }
         if (Math.abs(this.velocity.x) > 1 && this.OnGround && this.Player === 1) {
             if (this.stepTimer <= 0) {
@@ -387,7 +447,19 @@ class Fighter extends Sprite{
             
 
     // Check if the animation has reached the active impact frame
-    if (this.framesCurrent == this.attackFrame) {
+    if (this.isAttacking && 
+    this.image === this.sprites.attack.image &&
+    this.framesCurrent == this.attackFrame) {
+
+        if (this.Player === 1){
+        g.Vfx.push(new SlashVFX({
+        position: { 
+            x: this.AttackBox.position.x + this.AttackBox.size.x / 2, 
+            y: this.position.y + this.size.y / 2 
+        },
+        directionRight: this.Direction.right
+    }));
+}
 
         // --- MAGIC CASTER (PROIETTILI) ---
         if (this.CanShoot && !this.hasShot) {
@@ -474,7 +546,7 @@ class Fighter extends Sprite{
                     // Respinge te (l'attaccante) violentemente e ti stordisce
                     this.velocity.x = (this.position.x > victim.position.x ? 25 : -25);
                     this.velocity.y = -10;
-                    this.HitStun = 30; // Mezzo secondo di blocco comandi
+                    
                     
                     continue; // INTERROMPE IL COLPO: Nessun danno per il bersaglio
                 }
@@ -532,17 +604,8 @@ class Fighter extends Sprite{
                 }
             }
         }
-    }
-    
-    // End of attack animation: trigger cooldown and clear hit entities tracking
-    if (this.isAttacking && this.framesCurrent >= this.sprites.attack.framesMax - 1) {
-        this.isAttacking = false;
-        this.attackCooldown = this.staminaBar >= 3 ? 10 : 90;
-        this.hitEnemies.length = 0; // Fast array reset without memory re-allocation
-        // --- RIFLESSIONE PROIETTILI ---
-        // --- RIFLESSIONE PROIETTILI ---
-// --- RIFLESSIONE PROIETTILI ---
-g.Bullets.forEach(bullet => {
+        // - - - MIRROR LOGIC BULLETS - - - 
+        g.Bullets.forEach(bullet => {
     // IGNORA: proiettili già colpiti, imparabili o sparati da te
     if (bullet.Dead || bullet.hasHit || bullet.caster === this || bullet.isUnblockable) return;
 
@@ -586,6 +649,15 @@ g.Bullets.forEach(bullet => {
         }
     }
 });
+    }
+    
+    // End of attack animation: trigger cooldown and clear hit entities tracking
+    if (this.isAttacking && this.framesCurrent >= this.sprites.attack.framesMax - 1) {
+        this.isAttacking = false;
+        this.attackCooldown = this.staminaBar >= 3 ? 10 : 90;
+        this.hitEnemies.length = 0; // Fast array reset without memory re-allocation
+        // --- RIFLESSIONE PROIETTILI ---
+      
     }
 
     
@@ -653,8 +725,9 @@ g.Bullets.forEach(bullet => {
             }
         }
         
-        /*
+        
         // --- INCOLLA QUI IL DEBUG HITBOXES ---
+        /*
         c.save();
 
         // 1. Hurtbox (Rettangolo verde)
@@ -757,16 +830,50 @@ g.Bullets.forEach(bullet => {
             this.image === this.sprites.slam.image && 
             this.framesCurrent < this.sprites.slam.framesMax - 1
         ) return;
+
+        // - - - DANCE SCENARIO - - -
+        else if (
+            this.sprites.dance && this.isDancing &&
+            this.image === this.sprites.dance.image && 
+            this.framesCurrent < this.sprites.dance.framesMax - 1
+        ) return;
+
+        // - - - CHANGE DIR SCENARIO - - -
+        else if (this.sprites.change && this.image === this.sprites.change.image && this.framesCurrent < this.sprites.change.framesMax -1) {
+            // Se mi stanno attaccando, interrompo la giravolta per prendere danno o morire
+            if (spriteName === 'hurt' || spriteName === 'death') {
+                // Lascia passare
+            } else {
+                return; // Blocca tutto il resto (corsa, salti, ecc.)
+            }
+        }
         
         if (!this.sprites[spriteName]) return;
 
         if (this.image === this.sprites[spriteName].image) return
 
-        this.image = this.sprites[spriteName].image
-        this.framesMax = this.sprites[spriteName].framesMax
-        this.framesHold = this.sprites[spriteName].framesHold || 6;
+        const targetSprite = this.sprites[spriteName];
+
+        this.image = targetSprite.image;
+        this.framesMax = targetSprite.framesMax;
+        this.framesHold = targetSprite.framesHold || 6;
         this.framesCurrent = 0;
         this.framesElapsed = 0;
+
+        // - - - CUSTOM OFFSET E SCALE - - -
+        // Se l'animazione ha un offset specifico usalo, altrimenti torna a quello base
+        if (targetSprite.offset) {
+            this.offset = targetSprite.offset;
+        } else {
+            this.offset = this.baseOffset;
+        }
+
+        // Stessa cosa per la scala
+        if (targetSprite.scale !== undefined) {
+            this.scale = targetSprite.scale;
+        } else {
+            this.scale = this.baseScale;
+        }
     }
 
     attack() {
@@ -810,6 +917,7 @@ g.Bullets.forEach(bullet => {
     }
     hurt(){
         this.isAttacking = false;
+        this.HitStun = 40; 
         this.switchSprite('hurt') 
     }
     death (){
@@ -1083,8 +1191,10 @@ g.Bullets.forEach(bullet => {
             clonedSprites[key] = {
                 imageSrc: value.imageSrc,
                 framesMax: value.framesMax,
-                framesHold: value.framesHold // se lo usi
+                framesHold: value.framesHold, // se lo usi
                 // Non copiamo "image", così la classe Sprite se ne creerà una nuova per conto suo!
+                offset: value.offset, 
+                scale: value.scale
             };
         }
 
@@ -1110,7 +1220,8 @@ g.Bullets.forEach(bullet => {
             type : configData.type,
             HealthPoints : configData.HealthPoints,
             MaxHealthPoints : configData.MaxHealthPoints,
-            value : configData.value
+            value : configData.value,
+            
         })
     }
 }
@@ -1478,6 +1589,8 @@ class Bullet extends Sprite{
         this.framesMax = framesMax;
         this.isUnblockable = isUnblockable;
         this.isMute = isMute;
+
+        this.afterImages = [];
         
         this.Direction = {
             left: this.velocity.x < 0,
@@ -1488,6 +1601,30 @@ class Bullet extends Sprite{
     update(dt){
         this.liveFrames++;
 
+        if(this.liveFrames % 5 === 0){
+        this.afterImages.push({
+            x: this.position.x,
+            y: this.position.y,
+            image: this.image,
+            framesCurrent: this.framesCurrent,
+            angle: Math.atan2(this.velocity.y, this.velocity.x),
+            framesMax: this.framesMax,
+            angle: Math.atan2(this.velocity.y, this.velocity.x), // <-- Fondamentale per i proiettili!
+            scale: this.scale,
+            offset: { x: this.offset.x, y: this.offset.y },
+            life: 0.8// Vita iniziale dell'ombra
+        });
+    }
+
+        // 2. Limite massimo per non far esplodere la memoria (es. coda di 10 ombre)
+        if (this.afterImages.length > 5) {
+            this.afterImages.shift();
+        }
+
+        // 3. Gestione della vita delle ombre
+        this.afterImages.forEach(a => a.life -= 0.02); // Più è alto il numero, più la coda è corta
+        this.afterImages = this.afterImages.filter(a => a.life > 0);
+        this.drawAfterImages();
         this.Direction = {
             left: this.velocity.x < 0,
             right: this.velocity.x >= 0
@@ -1610,6 +1747,8 @@ class Bullet extends Sprite{
 
         if (!this.image || !this.image.complete || this.image.naturalWidth === 0) return;
 
+       
+
         const frameWidth = this.image.width / this.framesMax;
         const angle = Math.atan2(this.velocity.y, this.velocity.x);
 
@@ -1635,6 +1774,39 @@ class Bullet extends Sprite{
 
         c.restore();
     }
+     drawAfterImages() {
+    c.save();
+    c.globalCompositeOperation = "lighter";
+
+    this.afterImages.forEach(a => {
+        if (!a.image || !a.image.complete) return;
+        const frameWidth = a.image.width / a.framesMax;
+
+        c.save();
+        c.globalAlpha = Math.max(0, a.life) * 0.6;
+
+        const centerX = a.x + this.size.x / 2;
+        const centerY = a.y + this.size.y / 2;
+
+        c.translate(centerX, centerY);
+        c.rotate(a.angle); // Angolo memorizzato all'istante esatto dello spawn dell'ombra
+
+        c.drawImage(
+            a.image,
+            a.framesCurrent * frameWidth,
+            0,
+            frameWidth,
+            a.image.height,
+            -this.size.x / 2 - a.offset.x,
+            -this.size.y / 2 - a.offset.y,
+            frameWidth * a.scale,
+            a.image.height * a.scale
+        );
+        c.restore();
+    });
+
+    c.restore();
+}
     static CreateBullet(val, caster) {
         const config = val === 1 ? BULLET_STATS[1] : BULLET_STATS[2]; 
         const other = caster.Player === 1 ? Player2 : Player1;
@@ -1771,4 +1943,56 @@ class Shockwave extends Sprite {
 
         c.restore();
     }
+}
+
+class SlashVFX extends Sprite {
+    constructor({ position, directionRight }) {
+        super({
+            position: { x: position.x, y: position.y },
+            imageSrc: './img/VFX/slash.png',
+            framesMax: 8,      // Es. strip da 4 fotogrammi
+            framesHold: 2,     // Molto veloce
+            scale: 3,
+            offset: { x: 200, y: 200}
+        });
+        this.directionRight = directionRight;
+        this.dead = false;
+    }
+
+    update(dt) {
+        this.animateFrames(dt);
+        this.draw();
+
+        // Si distrugge da solo appena finisce il ciclo di frame
+        if (this.framesCurrent >= this.framesMax - 1) {
+            this.dead = true;
+        }
+    }
+
+    draw() {
+        c.save();
+        c.globalCompositeOperation = "lighter"; // Effetto neon garantito
+
+        const frameWidth = this.image.width / this.framesMax;
+
+        c.translate(this.position.x, this.position.y);
+        if (this.directionRight) {
+            c.scale(-1, 1); // Specchia se attacchi a sinistra
+        }
+
+        c.drawImage(
+            this.image,
+            this.framesCurrent * frameWidth,
+            0,
+            frameWidth,
+            this.image.height,
+            -this.offset.x,
+            -this.offset.y,
+            frameWidth * this.scale,
+            this.image.height * this.scale
+        );
+
+        c.restore();
+    }
+    
 }

@@ -123,7 +123,7 @@ const FIGHTER_STATS={
             },
             size : {
                 x : 300, 
-                y : 175
+                y : 160
             },
             shape : "ellipse"
         },
@@ -131,39 +131,76 @@ const FIGHTER_STATS={
 
         // - - - ANIMATION SPRITES - - -
         
-        scale : 2.6, 
-        offset : {x: 220, y:196},
+        scale : 0.67, 
+        offset : {x: 20, y:35},
         sprites: {
             idle: {
-                imageSrc: './img/MartialHero/Idle.png',
-                framesMax: 8 
+                imageSrc: './img/MartialHero/knightidle.png',
+                framesMax: 30,
+                framesHold: 7
             },
             run: {
-                imageSrc: './img/MartialHero/Run.png', 
-                framesMax: 8 
+                imageSrc: './img/MartialHero/knightrun.png', 
+                framesMax:30,
+                framesHold: 2
+            },
+             run2: {
+                imageSrc: './img/MartialHero/knightrun2_20.png', 
+                framesMax:20,
+                framesHold: 2
             },
             jump: {
-                imageSrc: './img/MartialHero/Jump.png', 
-                framesMax: 2 
+                imageSrc: './img/MartialHero/knightjump.png', 
+                framesMax: 30,
+                framesHold: 4
             },
             attack: {
-                imageSrc: './img/MartialHero/Attack1.png', 
-                framesMax: 6 
+                imageSrc: './img/MartialHero/knightattack.png', 
+                framesMax: 39,
+                framesHold: 1.2,
+                offset: {x:15,y:45}
             },
             hurt : {
-                imageSrc: './img/MartialHero/TakeHitW.png', 
-                framesMax: 4 
+                imageSrc: './img/MartialHero/knighthurt30.png', 
+                framesMax: 30 ,
+                framesHold: 1.2,
+                
             }, 
             death : {
                 imageSrc: './img/MartialHero/Death.png', 
-                framesMax: 6 
+                framesMax: 6 ,
+                
             },
             defence : {
                 imageSrc: './img/MartialHero/Defence.png', 
-                framesMax: 1 
-            }
+                framesMax: 1 ,
+                
+            },
+            dance : {
+                imageSrc : './img/MartialHero/knightdance214.png',
+                framesMax:214,
+                framesHold: 4,
+                scale : 0.8,
+                offset : {x: 100, y : 76},
+
+            },
+            change : {
+                imageSrc : './img/MartialHero/knightchange30.png',
+                framesMax:30,
+                framesHold:0.01,
+                offset : {x:30, y:35}
+            },
+            draw : {
+                imageSrc : './img/MartialHero/knightdraw30.png',
+                framesMax:30,
+            },
+            stash : {
+                imageSrc : './img/MartialHero/knightstash20.png',
+                framesMax:20,
+            },
+            
         },
-        attackFrame : 5,
+        attackFrame : 15,
         type : undefined,
         Damage : 100,
         HealthPoints : 3000,
