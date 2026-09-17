@@ -328,20 +328,29 @@ const FIGHTER_STATS={
         offset : {x: 150, y:70},
         sprites: {
             idle: {
-                imageSrc: './img/Knight/knightidle.png',
-                framesMax: 8
+                imageSrc: './img/skeleton/skeletonidle30.png',
+                framesMax: 30,
+                framesHold : 4,
+                scale : 1,
+                offset : {x:30, y:80}
             },
             run: {
-                imageSrc: './img/Knight/knightrun.png', 
-                framesMax: 8 
+                imageSrc: './img/skeleton/skeletonrun18.png', 
+                framesMax: 18,
+                framesHold : 3,
+                scale : 1,
+                offset : {x:50, y:80}
             },
              jump: {
                 imageSrc: './img/Knight/knightjump.png', 
                 framesMax: 8 
             },
             attack: {
-                imageSrc: './img/Knight/knightattack.png',
-                framesMax: 6
+                imageSrc: './img/skeleton/knightattack45.png',
+                framesMax: 45,
+                framesHold : 1.5,
+                scale : 1.1,
+                offset : {x:40, y:90}
             },
             hurt :{
                 imageSrc: './img/Knight/knighthurt.png', 
@@ -349,20 +358,34 @@ const FIGHTER_STATS={
 
             },
             death : {
-                imageSrc: './img/Knight/knightdeath.png', 
-                framesMax: 4 
+                imageSrc: './img/skeleton/skeletondeath45.png', 
+                framesMax: 45,
+                framesHold : 4,
+                scale : 1,
+                offset : {x:30, y:60}
             },
             defence : {
                 imageSrc: './img/Knight/knightdash.png',
                 framesMax: 10 
             },
             slam : {
-                imageSrc: './img/Knight/knightplunge.png',
-                framesMax: 7 
+                imageSrc: './img/skeleton/knightjumpattack70.png',
+                framesMax: 70,
+                framesHold : 1,
+                scale : 1,
+                offset : {x:50, y:80}
 
+            },
+            wakeup: {
+                imageSrc: './img/skeleton/wakeup30.png',
+                framesMax: 30
+            },
+            draw: {
+                imageSrc: './img/skeleton/skeletondraw30.png',
+                framesMax: 30
             }
         },
-        attackFrame : 4,
+        attackFrame : 10,
         HealthPoints : 130,
         value : 3
         
