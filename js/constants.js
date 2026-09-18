@@ -122,8 +122,8 @@ const FIGHTER_STATS={
                 y : 0 
             },
             size : {
-                x : 300, 
-                y : 160
+                x : 400, 
+                y : 200
             },
             shape : "ellipse"
         },
@@ -193,6 +193,9 @@ const FIGHTER_STATS={
             draw : {
                 imageSrc : './img/MartialHero/knightdraw30.png',
                 framesMax:30,
+                framesHold: 1.2,
+                scale : 0.8,
+                offset: {x:30,y:76}
             },
             stash : {
                 imageSrc : './img/MartialHero/knightstash20.png',
@@ -202,7 +205,7 @@ const FIGHTER_STATS={
         },
         attackFrame : 15,
         type : undefined,
-        Damage : 100,
+        Damage : 70,
         HealthPoints : 3000,
         MaxHealthPoints : 3000,
         
@@ -360,9 +363,9 @@ const FIGHTER_STATS={
             death : {
                 imageSrc: './img/skeleton/skeletondeath45.png', 
                 framesMax: 45,
-                framesHold : 4,
+                framesHold : 2,
                 scale : 1,
-                offset : {x:30, y:60}
+                offset : {x:30, y:80}
             },
             defence : {
                 imageSrc: './img/Knight/knightdash.png',
@@ -376,13 +379,19 @@ const FIGHTER_STATS={
                 offset : {x:50, y:80}
 
             },
-            wakeup: {
+            wake: {
                 imageSrc: './img/skeleton/wakeup30.png',
-                framesMax: 30
+                framesMax: 30,
+                framesHold : 3,
+                scale : 1,
+                offset : {x:50, y:80}
             },
             draw: {
                 imageSrc: './img/skeleton/skeletondraw30.png',
-                framesMax: 30
+                framesMax: 30,
+                framesHold : 2,
+                scale : 1,
+                offset : {x:50, y:80}
             }
         },
         attackFrame : 10,

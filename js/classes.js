@@ -156,6 +156,9 @@ class Fighter extends Sprite{
         
 
         this.isDancing = false;
+        this.swordDrawed = false;
+        this.hasFall = false;
+        this.hasFallenOnce = false;
 
         this.value = value; 
 
@@ -203,12 +206,19 @@ class Fighter extends Sprite{
         
         this.Draw(); 
 
-        if (this.sprites.change && this.isTurning && this.image === this.sprites.change.image && this.framesCurrent >= this.sprites.change.framesMax - 1) {
+        if (this.sprites.change && this.image === this.sprites.change.image && this.framesCurrent >= this.sprites.change.framesMax - 1) {
             this.Direction.right = !this.Direction.right;
             this.Direction.left = !this.Direction.right;
             
             this.switchSprite('idle');
         }
+        if (this.sprites.wake && this.hasFall && this.HealthPoints > 0 &&
+    this.image === this.sprites.death.image &&
+    this.framesCurrent >= this.sprites.death.framesMax - 1) {
+    
+    this.hasFall = false;
+    this.switchSprite('wake');
+}
 
         
         this.animateFrames(dt);
@@ -506,7 +516,7 @@ class Fighter extends Sprite{
                     scale: 3
                 }));
             }
-            
+            this.CanShoot = false;
         }
         
 
@@ -552,6 +562,14 @@ class Fighter extends Sprite{
                 }
 
                 if (!victim.Defending) {
+
+
+                    // - - - IF THE HP OF THE ENEMY IS LOWER THAN 30% HE FELLS DOWN - - -
+                    if(victim.HealthPoints < Math.floor(victim.MaxHealthPoints * 0.30)){
+                         victim.hasFallenOnce = true;
+                        victim.switchSprite('death');
+                        victim.hasFall = true;
+                    }
                     // --- SUCCESSFUL HIT LOGIC ---
                     g.hitStopFrames = 6;
                     g.cameraShake = 6;
@@ -787,7 +805,8 @@ class Fighter extends Sprite{
 
         // - - - HURT SCENARIO - - -
         else if (this.image === this.sprites.hurt.image && 
-            this.framesCurrent < this.sprites.hurt.framesMax -1
+            this.framesCurrent < this.sprites.hurt.framesMax -1  && 
+            spriteName !== 'death'
         ) return ;  
 
         // - - - DEATH SCENARIO - - -
@@ -798,6 +817,9 @@ class Fighter extends Sprite{
         else if (this.image === this.sprites.death.image && 
             this.framesCurrent === this.sprites.death.framesMax-1
         ){
+            if(this.hasFall && this.HealthPoints > 0){
+                return;
+            }
             this.imploded = true;
             if(!this.hasPaid && !Player1.Dead){
                 this.hasPaid = true;
@@ -837,6 +859,18 @@ class Fighter extends Sprite{
             this.image === this.sprites.dance.image && 
             this.framesCurrent < this.sprites.dance.framesMax - 1
         ) return;
+        // - - - DRAW SCENARIO - - -
+        else if (
+            this.sprites.draw &&
+            this.image === this.sprites.draw.image && 
+            this.framesCurrent < this.sprites.draw.framesMax - 1
+        ) return;
+        // - - - GETUP SCENARIO - - -
+        else if (
+            this.sprites.wake &&
+            this.image === this.sprites.wake.image && 
+            this.framesCurrent < this.sprites.wake.framesMax - 1
+        ) return;
 
         // - - - CHANGE DIR SCENARIO - - -
         else if (this.sprites.change && this.image === this.sprites.change.image && this.framesCurrent < this.sprites.change.framesMax -1) {
@@ -853,6 +887,25 @@ class Fighter extends Sprite{
         if (this.image === this.sprites[spriteName].image) return
 
         const targetSprite = this.sprites[spriteName];
+
+        // --- TRUCCO PER LA FLUIDITÀ (SMEAR TRANSITION) ---
+        // Se l'immagine sta cambiando davvero, crea un fantasma rapido della posa precedente
+        if (this.image && this.image !== targetSprite.image) {
+            for(let i = 0 ; i < 1 ; i++)
+            this.afterImages.push({
+                x: this.position.x,
+                y: this.position.y,
+                image: this.image,
+                framesCurrent: this.framesCurrent,
+                framesMax: this.framesMax,
+                right: this.Direction.right,
+                life: 0.4, // Svanisce quasi subito, serve solo ad ammorbidire lo scatto visivo
+                scale: this.scale, // Salva la scala dell'animazione precedente
+                offset: { x: this.offset.x, y: this.offset.y } // Salva l'offset esatto
+            });
+        }
+
+        
 
         this.image = targetSprite.image;
         this.framesMax = targetSprite.framesMax;
@@ -877,7 +930,7 @@ class Fighter extends Sprite{
     }
 
     attack() {
-        if (this.attackCooldown === 0){
+        if (this.attackCooldown === 0 && this.swordDrawed){
             this.switchSprite('attack') 
             this.isAttacking = true;
             this.framesCurrent = 0; 
@@ -885,8 +938,12 @@ class Fighter extends Sprite{
             this.hitEnemies = [];
             // - - - AUDIO - - - 
             this.attackSoundPlayed = false;
-        }
-        else return ; 
+        }// - - - it needs to draw the sword before the attack or maybe just after he falls- - -
+        else if(!this.swordDrawed){
+            this.switchSprite('draw');
+            this.swordDrawed = true;
+        }   
+        else return;
     }
     castRangedAttack() {
         if (this.attackCooldown === 0 && !this.isAttacking) {
@@ -916,6 +973,7 @@ class Fighter extends Sprite{
         this.switchSprite('slam');
     }
     hurt(){
+        if (this.hasFall || this.Dead) return; 
         this.isAttacking = false;
         this.HitStun = 40; 
         this.switchSprite('hurt') 

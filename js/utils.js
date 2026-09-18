@@ -373,7 +373,7 @@ function ApplyKnockback(gotHit, Attacker) {
     
     // 3. Forza extra calcolata in base a quanto è ferito 
     // (Se è quasi morto, damagePercent è ~1, quindi aggiunge 15 di forza alla spinta)
-    let extraForce = 15 * damagePercent * Attacker.KnockBack;
+    let extraForce = 30 * damagePercent * Attacker.KnockBack;
     
     let force = baseForce + extraForce;
     

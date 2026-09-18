@@ -164,6 +164,8 @@ g.Vfx.forEach((effect, index) => {
                 c.update(dt);
             }
         })
+        // Pulizia sicura fuori dal loop di aggiornamento
+g.Bullets = g.Bullets.filter(bullet => !bullet.Dead);   
         
         
         // - - - VICTORY UPDATE - - -
@@ -306,6 +308,26 @@ function initMobileControls() {
             // Stessa condizione di guardia del tasto 'q' su desktop
             if (Player1 && Player1.keys.slam && Player1.attackCooldown === 0 && !Player1.isAttacking) {
                 Player1.keys.slam.pressed = true;
+            }
+        }
+    },
+    {
+    id: 'btn-inter',
+        key: 'iter',
+        onPress: () => {
+            // Stessa condizione di guardia del tasto 'q' su desktop
+            if (Player1 && Player1.keys.inter) {
+                Player1.keys.inter.pressed = true;
+            }
+        }
+    },
+    {
+    id: 'btn-dance',
+        key: 'dance',
+        onPress: () => {
+            // Stessa condizione di guardia del tasto 'q' su desktop
+            if (Player1 && Player1.keys.slam ) {
+                Player1.keys.dance.pressed = true;
             }
         }
     }
