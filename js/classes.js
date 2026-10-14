@@ -1,1132 +1,1455 @@
-class Sprite{
-    constructor({position = {x:0 , y:0},size,color,imageSrc,scale = 1,framesMax=1, offset = {x : 0 , y : 0},sprites}){
-        this.position = position; 
-        this.size = size; 
-        this.color = color ; 
+// ============================================================================
+// BASE SPRITE CLASS (Supports both single-row sheets & multi-row sheets like Skull Monster)
+// ============================================================================
+class Sprite {
+    constructor({ position = { x: 0, y: 0 }, size, color, imageSrc, scale = 1, framesMax = 1, offset = { x: 0, y: 0 }, sprites, row = 0, frameWidth = null, frameHeight = null }) {
+        this.position = { x: position.x, y: position.y };
+        this.size = size ? { x: size.x, y: size.y } : { x: 50, y: 50 };
+        this.color = color;
 
-        //Inserting images
-        this.image = new Image()
-        if (imageSrc) {
-        this.image.src = imageSrc
-        }
-        this.scale = scale
-        this.framesMax = framesMax
-        this.framesCurrent = 0
-        this.framesElapsed = 0
-        this.framesHold = 6
-        this.offset = offset
-        this.sprites=sprites 
+        this.image = new Image();
+        if (imageSrc) this.image.src = imageSrc;
+
+        this.scale = scale;
+        this.framesMax = framesMax;
+        this.framesCurrent = 0;
+        this.framesElapsed = 0;
+        this.framesHold = 6;
+        this.offset = offset ? { x: offset.x, y: offset.y } : { x: 0, y: 0 };
+        this.row = row;
+        this.customFrameWidth = frameWidth;
+        this.customFrameHeight = frameHeight;
+
+        this.sprites = sprites;
         for (const sprite in this.sprites) {
-            sprites[sprite].image = new Image()
-            sprites[sprite].image.src = sprites[sprite].imageSrc
+            sprites[sprite].image = new Image();
+            sprites[sprite].image.src = sprites[sprite].imageSrc;
         }
     }
-    Draw(){
-        // - - - DEBUG - - -
-        //c.fillStyle = this.color;
-        //c.fillRect(this.position.x, this.position.y, this.size.x, this.size.y);
-        
-        
-        if (!this.image || !this.image.src) {
-            c.fillStyle = this.color;
-            c.fillRect(this.position.x, this.position.y, this.size.x, this.size.y);
-            return; 
-        }
-        const frameWidth = this.image.width / this.framesMax;
-        // Saving before for safety
-        c.save();
 
-        //Mirror Logic
+    hasValidImage() {
+        return this.image && this.image.src && this.image.complete && this.image.naturalWidth > 0;
+    }
+
+    Draw() {
+        if (!IsInViewport(this, 220)) return;
+
+        if (!this.hasValidImage()) {
+            if (this.type === "SkullBoss") {
+                this.drawSkullBossFallback();
+                return;
+            }
+            if (this.color) {
+                c.fillStyle = this.color;
+                c.fillRect(this.position.x, this.position.y, this.size.x, this.size.y);
+            }
+            return;
+        }
+
+        // Supports multi-row single spritesheets (like 128x112 Skull Monster) AND standard horizontal strips
+        const isMultiRowSheet = (this.customFrameWidth && this.image.height >= this.customFrameHeight * 2);
+        const fw = isMultiRowSheet ? this.customFrameWidth : (this.image.width / this.framesMax);
+        const fh = isMultiRowSheet ? this.customFrameHeight : this.image.height;
+        const sy = isMultiRowSheet ? (this.row * fh) : 0;
+
+        c.save();
         if (this.Direction && this.Direction.left) {
             c.translate(this.position.x + this.size.x / 2, this.position.y + this.size.y / 2);
             c.scale(-1, 1);
             c.translate(-(this.position.x + this.size.x / 2), -(this.position.y + this.size.y / 2));
         }
+
         c.drawImage(
             this.image,
-            // CROP
-            this.framesCurrent * frameWidth,
-            0,
-            frameWidth,
-            this.image.height,
-            this.position.x - this.offset.x, 
-            this.position.y - this.offset.y, 
-            frameWidth * this.scale, 
-            this.image.height * this.scale
+            this.framesCurrent * fw,
+            sy,
+            fw,
+            fh,
+            this.position.x - this.offset.x,
+            this.position.y - this.offset.y,
+            fw * this.scale,
+            fh * this.scale
         );
         c.restore();
     }
+
+    drawSkullBossFallback() {
+        const cx = this.position.x + this.size.x / 2;
+        const cy = this.position.y + this.size.y / 2;
+        c.save();
+        // Outer floating aura
+        c.fillStyle = this.bossArmorActive ? "rgba(0, 229, 255, 0.28)" : "rgba(239, 68, 68, 0.35)";
+        c.beginPath();
+        c.arc(cx, cy, 78, 0, Math.PI * 2);
+        c.fill();
+        // Skull Cranium
+        c.fillStyle = this.bossStunTimer > 0 ? "#94a3b8" : "#f8fafc";
+        c.beginPath();
+        c.arc(cx, cy - 8, 52, 0, Math.PI * 2);
+        c.fill();
+        c.fillRect(cx - 28, cy + 25, 56, 26);
+        // Glowing Eyes
+        c.fillStyle = this.currentAttackType === 'attack2' ? "#ff0055" : "#00e5ff";
+        c.beginPath();
+        c.arc(cx - 18, cy - 10, 11, 0, Math.PI * 2);
+        c.arc(cx + 18, cy - 10, 11, 0, Math.PI * 2);
+        c.fill();
+        c.restore();
+    }
+
     animateFrames(dt) {
-        this.framesElapsed += dt ;
-        if (this.framesElapsed >= this.framesHold ) {
+        this.framesElapsed += dt;
+        if (this.framesElapsed >= this.framesHold) {
             if (this.framesCurrent < this.framesMax - 1) {
-                this.framesCurrent++
+                this.framesCurrent++;
             } else {
-                this.framesCurrent = 0
+                this.framesCurrent = 0;
             }
             this.framesElapsed -= this.framesHold;
         }
     }
-    update (dt){
+
+    update(dt) {
         this.Draw();
         this.animateFrames(dt);
     }
-    static CreateAura(id){
+
+    static CreateAura(id) {
         const config = AURA_STATS[id];
-        return new Sprite ({
-            color : config.color, 
-            size : config.size,
-            imageSrc : config.imageSrc, 
-            framesMax : config.framesMax,
-            scale : config.scale,
-            offset : config.offset
-        })
+        return new Sprite({
+            color: config.color,
+            size: config.size,
+            imageSrc: config.imageSrc,
+            framesMax: config.framesMax,
+            scale: config.scale,
+            offset: config.offset
+        });
     }
-} 
+}
 
-
-class Fighter extends Sprite{
-    constructor ({position,velocity = {x:0 , y:0},size = {x: 0, y:0},color,value = 0 ,HealthPoints,MaxHealthPoints = 100 ,keys = {up : {pressed : false},left : {pressed : false},attack : {pressed : false},right : {pressed : false},defend : {pressed: false},slam : {pressed : false}, inter : {pressed : false}},ControlKeys,AttackBox = {position : {x: 0, y:0}, size : {x:StandardAttBoxWid, y:g.HitHeight},shape : ""},Direction = {right : false, left : false},Player,imageSrc,scale = 1,framesMax=1, offset = {x : 0 , y : 0},sprites,Damage = 10,isAI,attackFrame,type}){
+// ============================================================================
+// BLUE JUMP ORB CLASS (Mario/Bowser Mechanic: Jump on this Blue Orb to launch high
+// and stomp the flying Skull Monster on the head!)
+// ============================================================================
+class BlueJumpOrb extends Sprite {
+    constructor({ position }) {
+        const cfg = PERK_VFX_CONFIG.blueJumpOrb;
         super({
-            position,
-            size,
-            color,
-            imageSrc,
-            scale,
-            framesMax,
-            offset,
-            sprites
-        })
+            position: { x: position.x, y: position.y },
+            size: { x: cfg.size.x, y: cfg.size.y },
+            color: cfg.color,
+            imageSrc: cfg.imageSrc,
+            scale: cfg.scale,
+            framesMax: cfg.framesMax,
+            offset: cfg.offset
+        });
+        this.floatTimer = 0;
+        this.baseY = position.y;
+        this.cooldown = 0;
+    }
 
-        //Fighter variables
-        this.velocity= velocity; 
+    update(dt = 1) {
+        this.animateFrames(dt);
+        this.floatTimer += 0.08 * dt;
+        if (this.cooldown > 0) this.cooldown -= dt;
+
+        // Smoothly glide along the ground underneath the active SkullBoss so you can always use it!
+        const boss = g.Fighters.find(f => f.type === "SkullBoss" && !f.Dead);
+        if (boss) {
+            const targetOrbX = boss.position.x + (Math.sin(this.floatTimer * 0.4) * 140);
+            this.position.x += (targetOrbX - this.position.x) * 0.05 * dt;
+        }
+        this.position.y = this.baseY + Math.sin(this.floatTimer) * 8;
+
+        this.Draw();
+
+        // Launch Player1 high into the air above the Boss when touched!
+        if (Player1 && !Player1.Dead && this.cooldown <= 0) {
+            if (CheckCollisions({ rectangle1: Player1, rectangle2: this })) {
+                this.cooldown = 35;
+                Player1.velocity.y = -46; // High super-jump above the flying Boss
+                Player1.OnGround = false;
+                Player1.isSuperJumping = true;
+                PlayGameSound('blueOrbBounce');
+                SpawnPerkVFX('jumpWind', { x: this.position.x, y: this.position.y });
+                CreateVFX(Player1, "MASK", "SUPER JUMP! STOMP THE HEAD!");
+            }
+        }
+    }
+
+    Draw() {
+        if (!IsInViewport(this)) return;
+        if (this.hasValidImage()) {
+            super.Draw();
+            return;
+        }
+        const cx = this.position.x + this.size.x / 2;
+        const cy = this.position.y + this.size.y / 2;
+        c.save();
+        c.fillStyle = "rgba(0, 229, 255, 0.3)";
+        c.beginPath();
+        c.arc(cx, cy, 38, 0, Math.PI * 2);
+        c.fill();
+
+        c.fillStyle = "#00e5ff";
+        c.beginPath();
+        c.arc(cx, cy, 24, 0, Math.PI * 2);
+        c.fill();
+
+        c.strokeStyle = "#ffffff";
+        c.lineWidth = 3;
+        c.stroke();
+
+        c.font = "bold 9px 'Press Start 2P', monospace";
+        c.fillStyle = "#ffffff";
+        c.textAlign = "center";
+        c.fillText("JUMP!", cx, cy - 32);
+        c.restore();
+    }
+}
+
+// ============================================================================
+// SPRITE VFX CLASS (Handles all Perk animated spritesheets + lightweight fallback)
+// ============================================================================
+class SpriteVFX extends Sprite {
+    constructor({ position, size, color, imageSrc, scale = 1, framesMax = 6, framesHold = 4, offset = { x: 0, y: 0 }, loop = false, flipLeft = false, fallbackType = 'burst', targetFollow = null }) {
+        super({ position, size, color, imageSrc, scale, framesMax, offset });
+        this.framesHold = framesHold;
+        this.loop = loop;
+        this.dead = false;
+        this.Direction = { left: flipLeft, right: !flipLeft };
+        this.fallbackType = fallbackType;
+        this.targetFollow = targetFollow;
+        this.progress = 0;
+    }
+
+    update(dt = 1) {
+        if (this.targetFollow && !this.targetFollow.Dead) {
+            this.position.x = this.targetFollow.position.x + this.targetFollow.size.x / 2 - this.size.x / 2;
+            this.position.y = this.targetFollow.position.y + this.targetFollow.size.y / 2 - this.size.y / 2;
+        }
+
+        this.framesElapsed += dt;
+        if (this.framesElapsed >= this.framesHold) {
+            this.framesElapsed -= this.framesHold;
+            if (this.framesCurrent < this.framesMax - 1) {
+                this.framesCurrent++;
+            } else if (this.loop) {
+                this.framesCurrent = 0;
+            } else {
+                this.dead = true;
+            }
+        }
+        this.progress = (this.framesCurrent + (this.framesElapsed / this.framesHold)) / this.framesMax;
+        this.Draw();
+    }
+
+    Draw() {
+        if (!IsInViewport(this)) return;
+        if (this.hasValidImage()) {
+            super.Draw();
+            return;
+        }
+
+        const cx = this.position.x + this.size.x / 2;
+        const cy = this.position.y + this.size.y / 2;
+        const alpha = Math.max(0, 1 - this.progress);
+        const radius = (Math.max(this.size.x, this.size.y) / 2) * (0.4 + this.progress * 0.8);
+
+        c.save();
+        c.globalAlpha = alpha;
+        c.strokeStyle = this.color || "#fff";
+        c.fillStyle = this.color || "#fff";
+        c.lineWidth = 4;
+
+        if (this.fallbackType === 'slash' || this.fallbackType === 'crossSlash') {
+            const dir = this.Direction.left ? -1 : 1;
+            c.beginPath();
+            c.arc(cx, cy, radius, dir > 0 ? -0.9 : 2.2, dir > 0 ? 0.9 : 4.0);
+            c.stroke();
+        } else {
+            c.beginPath();
+            c.arc(cx, cy, radius, 0, Math.PI * 2);
+            c.stroke();
+        }
+        c.restore();
+    }
+
+    static createFromConfig(key, position, flipLeft = false, targetFollow = null) {
+        const cfg = PERK_VFX_CONFIG[key];
+        return new SpriteVFX({
+            position: { x: position.x, y: position.y },
+            size: { x: cfg.size.x, y: cfg.size.y },
+            color: cfg.color,
+            imageSrc: cfg.imageSrc,
+            scale: cfg.scale,
+            framesMax: cfg.framesMax,
+            framesHold: cfg.framesHold || 4,
+            offset: cfg.offset || { x: 0, y: 0 },
+            flipLeft,
+            fallbackType: cfg.fallbackType,
+            targetFollow
+        });
+    }
+}
+
+class SoulOrb extends Sprite {
+    constructor({ position, target, value = 3 }) {
+        const cfg = PERK_VFX_CONFIG.soulOrb;
+        super({
+            position: { x: position.x, y: position.y },
+            size: { x: cfg.size.x, y: cfg.size.y },
+            color: cfg.color,
+            imageSrc: cfg.imageSrc,
+            scale: cfg.scale,
+            framesMax: cfg.framesMax,
+            offset: cfg.offset
+        });
+        this.target = target;
+        this.value = value;
+        this.dead = false;
+        this.speed = 5;
+    }
+
+    update(dt = 1) {
+        if (!this.target || this.target.Dead) { this.dead = true; return; }
+        this.animateFrames(dt);
+        this.speed = Math.min(24, this.speed + 0.5 * dt);
+
+        const tx = this.target.position.x + this.target.size.x / 2;
+        const ty = this.target.position.y + this.target.size.y / 2;
+        const dx = tx - this.position.x;
+        const dy = ty - this.position.y;
+        const dist = Math.hypot(dx, dy);
+
+        if (dist < 34) {
+            this.dead = true;
+            PlayGameSound('soulAbsorb');
+            this.target.runCoins = (this.target.runCoins || 0) + this.value;
+            if (this.target.runCoins >= 10) {
+                this.target.runCoins -= 10;
+                this.target.Damage = Math.floor(this.target.Damage * 1.04) + 2;
+                CreateVFX(this.target, "SOUL", "+SOUL DMG!");
+                SpawnPerkVFX('soulLevelUp', { x: this.target.position.x, y: this.target.position.y }, false, this.target);
+                PlayGameSound('soulPowerUp');
+            }
+            return;
+        }
+
+        this.position.x += (dx / dist) * this.speed * dt;
+        this.position.y += (dy / dist) * this.speed * dt;
+        this.Draw();
+    }
+
+    Draw() {
+        if (!IsInViewport(this)) return;
+        if (this.hasValidImage()) { super.Draw(); return; }
+        c.save();
+        c.fillStyle = "#c084fc";
+        c.beginPath();
+        c.arc(this.position.x + 10, this.position.y + 10, 9, 0, Math.PI * 2);
+        c.fill();
+        c.restore();
+    }
+}
+
+class WorldShrine extends Sprite {
+    constructor({ type, position }) {
+        const cfg = WORLD_OBJECTS_CONFIG[type];
+        super({
+            position: { x: position.x, y: position.y },
+            size: { x: cfg.size.x, y: cfg.size.y },
+            color: cfg.color,
+            imageSrc: cfg.imageSrc,
+            scale: cfg.scale,
+            framesMax: cfg.framesMax,
+            offset: cfg.offset
+        });
+        this.type = type;
+        this.cfg = cfg;
+        this.cooldown = 0;
+        this.floatTimer = Math.random() * Math.PI * 2;
+    }
+
+    update(dt = 1) {
+        if (this.cooldown > 0) this.cooldown -= dt;
+        if (!IsInViewport(this, 180)) return;
+
+        this.floatTimer += 0.05 * dt;
+        this.animateFrames(dt);
+        this.Draw();
+
+        if (!Player1 || Player1.Dead || this.cooldown > 0) return;
+
+        const distX = Math.abs((this.position.x + this.size.x / 2) - (Player1.position.x + Player1.size.x / 2));
+        const distY = Math.abs((this.position.y + this.size.y / 2) - (Player1.position.y + Player1.size.y / 2));
+
+        if (this.cfg.isAutoTrigger && distX < 65 && distY < 90) {
+            this.cooldown = this.cfg.cooldownMax;
+            Player1.velocity.y = -38;
+            Player1.OnGround = false;
+            SpawnPerkVFX('jumpWind', { x: this.position.x, y: this.position.y });
+            PlayGameSound('windDash');
+            return;
+        }
+
+        if (distX < 95 && distY < 115) {
+            c.save();
+            c.font = "bold 10px 'Press Start 2P', sans-serif";
+            c.textAlign = "center";
+            const bx = this.position.x + this.size.x / 2;
+            const by = this.position.y - 22;
+            c.fillStyle = "rgba(0, 0, 0, 0.85)";
+            c.fillRect(bx - 120, by - 30, 240, 40);
+            c.strokeStyle = this.color;
+            c.strokeRect(bx - 120, by - 30, 240, 40);
+            c.fillStyle = this.color;
+            c.fillText(this.cfg.name, bx, by - 15);
+            c.fillStyle = "#ffffff";
+            c.fillText(this.cfg.prompt, bx, by);
+            c.restore();
+
+            if (Player1.keys.interact && Player1.keys.interact.pressed) {
+                Player1.keys.interact.pressed = false;
+                this.activate(Player1);
+            }
+        }
+    }
+
+    activate(player) {
+        this.cooldown = this.cfg.cooldownMax;
+        PlayGameSound('shrineActivate');
+        if (this.type === 'healShrine') {
+            const healAmt = Math.floor(player.MaxHealthPoints * 0.4);
+            player.HealthPoints = Math.min(player.MaxHealthPoints, player.HealthPoints + healAmt);
+            ReduceAddHP(player);
+            CreateVFX(player, "HP", `+${healAmt} HP`);
+            SpawnPerkVFX('heal', { x: player.position.x, y: player.position.y }, false, player);
+        } else if (this.type === 'soulChest') {
+            player.coins += 12;
+            CreateVFX(player, "MASK", "+12 COINS 🪙");
+            SpawnPerkVFX('combatPortal', { x: this.position.x, y: this.position.y });
+        } else if (this.type === 'battleAltar') {
+            const cost = Math.floor(player.MaxHealthPoints * 0.15);
+            if (player.HealthPoints > cost + 50) {
+                player.HealthPoints -= cost;
+                player.Damage = Math.floor(player.Damage * 1.2);
+                ReduceAddHP(player);
+                CreateVFX(player, "CRIT", "+20% DMG!");
+                SpawnPerkVFX('demonSlash', { x: player.position.x, y: player.position.y }, false, player);
+            } else {
+                this.cooldown = 0;
+            }
+        }
+    }
+
+    Draw() {
+        if (this.hasValidImage()) {
+            c.save();
+            if (this.cooldown > 0) c.globalAlpha = 0.3;
+            super.Draw();
+            c.restore();
+            return;
+        }
+        c.save();
+        c.globalAlpha = this.cooldown > 0 ? 0.25 : 0.92;
+        c.fillStyle = this.color;
+        const bob = Math.sin(this.floatTimer) * 3;
+        c.fillRect(this.position.x, this.position.y + bob, this.size.x, this.size.y - bob);
+        c.strokeStyle = "#ffd700";
+        c.lineWidth = 2;
+        c.strokeRect(this.position.x, this.position.y + bob, this.size.x, this.size.y - bob);
+        c.restore();
+    }
+}
+
+// ============================================================================
+// FIGHTER CLASS (Player, Balanced Enemies, and True Flying Skull Monster Boss)
+// ============================================================================
+class Fighter extends Sprite {
+    constructor({ position, velocity = { x: 0, y: 0 }, size = { x: 0, y: 0 }, color, value = 0, HealthPoints, MaxHealthPoints = 100, keys = { up: { pressed: false }, left: { pressed: false }, attack: { pressed: false }, right: { pressed: false }, defend: { pressed: false }, slam: { pressed: false }, inter: { pressed: false } }, ControlKeys, AttackBox = { position: { x: 0, y: 0 }, size: { x: g.StandardAttBoxWid, y: g.HitHeight }, shape: "" }, Direction = { right: false, left: false }, Player, imageSrc, scale = 1, framesMax = 1, offset = { x: 0, y: 0 }, sprites, Damage = 10, isAI, attackFrame, type }) {
+        super({ position, size, color, imageSrc, scale, framesMax, offset, sprites });
+
+        this.velocity = velocity;
         this.keys = keys;
         this.LastKeyPressed = "";
-        this.OnGround = false; 
-        this.ControlKeys = ControlKeys; 
+        this.OnGround = false;
+        this.ControlKeys = ControlKeys;
         this.AttackBox = AttackBox;
-        this.Direction = Direction; 
+        this.Direction = Direction;
         this.HealthPoints = HealthPoints || MaxHealthPoints;
         this.MaxHealthPoints = MaxHealthPoints;
         this.Player = Player;
-        this.Defending = false; 
+        this.Defending = false;
         this.isAttacking = false;
-        this.hitEnemies = []; 
+        this.hitEnemies = [];
         this.Damage = Damage;
-        this.Dead = false; 
+        this.Dead = false;
         this.PoweredUp = false;
-        this.HitStun = 0; 
+        this.HitStun = 0;
         this.isAI = isAI;
         this.defenseBuffer = 0;
-        this.jumpBuffer = 0 ;
-        this.attackCooldown = 0; 
-        this.jumpBuffer = 0 ;
-        this.KnockBack = 1 ;
+        this.jumpBuffer = 0;
+        this.attackCooldown = 0;
+        this.KnockBack = 1;
         this.attackFrame = attackFrame;
-        this.type = type ;
-        this.BulletCooldown = 0;
+        this.type = type;
         this.aiTimer = 0;
         this.staminaBar = 0;
         this.staminaTimer = 300;
         this.imploded = false;
-        this.inventory = [];
         this.hasShot = false;
-        this.isPlunging = false; 
+        this.isPlunging = false;
+        this.isSuperJumping = false;
         this.stepTimer = 0;
         this.coins = 0;
         this.hasPaid = false;
-        this.runCoins = 0;       // Per Soul Collector
-        this.shieldTimer = 0;    // Per Static Shield
-        this.hasShield = false;  // Stato dello scudo
-        this.toxicTimer = 0;     // Per Toxic Trail
+        this.runCoins = 0;
+        this.shieldTimer = 0;
+        this.hasShield = false;
+        this.toxicTimer = 0;
+        this.value = value;
 
-        this.value = value; 
-    
-        // for AI checking if it's stuck
-        this.checkStuckTimer = 0;
-        this.previousPositionX = this.position.x;
+        // Mobility enhancements
+        this.coyoteTimer = 0;
+        this.airJumpsLeft = 1;
+        this.maxAirJumps = 1;
+        this.jumpKeyWasPressed = false;
+
+        // --- SKULL MONSTER TRUE FLIGHT STATE ---
+        this.isFlyingBoss = (type === "SkullBoss");
+        this.bossArmorActive = (type === "SkullBoss");
+        this.bossStunTimer = 0;
+        this.hoverPhase = Math.random() * Math.PI * 2;
+        this.flightBaseY = (g.MAX_HEIGHT - 600) - 340;
+        this.currentAttackType = 'attack';
+
+        // --- ANTI-KITING STATE FOR LAUNCHER ---
+        this.spawnOriginX = position.x;
+        this.retreatTimer = 0;
+        this.retreatCooldown = 0;
+
+        // Persistent Perk Sprites
+        this.shieldSprite = new Sprite({
+            position: { x: 0, y: 0 },
+            size: PERK_VFX_CONFIG.staticShieldLoop.size,
+            color: PERK_VFX_CONFIG.staticShieldLoop.color,
+            imageSrc: PERK_VFX_CONFIG.staticShieldLoop.imageSrc,
+            framesMax: PERK_VFX_CONFIG.staticShieldLoop.framesMax,
+            scale: PERK_VFX_CONFIG.staticShieldLoop.scale,
+            offset: PERK_VFX_CONFIG.staticShieldLoop.offset
+        });
+        this.execMarkSprite = new Sprite({
+            position: { x: 0, y: 0 },
+            size: PERK_VFX_CONFIG.executionerMark.size,
+            color: PERK_VFX_CONFIG.executionerMark.color,
+            imageSrc: PERK_VFX_CONFIG.executionerMark.imageSrc,
+            framesMax: PERK_VFX_CONFIG.executionerMark.framesMax,
+            scale: PERK_VFX_CONFIG.executionerMark.scale,
+            offset: PERK_VFX_CONFIG.executionerMark.offset
+        });
+
         this.previousPositionY = this.position.y;
-        // - - - AI FSM (decisioni con inerzia temporale) - - -
-        this.aiState = "APPROACH";      // intenzione corrente: APPROACH | RETREAT | IDLE | ATTACK_WINDOW
-        this.aiStateTimer = 0;          // frame reali rimanenti prima di poter ricalcolare lo stato
-        this.aiReactionPending = false; // true quando la CPU ha "notato" un attacco e sta aspettando prima di reagire
-        this.aiReactionTimer = 0;       // countdown del buffer di reazione alla difesa
-
-        this.afterImages = []; // { x, y, image, framesCurrent, framesMax, right, life }
+        this.aiState = "APPROACH";
+        this.aiStateTimer = 0;
+        this.telegraphTimer = 0;
+        this.pendingAction = null;
+        this.afterImages = [];
     }
-    update(dt){ 
+
+    update(dt) {
         this.previousPositionY = this.position.y;
-        
-        if (this.isAI) {
-            this.aiTimer++;
-            if (this.aiTimer % 2 === 0){
-                this.runAI();
+
+        if (this.isAI && Player1) {
+            const distToPlayer = Math.abs(this.position.x - Player1.position.x);
+            if (distToPlayer < 1800 || this.isFlyingBoss) {
+                this.aiTimer++;
+                if (this.aiTimer % 2 === 0) this.runAI(dt);
             }
-
         }
 
-        
-        
-        //first thing before it can be changed
-        if (this.HitStun > 0){
+        // Telegraph execution
+        if (this.telegraphTimer > 0 && !this.Dead && this.HitStun === 0) {
+            this.telegraphTimer -= dt;
+            if (this.telegraphTimer <= 0 && this.pendingAction) {
+                const act = this.pendingAction;
+                this.pendingAction = null;
+                if (act === 'melee') this.attack();
+                else if (act === 'ranged') this.castRangedAttack();
+                else if (act === 'bossAttack1') this.startSkullBossAttack('attack');
+                else if (act === 'bossAttack2') this.startSkullBossAttack('attack2');
+            }
+        }
+
+        if (this.HitStun > 0) {
             this.HitStun--;
+            this.telegraphTimer = 0;
+            this.pendingAction = null;
         }
+
         const isKnockedBack = Math.abs(this.velocity.x) > 7;
 
-        this.afterImages.forEach(a => a.life -= 0.04); // svaniscono anche a dash finito
-        this.afterImages = this.afterImages.filter(a => a.life > 0);
-        this.drawAfterImages();
-
-        
-        this.Draw(); 
-        this.animateFrames(dt);
-        //Setting X-Component of Velocity to 0 each frame for boundaries limits 
-        this.velocity.x *= 0.8 ;  
-        //- - - DIRECTION SETTING - - - 
-        if (!isKnockedBack && this.HitStun === 0 && g.FlagFight ){
-            
-            //Setting direction of the Sprite using the LastKeyPressed on X-Axis (so left or right)
-            if (this.keys.right.pressed && this.LastKeyPressed === this.ControlKeys.right && !this.Defending && !this.Dead && !this.isAttacking && !this.imploded) {
-                this.Direction.right = true; 
-                this.Direction.left = false; 
-                this.velocity.x = 10*(this.speedMult || 1);
-                CreateVFX(this,"RUN")
-                
-            } else if (this.keys.left.pressed && this.LastKeyPressed === this.ControlKeys.left && !this.Defending && !this.Dead && !this.isAttacking) {
-                this.Direction.left = true;
-                this.Direction.right = false; 
-                this.velocity.x = -10*(this.speedMult || 1);
-                CreateVFX(this,"RUN")
-            }
-            //- - - VERIFYING JUMP CONDITION - - - 
-            if (this.keys.up.pressed && this.OnGround && !this.Defending && !this.Dead && !this.isAttacking) {
-                this.velocity.y = -30 + (this.jumpPower || 0);;
-                this.OnGround = false;
-            }
-            // - - - SCHIANTO A TERRA (GROUND SLAM) - - -
-            if (this.keys.slam.pressed && !this.OnGround && this.staminaBar >= 1 && !this.isPlunging) {
-                this.keys.slam.pressed = false; // Consuma l'input
-                this.staminaBar--;                // Togli una stamina
-                if (!this.isAI) ReduceAddStamina(this); // Aggiorna UI
-                
-                this.isPlunging = true;
-                this.velocity.x = 0;   // Ti fermi a mezz'aria
-                this.velocity.y = 35;  // Cadi come un meteorite!
-                this.switchSprite('attack'); // Mettiamo l'animazione di attacco mentre cade
-            }
+        if (this.afterImages.length > 0) {
+            this.afterImages.forEach(a => a.life -= 0.05);
+            this.afterImages = this.afterImages.filter(a => a.life > 0);
+            this.drawAfterImages();
         }
-        if (Math.abs(this.velocity.x) > 1 && this.OnGround && this.Player === 1) {
-            if (this.stepTimer <= 0) {
-                SoundManager.play('steps'); // Suona un passo casuale!
-                this.stepTimer = 25; // Aspetta 20 frame prima del prossimo passo (regola questo numero se i passi sono troppo veloci/lenti)
+
+        this.Draw();
+        this.drawPerkOverlays(dt);
+        this.animateFrames(dt);
+
+        if (this.OnGround) {
+            this.coyoteTimer = 8;
+            this.isSuperJumping = false;
+            this.airJumpsLeft = this.maxAirJumps + (this.HermesBoots ? 1 : 0);
+        } else if (this.coyoteTimer > 0) {
+            this.coyoteTimer--;
+        }
+
+        // ====================================================================
+        // SKULL MONSTER TRUE FLIGHT PHYSICS (Runs every frame!)
+        // ====================================================================
+        if (this.isFlyingBoss && !this.Dead) {
+            if (this.bossStunTimer > 0) {
+                // Boss was stomped on the head: falls to ground and stays stunned!
+                this.bossStunTimer -= dt;
+                this.velocity.x *= 0.85;
+                if (this.bossStunTimer <= 0) {
+                    this.bossArmorActive = true;
+                    this.velocity.y = -18; // Launches back into the sky!
+                    CreateVFX(this, "MASK", "BOSS ARMOR RESTORED!");
+                }
             } else {
-                this.stepTimer--;
+                // Active Flight Mode: smooth figure-8 swooping in the sky!
+                this.OnGround = false;
+                this.hoverPhase += 0.045 * dt;
+                const targetSkyY = (g.MAX_HEIGHT - 600) - 330 + Math.sin(this.hoverPhase * 1.3) * 65;
+                this.position.y += (targetSkyY - this.position.y) * 0.09 * dt;
+                this.velocity.y = 0;
+
+                if (Player1 && !Player1.Dead && g.FlagFight) {
+                    const diffX = (Player1.position.x + Math.sin(this.hoverPhase * 0.7) * 260) - this.position.x;
+                    this.Direction.right = (Player1.position.x - this.position.x) > 0;
+                    this.Direction.left = !this.Direction.right;
+                    this.velocity.x = Math.max(-6.5, Math.min(6.5, diffX * 0.04));
+                } else {
+                    this.velocity.x = Math.cos(this.hoverPhase) * 3;
+                }
             }
         } else {
-            // Se si ferma o salta, resetta il timer così il primo passo è immediato appena riparte
-            this.stepTimer = 0; 
+            // Standard ground friction for non-flying entities
+            this.velocity.x *= 0.8;
         }
-        // - - - TOXIC TRAIL (Nuovo Perk) - - -
+
+        // - - - PLAYER & GROUND ENEMY MOVEMENT - - -
+        // Speed differentiation: Player1 = 11, Knight ('base') = 7.0, Launcher = 4.2 (no more infinite kiting!)
+        const baseMoveSpeed = this.Player === 1 ? 11 : (this.type === "launcher" ? 4.2 : 7.0);
+
+        if (!this.isFlyingBoss && !isKnockedBack && this.HitStun === 0 && g.FlagFight) {
+            if (this.keys.right.pressed && this.LastKeyPressed === this.ControlKeys.right && !this.Defending && !this.Dead && !this.isAttacking && !this.imploded) {
+                this.Direction.right = true;
+                this.Direction.left = false;
+                this.velocity.x = baseMoveSpeed * (this.speedMult || 1);
+                CreateVFX(this, "RUN");
+            } else if (this.keys.left.pressed && this.LastKeyPressed === this.ControlKeys.left && !this.Defending && !this.Dead && !this.isAttacking) {
+                this.Direction.left = true;
+                this.Direction.right = false;
+                this.velocity.x = -baseMoveSpeed * (this.speedMult || 1);
+                CreateVFX(this, "RUN");
+            }
+
+            const jumpJustTriggered = this.keys.up.pressed && !this.jumpKeyWasPressed;
+            if (this.keys.up.pressed && !this.Defending && !this.Dead && !this.isAttacking) {
+                if (this.OnGround || this.coyoteTimer > 0) {
+                    this.velocity.y = -30 + (this.jumpPower || 0);
+                    this.OnGround = false;
+                    this.coyoteTimer = 0;
+                    if (this.HermesBoots) {
+                        SpawnPerkVFX('jumpWind', { x: this.position.x, y: this.position.y + this.size.y - 25 });
+                        PlayGameSound('windDash');
+                    }
+                } else if (jumpJustTriggered && !this.isAI && this.airJumpsLeft > 0) {
+                    this.airJumpsLeft--;
+                    this.velocity.y = -27 + (this.jumpPower || 0) * 0.6;
+                    SpawnPerkVFX('jumpWind', { x: this.position.x, y: this.position.y + this.size.y - 20 });
+                    PlayGameSound('windDash');
+                }
+            }
+            this.jumpKeyWasPressed = this.keys.up.pressed;
+
+            if (this.keys.slam.pressed && !this.OnGround && this.staminaBar >= 1 && !this.isPlunging) {
+                this.keys.slam.pressed = false;
+                this.staminaBar--;
+                if (!this.isAI) ReduceAddStamina(this);
+                this.isPlunging = true;
+                this.velocity.x = 0;
+                this.velocity.y = 35;
+                this.switchSprite('attack');
+            }
+        }
+
+        // --- MARIO / BOWSER HEAD STOMP CHECK ON SKULL BOSS ---
+        if (this.Player === 1 && !this.Dead && this.velocity.y > 0) {
+            g.Fighters.forEach(boss => {
+                if (boss.type === "SkullBoss" && !boss.Dead && boss.bossStunTimer <= 0) {
+                    const horizOverlap = this.position.x + this.size.x > boss.position.x - 10 &&
+                                         this.position.x < boss.position.x + boss.size.x + 10;
+                    const playerFeet = this.position.y + this.size.y;
+                    const HitHeadZone = playerFeet >= boss.position.y - 25 && playerFeet <= boss.position.y + boss.size.y * 0.65;
+
+                    if (horizOverlap && HitHeadZone) {
+                        this.velocity.y = -26;
+                        this.isPlunging = false;
+
+                        boss.bossArmorActive = false;
+                        boss.bossStunTimer = 260; // Grounded and stunned for >4 seconds!
+                        boss.velocity.y = 22;     // Crashes down to the floor!
+                        const stompDmg = Math.floor(boss.MaxHealthPoints * 0.28);
+                        boss.HealthPoints -= stompDmg;
+                        g.hitStopFrames = 8;
+                        g.cameraShake = 15;
+
+                        PlayGameSound('bossStompHit');
+                        SpawnPerkVFX('staticBurst', { x: boss.position.x, y: boss.position.y });
+                        CreateVFX(boss, "CRIT", "HEAD STOMP! ARMOR BROKEN!");
+                        g.Bullets.push(new Shockwave({ position: { x: boss.position.x + boss.size.x / 2, y: boss.position.y + 20 } }));
+                    }
+                }
+            });
+        }
+
+        // Footsteps & Toxic Trail
+        if (Math.abs(this.velocity.x) > 1 && this.OnGround && this.Player === 1) {
+            if (this.stepTimer <= 0) {
+                PlayGameSound('steps');
+                if (this.HermesBoots) {
+                    SpawnPerkVFX('windStep', { x: this.position.x, y: this.position.y + this.size.y - 35 }, this.Direction.left);
+                }
+                this.stepTimer = 22;
+            } else this.stepTimer--;
+        } else this.stepTimer = 0;
+
         if (this.ToxicTrail && Math.abs(this.velocity.x) > 1 && this.OnGround) {
             this.toxicTimer++;
-            if (this.toxicTimer > 15) { // Lascia una scia ogni quarto di secondo
+            if (this.toxicTimer > 16) {
                 this.toxicTimer = 0;
-                
-                // Usiamo un Bullet invisibile/verde fisso a terra come "area velenosa"
+                const toxCfg = PERK_VFX_CONFIG.toxicPuddle;
+                PlayGameSound('toxicBubble');
                 g.Bullets.push(new Bullet({
-                    position: { x: this.position.x + this.size.x / 2, y: this.position.y + this.size.y - 15 },
-                    velocity: { x: 0, y: 0 }, 
-                    size: { x: 60, y: 20 },
-                    color: "rgba(57, 255, 20, 0.6)", // Verde fosforescente
-                    imageSrc: '', // Lascia vuoto per ora, usa il colore
-                    framesMax: 1,
-                    Damage: Math.floor(this.Damage * 0.1), // Danno basso ma continuo
-                    KnockBack: 0, // Non sposta i nemici
+                    position: { x: this.position.x + this.size.x / 2 - toxCfg.size.x / 2, y: this.position.y + this.size.y - toxCfg.size.y },
+                    velocity: { x: 0, y: 0 },
+                    size: { x: toxCfg.size.x, y: toxCfg.size.y },
+                    color: toxCfg.color,
+                    imageSrc: toxCfg.imageSrc,
+                    framesMax: toxCfg.framesMax,
+                    scale: toxCfg.scale,
+                    offset: toxCfg.offset,
+                    Damage: Math.max(2, Math.floor(this.Damage * 0.12)),
+                    KnockBack: 0,
                     caster: this,
-                    liveFrames: 150, // Muore in fretta (circa 2.5 secondi)
+                    liveFrames: 170,
                     isUnblockable: true,
-                    isMute : true
+                    isMute: true,
+                    isToxicPool: true
                 }));
             }
         }
-        //Before needs to check the inputs 
-        this.position.x +=this.velocity.x * dt; 
-        //this condition needs to be here beacause velocity.x variable could not maintain the value given before with the EventListeners
-        // - - - BOUNDARIES - - -
-        //Bound X-Axis
-        if (this.position.x+this.size.x > g.MAX_WIDTH){
+
+        // Apply Horizontal Physics
+        this.position.x += this.velocity.x * dt;
+        if (this.position.x + this.size.x > g.MAX_WIDTH) {
             this.velocity.x = 0;
-            this.position.x = g.MAX_WIDTH-this.size.x;
-        }
-        else if (this.position.x< 0){
+            this.position.x = g.MAX_WIDTH - this.size.x;
+        } else if (this.position.x < 0) {
             this.velocity.x = 0;
             this.position.x = 0;
         }
-        // Y-Axis :Gravity,Velocity updating
-        this.velocity.y+=g.Gravity_Acceleration*dt;
-        const MAX_FALL_SPEED = 50; 
-        if (this.velocity.y > MAX_FALL_SPEED) {
-                this.velocity.y = MAX_FALL_SPEED;
-            }
-        this.position.y +=this.velocity.y*dt;
-        //Collisions with platforms 
-       g.Platforms.forEach(c => {
-            // 1. Calcoliamo la posizione dei piedi PRIMA e ADESSO
-            const prevBottom = this.previousPositionY + this.size.y;
-            const currentBottom = this.position.y + this.size.y;
-                            // 2. Controllo Orizzontale: Il personaggio è in corrispondenza della piattaforma?
-            const isHorizontallyAligned = 
-                this.position.x + this.size.x >= c.position.x && 
-                this.position.x <= c.position.x + c.size.x;
-                            // 3. LA MAGIA: I piedi prima erano SOPRA (o pari), e adesso sono SOTTO (o pari)?
-            const crossedPlatform = prevBottom <= c.position.y && currentBottom >= c.position.y;
-                            // 4. Se si sta muovendo verso il basso (cadendo) e attraversa la linea, LO BLOCCIAMO!
-            if (isHorizontallyAligned && crossedPlatform && this.velocity.y >= 0) {
-                
-                // Lo costringiamo fisicamente a stare esattamente sopra la piattaforma
-                this.position.y = c.position.y - this.size.y; 
-                
-                this.velocity.y = 0; // Azzera la velocità di caduta
-                this.OnGround = true; // Diciamo al gioco che è a terra
-                
-                // Se c'è lo schianto a terra, serve resettarlo o non capisce che è atterrato
-                
-                             // Le tue funzioni originali per gli effetti e altre meccaniche
-                PlatformCollisions({rectangle1: this, rectangle2: c}); 
-                CreateVFX(this, "JUMP");
-            }
-        });
-        if (!this.OnGround && g.FlagFight){
-            this.jumpBuffer =20;
+
+        // Apply Vertical Physics & Platform Collisions
+        // IMPORTANT FIX: Flying SkullBoss completely ignores gravity & platform snapping unless stunned or dead!
+        const shouldApplyGravityAndPlatforms = (!this.isFlyingBoss || this.bossStunTimer > 0 || this.Dead);
+
+        if (shouldApplyGravityAndPlatforms) {
+            this.velocity.y += g.Gravity_Acceleration * dt;
+            if (this.velocity.y > 50) this.velocity.y = 50;
+            this.position.y += this.velocity.y * dt;
+
+            this.OnGround = false;
+            g.Platforms.forEach(plat => {
+                // Stunned boss only lands on the main ground floor so you can easily reach and combo it!
+                if (this.isFlyingBoss && !plat.isGround) return;
+
+                const prevBottom = this.previousPositionY + this.size.y;
+                const currentBottom = this.position.y + this.size.y;
+                const isHorizontallyAligned =
+                    this.position.x + this.size.x >= plat.position.x &&
+                    this.position.x <= plat.position.x + plat.size.x;
+                const crossedPlatform = prevBottom <= plat.position.y + 12 && currentBottom >= plat.position.y;
+
+                if (isHorizontallyAligned && crossedPlatform && this.velocity.y >= 0) {
+                    this.position.y = plat.position.y - this.size.y;
+                    this.velocity.y = 0;
+                    this.OnGround = true;
+                    CreateVFX(this, "JUMP");
+                }
+            });
         }
-        // - - - BOUNDARIES - - -
-        //Bound Y-Axis
-        if (this.position.y+this.size.y > g.MAX_HEIGHT){
+
+        if (this.position.y + this.size.y > g.MAX_HEIGHT) {
             this.velocity.y = 0;
-            this.position.y = g.MAX_HEIGHT-this.size.y;
-            if (map === 2) this.HealthPoints=0;
-            
-            CreateVFX(this,"JUMP")
+            this.position.y = g.MAX_HEIGHT - this.size.y;
             this.OnGround = true;
         }
-        // - - - IMPATTO DEL GROUND SLAM - - -
+
+        // Ground Slam Impact
         if (this.OnGround && this.isPlunging) {
-            this.isPlunging = false; // Spegne la picchiata
-            
-            // 1. Danno ad area (Trova i nemici vicini)
+            this.isPlunging = false;
+            g.cameraShake = 10;
             const bersagli = g.Fighters.filter(f => f !== this && !f.Dead && f.Player !== this.Player);
             bersagli.forEach(victim => {
-                const distanzaX = Math.abs(victim.position.x - this.position.x);
-                const distanzaY = Math.abs(victim.position.y - this.position.y);
-                
-                // Se sono entro 200 pixel di distanza...
-                if (distanzaX < 200 && distanzaY < 150) {
-                    victim.HealthPoints -= (this.Damage * 1.5); // Danno bonus!
-                    victim.velocity.y = -18; // Lanciati in aria
-                    
-                    // Spinta orizzontale a destra o sinistra a seconda di dove si trovano
-                    const pushDir = victim.position.x > this.position.x ? 1 : -1;
-                    victim.velocity.x = 10 * pushDir;
-                    
+                if (Math.abs(victim.position.x - this.position.x) < 220 && Math.abs(victim.position.y - this.position.y) < 160) {
+                    victim.HealthPoints -= Math.floor(this.Damage * 1.5);
+                    victim.velocity.y = -18;
+                    victim.velocity.x = 12 * (victim.position.x > this.position.x ? 1 : -1);
                     ReduceAddHP(victim);
                     victim.hurt();
                     CreateVFX(victim, "HIT");
                 }
             });
-
-            // 2. SPAWN DELL'EFFETTO VISIVO BLU
-            // Usiamo il tuo array g.Bullets per "barare" e creare un VFX senza scrivere array nuovi!
-            g.Bullets.push(new Shockwave({ 
-                position: { 
-                    x: this.position.x + this.size.x / 2, 
-                    y: this.position.y + this.size.y 
-                } 
-            }));
-            
-            // Un bel salto all'indietro o rimbalzo per chiudere l'animazione
-            this.velocity.y = -10; 
+            g.Bullets.push(new Shockwave({ position: { x: this.position.x + this.size.x / 2, y: this.position.y + this.size.y } }));
+            this.velocity.y = -10;
             this.OnGround = false;
         }
-        // - - - ATTACK BOX - - -
-         //Obj going right so AttackBox direction need to be directed to the right
-                  // Y position of AttackBox
-            
-            if (this.Player === 1){
-                this.AttackBox.position.y = this.position.y-this.AttackBox.size.y/3; 
-            }
-            else {
-                this.AttackBox.position.y = this.position.y-this.AttackBox.size.y/2; 
-            }
-            
-            const AttackOffset= -20; 
 
-            if (this.Direction.right ){ //condition for Dx-Direction and when nothing has been pressed yet 
-                this.AttackBox.position.x = this.position.x+AttackOffset;              // X position of AttackBox   
-            }
-            else if (this.Direction.left ){ //condition for Sx-Direction and when nothing has been pressed yet 
-                //Updating position info of AttackBox
-                this.AttackBox.position.x = this.position.x+this.size.x-this.AttackBox.size.x-AttackOffset;     // X position of AttackBox
-            } 
-            
-            
-            
-        // - - - ATTACK - - - 
-        if (this.attackCooldown >0){ 
-            this.isAttacking=false;
-            if (this.attackCooldown%30 === 0) CreateVFX(this,"COOLDOWN",this.attackCooldown / 30)
+        // AttackBox Positioning
+        this.AttackBox.position.y = this.Player === 1 ? this.position.y - this.AttackBox.size.y / 3 : this.position.y - this.AttackBox.size.y / 2;
+        const AttackOffset = -20;
+        if (this.Direction.right) this.AttackBox.position.x = this.position.x + AttackOffset;
+        else if (this.Direction.left) this.AttackBox.position.x = this.position.x + this.size.x - this.AttackBox.size.x - AttackOffset;
+
+        // - - - ATTACK & BOSS SPECIAL ATTACK EXECUTION - - -
+        if (this.attackCooldown > 0) {
+            this.isAttacking = false;
             this.attackCooldown--;
-        }
-
-        else if (this.isAttacking && !this.Dead && this.attackCooldown === 0) {
-            if (!this.attackSoundPlayed && this.Player === 1 ) {
-                    SoundManager.play('blade');
-                    this.attackSoundPlayed = true; // Chiude il lucchetto!
+        } else if (this.isAttacking && !this.Dead) {
+            if (!this.attackSoundPlayed && this.Player === 1) {
+                PlayGameSound('blade');
+                if (this.DemonStrength) {
+                    PlayGameSound('demonSlash');
+                    SpawnPerkVFX('demonSlash', {
+                        x: this.Direction.right ? this.position.x + this.size.x : this.position.x - 110,
+                        y: this.position.y
+                    }, this.Direction.left);
                 }
-            
-            
-            
-
-    // Check if the animation has reached the active impact frame
-    if (this.framesCurrent == this.attackFrame) {
-
-        // --- MAGIC CASTER (PROIETTILI) ---
-        if (this.CanShoot && !this.hasShot) {
-            const dir = this.Direction.right ? 1 : -1;
-            g.Bullets.push(new Bullet({
-                position: { x: this.AttackBox.position.x, y: this.AttackBox.position.y },
-                velocity: { x: 40 * dir, y: 4 },
-                size: { x: 60, y: 60 },
-                color: "#8f00ff",
-                imageSrc: './img/VFX/Bullets/Fireball.png', // <-- ECCO LA TUA FIREBALL!
-                framesMax: 5, // Se la fireball ha un'animazione a più frame, cambialo
-                Damage: this.Damage,
-                KnockBack: this.KnockBack,
-                caster: this,
-                scale: 4
-            }));
-            // --- SPLIT SHOT (Nuovo Perk) ---
-            // Se hai lo split shot, partono due colpi aggiuntivi a ventaglio!
-            if (this.SplitShot) {
-                // Proiettile che va verso l'alto
-                g.Bullets.push(new Bullet({
-                    position: { x: this.AttackBox.position.x, y: this.AttackBox.position.y },
-                    velocity: { x: 40 * dir, y: -4 }, // Va in alto in diagonale
-                    size: { x: 60, y: 60 },
-                    color: "#8f00ff",
-                    imageSrc: './img/VFX/Bullets/Fireball.png',
-                    framesMax: 5,
-                    Damage: Math.floor(this.Damage * 0.7), // Fan un po' meno danno per bilanciare
-                    KnockBack: this.KnockBack,
-                    caster: this,
-                    scale: 3 // Un pelo più piccoli
-                }));
-                // Proiettile che spiove giù drastico
-                g.Bullets.push(new Bullet({
-                    position: { x: this.AttackBox.position.x, y: this.AttackBox.position.y },
-                    velocity: { x: 40 * dir, y: 12 }, // Va in basso deciso
-                    size: { x: 60, y: 60 },
-                    color: "#8f00ff",
-                    imageSrc: './img/VFX/Bullets/Fireball.png',
-                    framesMax: 5,
-                    Damage: Math.floor(this.Damage * 0.7),
-                    KnockBack: this.KnockBack,
-                    caster: this,
-                    scale: 3
-                }));
+                this.attackSoundPlayed = true;
             }
-            
-        }
-        
 
-        // Determine active targets based on the current game mode
-            let targets = [];
-                if (this.Player === 1) {
-                    targets = g.Fighters.filter(f => f !== this && !f.Dead);
-                } else {
-                    targets = g.Fighters.filter(f => f.Player === 1 && !f.Dead);
+            // --- SKULL MONSTER BOSS ATTACKS (Attack1 Beam & Attack2 Predictive Missile) ---
+            if (this.isFlyingBoss) {
+                if (this.currentAttackType === 'attack' && (this.framesCurrent === 4 || this.framesCurrent === 6 || this.framesCurrent === 8) && this.lastBossShotFrame !== this.framesCurrent) {
+                    this.lastBossShotFrame = this.framesCurrent;
+                    this.fireSkullBeam();
+                } else if (this.currentAttackType === 'attack2' && this.framesCurrent === 6 && !this.hasShot) {
+                    this.hasShot = true;
+                    this.firePredictiveMissile();
                 }
-        for (let i = 0; i < targets.length; i++) {
-            const victim = targets[i];
+            }
 
-            // 1. Skip if victim is null, dead, self, or already hit during this swing
-            if (!victim || victim.Dead || victim === this || this.hitEnemies.includes(victim)) continue;
+            // Standard Attack Active Frame
+            if (!this.isFlyingBoss && this.framesCurrent === this.attackFrame) {
+                if (this.CanShoot && !this.hasShot) {
+                    this.hasShot = true;
+                    const dir = this.Direction.right ? 1 : -1;
+                    const muzzlePos = { x: this.Direction.right ? this.position.x + this.size.x : this.position.x - 40, y: this.position.y + 20 };
 
-            // 2. Early distance check on X-axis to avoid unnecessary collision calculations
-            if (Math.abs(this.position.x - victim.position.x) > 300) continue;
+                    SpawnPerkVFX('magicCast', muzzlePos, this.Direction.left);
+                    PlayGameSound('magicCast');
 
-            // 3. Perform actual hitbox collision check
-            if (CheckAttackCollision({ attacker: this, victim: victim })) {
-
-                // Register victim immediately to prevent multiple hits per swing
-
-                this.hitEnemies.push(victim);
-                // --- STATIC SHIELD PARRY (Nuovo Perk) ---
-                if (victim.StaticShield && victim.hasShield) {
-                    victim.hasShield = false; // Rompi lo scudo
-                    CreateVFX(victim, "DEF");
-                    SoundManager.play('parry');
-
-                    // Esplosione! Usiamo la tua Shockwave blu
-                    g.Bullets.push(new Shockwave({ 
-                        position: { x: victim.position.x + victim.size.x / 2, y: victim.position.y + victim.size.y } 
+                    g.Bullets.push(new Bullet({
+                        position: { x: muzzlePos.x, y: muzzlePos.y },
+                        velocity: { x: 38 * dir, y: 2 },
+                        size: { x: 60, y: 60 },
+                        color: "#8f00ff",
+                        imageSrc: './img/VFX/Bullets/Fireball.png',
+                        framesMax: 5,
+                        Damage: this.Damage,
+                        KnockBack: this.KnockBack,
+                        caster: this,
+                        scale: 3.5
                     }));
 
-                    // Respinge te (l'attaccante) violentemente e ti stordisce
-                    this.velocity.x = (this.position.x > victim.position.x ? 25 : -25);
-                    this.velocity.y = -10;
-                    this.HitStun = 30; // Mezzo secondo di blocco comandi
-                    
-                    continue; // INTERROMPE IL COLPO: Nessun danno per il bersaglio
+                    if (this.SplitShot) {
+                        SpawnPerkVFX('splitShotBurst', muzzlePos, this.Direction.left);
+                        PlayGameSound('splitShot');
+                        [-5, 9].forEach(vy => {
+                            g.Bullets.push(new Bullet({
+                                position: { x: muzzlePos.x, y: muzzlePos.y },
+                                velocity: { x: 36 * dir, y: vy },
+                                size: { x: 50, y: 50 },
+                                color: "#f43f5e",
+                                imageSrc: './img/VFX/Bullets/Fireball.png',
+                                framesMax: 5,
+                                Damage: Math.floor(this.Damage * 0.7),
+                                KnockBack: this.KnockBack,
+                                caster: this,
+                                scale: 2.8
+                            }));
+                        });
+                    }
                 }
 
-                if (!victim.Defending) {
-                    // --- SUCCESSFUL HIT LOGIC ---
-                    g.hitStopFrames = 6;
-                    g.cameraShake = 6;
-                    CreateVFX(victim, "HIT");
-                    CreateVFX(victim, "DAM");
-                    ApplyKnockback(victim, this);
+                let targets = this.Player === 1
+                    ? g.Fighters.filter(f => f !== this && !f.Dead)
+                    : g.Fighters.filter(f => f.Player === 1 && !f.Dead);
 
-                    let mult = 1;
+                for (let i = 0; i < targets.length; i++) {
+                    const victim = targets[i];
+                    if (!victim || victim.Dead || victim === this || this.hitEnemies.includes(victim)) continue;
+                    if (Math.abs(this.position.x - victim.position.x) > 320) continue;
 
-                    // --- EXECUTIONER'S MARK (Nuovo Perk) ---
-                    // Se l'attaccante ha il potere e il bersaglio ha il 30% o meno di vita massima
-                    if (this.Executioner && victim.HealthPoints <= (victim.MaxHealthPoints * 0.30)) {
-                        mult = 2.5; // Danno assurdo (colpo di grazia)
-                        CreateVFX(this, "CRIT"); 
-                        // Opzionale: SoundManager.play('execute_sound_se_lo_hai');
-                    }
+                    if (CheckAttackCollision({ attacker: this, victim })) {
+                        this.hitEnemies.push(victim);
 
-                    // Critical hit chance for Player 1
-                    if (this.Player === 1 && Math.random() <= 0.2) {
-                        mult = 2;
-                        CreateVFX(this, "CRIT");
-                    } 
-                    // Life steal passive for Player 2
-                    else if (this.Player === 2) {
-                        this.HealthPoints += 5;
-                        ReduceAddHP(this);
-                        CreateVFX(this, "HP");
-                    }
+                        if (victim.StaticShield && victim.hasShield) {
+                            victim.hasShield = false;
+                            CreateVFX(victim, "DEF");
+                            PlayGameSound('staticBreak');
+                            SpawnPerkVFX('staticBurst', { x: victim.position.x - 20, y: victim.position.y - 10 }, false, victim);
+                            g.Bullets.push(new Shockwave({ position: { x: victim.position.x + victim.size.x / 2, y: victim.position.y + victim.size.y } }));
+                            this.velocity.x = (this.position.x > victim.position.x ? 25 : -25);
+                            this.velocity.y = -10;
+                            this.HitStun = 30;
+                            continue;
+                        }
 
-                    victim.HealthPoints -= Math.floor(this.Damage * mult);
-                    ReduceAddHP(victim);
-                    victim.hurt();
-                    
-                    if (this.lifeSteal) {
-                        this.HealthPoints += Math.floor((this.Damage * mult) * this.lifeSteal);
-                        // Limite massimo per sicurezza
-                        if(this.HealthPoints > this.MaxHealthPoints) this.HealthPoints = this.MaxHealthPoints;
-                        
-                        ReduceAddHP(this); 
-                        CreateVFX(this,"HP");
-                    }
+                        if (!victim.Defending) {
+                            g.hitStopFrames = 4;
+                            g.cameraShake = 5;
+                            CreateVFX(victim, "HIT");
+                            CreateVFX(victim, "DAM");
+                            ApplyKnockback(victim, this);
 
-                } else {
-                    // --- BLOCKED ATTACK LOGIC ---
-                    CreateVFX(victim, "DEF");
-                    if (!victim.isAI && victim.staminaBar < 3){
-                        victim.staminaBar++;
-                        ReduceAddStamina(victim);
+                            let mult = 1;
+                            if (victim.type === "SkullBoss" && victim.bossArmorActive) {
+                                mult = 0.15;
+                                CreateVFX(victim, "DEF", "ARMORED! USE BLUE ORB!");
+                            } else if (this.Executioner && victim.HealthPoints <= (victim.MaxHealthPoints * 0.30)) {
+                                mult = 2.5;
+                                CreateVFX(this, "CRIT");
+                                SpawnPerkVFX('executionerSlash', { x: victim.position.x - 25, y: victim.position.y - 15 });
+                                PlayGameSound('executionerStrike');
+                            } else if (this.Player === 1 && Math.random() <= 0.2) {
+                                mult = 2;
+                                CreateVFX(this, "CRIT");
+                            }
+
+                            victim.HealthPoints -= Math.max(1, Math.floor(this.Damage * mult));
+                            ReduceAddHP(victim);
+                            victim.hurt();
+
+                            if (this.lifeSteal) {
+                                const stolen = Math.max(1, Math.floor((this.Damage * mult) * this.lifeSteal));
+                                this.HealthPoints = Math.min(this.MaxHealthPoints, this.HealthPoints + stolen);
+                                ReduceAddHP(this);
+                                CreateVFX(this, "HP", `+${stolen} HP`);
+                                SpawnPerkVFX('vampireDrain', { x: this.position.x, y: this.position.y }, false, this);
+                                PlayGameSound('vampireDrain');
+                            }
+                        } else {
+                            CreateVFX(victim, "DEF");
+                            if (!victim.isAI && victim.staminaBar < 3) {
+                                victim.staminaBar++;
+                                ReduceAddStamina(victim);
+                            }
+                        }
                     }
                 }
             }
+
+            // End of attack animation
+            const activeSpriteObj = this.sprites[this.currentAttackType] || this.sprites.attack;
+            if (this.isAttacking && this.framesCurrent >= activeSpriteObj.framesMax - 1) {
+                this.isAttacking = false;
+                this.currentAttackType = 'attack';
+                this.attackCooldown = this.isFlyingBoss ? 90 : (this.staminaBar >= 3 ? 10 : 50);
+                this.hitEnemies.length = 0;
+
+                if (!this.isAI) {
+                    g.Bullets.forEach(bullet => {
+                        if (bullet.Dead || bullet.hasHit || bullet.caster === this || bullet.isUnblockable) return;
+                        if (CheckCollisions({ rectangle1: this.AttackBox, rectangle2: bullet })) {
+                            PlayGameSound('parry');
+                            SpawnPerkVFX('ricochetSpark', { x: bullet.position.x, y: bullet.position.y });
+                            bullet.hasHit = true;
+                            bullet.Dead = true;
+                            CreateVFX(bullet, "DEF");
+
+                            const dir = this.Direction.right ? 1 : -1;
+                            for (let i = -1; i <= 1; i++) {
+                                g.Bullets.push(new Bullet({
+                                    position: { x: bullet.position.x, y: bullet.position.y },
+                                    velocity: { x: 24 * dir, y: i * 5 },
+                                    size: { x: bullet.size.x * 0.7, y: bullet.size.y * 0.7 },
+                                    color: bullet.color,
+                                    imageSrc: bullet.image.src,
+                                    framesMax: bullet.framesMax,
+                                    scale: bullet.scale * 0.7,
+                                    offset: bullet.offset,
+                                    Damage: Math.max(20, Math.floor(this.Damage * 0.5)),
+                                    KnockBack: bullet.KnockBack,
+                                    caster: this
+                                }));
+                            }
+                        }
+                    });
+                }
+            }
         }
-    }
-    
-    // End of attack animation: trigger cooldown and clear hit entities tracking
-    if (this.isAttacking && this.framesCurrent >= this.sprites.attack.framesMax - 1) {
-        this.isAttacking = false;
-        this.attackCooldown = this.staminaBar >= 3 ? 10 : 90;
-        this.hitEnemies.length = 0; // Fast array reset without memory re-allocation
-        // --- RIFLESSIONE PROIETTILI ---
-        // --- RIFLESSIONE PROIETTILI ---
-// --- RIFLESSIONE PROIETTILI ---
-g.Bullets.forEach(bullet => {
-    // IGNORA: proiettili già colpiti, imparabili o sparati da te
-    if (bullet.Dead || bullet.hasHit || bullet.caster === this || bullet.isUnblockable) return;
 
-    // Se la tua AttackBox tocca QUESTO specifico proiettile nemico:
-    if (CheckCollisions({ rectangle1: this.AttackBox, rectangle2: bullet }) && !this.isAI) {
-        
-        const isMoving = Math.abs(this.velocity.x) > 1 || Math.abs(this.velocity.y) > 1;
-        if (isMoving && Math.random() < 0.4) {
-            return; // Fallimento parata in movimento
-        }
-        SoundManager.play('parry');
-
-        // 1. Spegniamo il proiettile nemico originale
-        bullet.hasHit = true;
-        bullet.Dead = true;
-        CreateVFX(bullet, "DEF");
-
-        const originalCaster = bullet.caster;
-        const dir = this.Direction.right ? 1 : -1;
-        
-
-        // 2. Generiamo i 3 frammenti SOLO E UNICAMENTE dalle coordinate del proiettile parato
-        for (let i = -1; i <= 1; i++) {
-            const fragment = new Bullet({
-                position: { x: bullet.position.x, y: bullet.position.y },
-                velocity: { x: 18 * dir, y: i * 5 }, // Ventaglio: uno su, uno dritto, uno giù
-                size: { x: bullet.size.x * 0.6, y: bullet.size.y * 0.6 },
-                color: bullet.color,
-                imageSrc : bullet.image.src, // CORRETTO, pesca l'URL dall'immagine vera,
-                framesMax: bullet.framesMax,
-                scale: bullet.scale * 0.6,
-                offset: bullet.offset,
-                Damage: bullet.Damage / 3,
-                KnockBack: bullet.KnockBack,
-                caster: this,
-                other: originalCaster
-            });
-
-            // Aggiungiamo i frammenti all'array
-            g.Bullets.push(fragment);
-        }
-    }
-});
-    }
-
-    
-        
-}
-        
-
-        // - - - DEFENSE - - -
-        if (this.keys.defend.pressed && this.LastKeyPressed === this.ControlKeys.defend && !this.isAttacking && g.FlagFight && this.defenseBuffer === 0 && !this.Dead){ //These 2 lines can be placed in eventlisteners
-            this.keys.defend.pressed = false
-            this.defenseBuffer = 50 ; 
-            CreateVFX(this,"DASH")
+        // Dash & After-Images
+        if (this.keys.defend.pressed && this.LastKeyPressed === this.ControlKeys.defend && !this.isAttacking && g.FlagFight && this.defenseBuffer === 0 && !this.Dead) {
+            this.keys.defend.pressed = false;
+            this.defenseBuffer = 45;
+            CreateVFX(this, "DASH");
             this.Defending = true;
             this.defend();
-            
-        }
-        else if (this.defenseBuffer > 0){
+        } else if (this.defenseBuffer > 0) {
             this.defenseBuffer--;
-            if (this.defenseBuffer>40){
-                this.Defending= true;
-                this.velocity.x = this.Direction.right ? 60*dt : -60*dt;
-                this.afterImages.push({
-                    x: this.position.x,
-                    y: this.position.y,
-                    image: this.image,
-                    framesCurrent: this.framesCurrent,
-                    framesMax: this.framesMax,
-                    right: this.Direction.right,
-                    life: 1
-                });
-                if (this.afterImages.length > 14) this.afterImages.shift();
-            }
-            else {
+            if (this.defenseBuffer > 35) {
+                this.Defending = true;
+                this.velocity.x = this.Direction.right ? 58 * dt : -58 * dt;
+                const maxGhosts = g.isMobile ? 4 : 12;
+                if (this.afterImages.length < maxGhosts) {
+                    this.afterImages.push({
+                        x: this.position.x,
+                        y: this.position.y,
+                        image: this.image,
+                        framesCurrent: this.framesCurrent,
+                        framesMax: this.framesMax,
+                        right: this.Direction.right,
+                        life: 1
+                    });
+                }
+            } else {
                 this.Defending = false;
-                if (this.keys.left.pressed){
-                    this.LastKeyPressed=this.ControlKeys.left
-
-                }
-                else if (this.keys.right.pressed){
-                    this.LastKeyPressed=this.ControlKeys.right
-                }
+                if (this.keys.left.pressed) this.LastKeyPressed = this.ControlKeys.left;
+                else if (this.keys.right.pressed) this.LastKeyPressed = this.ControlKeys.right;
             }
         }
-        
-        // - - - AURA - - -
-       if (this.PoweredUp) {
-            const aura = this.Player ===1 ? Aura1 :Aura2;
-            aura.position.x= this.position.x;
-            aura.position.y = this.position.y;
-        }
-        
-        if (this.staminaBar >= 3){
+
+        if (this.staminaBar >= 3) {
             utilStaminaTimer(this);
-            CreateVFX(this,"UP");
+            CreateVFX(this, "UP");
         }
-        
-        
-        // - - - RECHARGE STATIC SHIELD (Nuovo Perk) - - -
+
         if (this.StaticShield && !this.hasShield) {
             this.shieldTimer++;
-            if (this.shieldTimer >= 900) { // 900 frame = 15 secondi
+            if (this.shieldTimer >= 720) {
                 this.hasShield = true;
                 this.shieldTimer = 0;
-                CreateVFX(this, "UP"); // Effetto visivo quando torna lo scudo
+                CreateVFX(this, "UP");
+                PlayGameSound('staticRecharge');
             }
         }
-        
-        /*
-        // --- INCOLLA QUI IL DEBUG HITBOXES ---
-        c.save();
+    }
 
-        // 1. Hurtbox (Rettangolo verde)
-        c.strokeStyle = "rgba(0, 255, 0, 1)";
-        c.lineWidth = 2;
-        c.strokeRect(this.position.x, this.position.y, this.size.x, this.size.y);
+    startSkullBossAttack(attackKey) {
+        this.currentAttackType = attackKey;
+        this.switchSprite(attackKey);
+        this.isAttacking = true;
+        this.framesCurrent = 0;
+        this.framesElapsed = 0;
+        this.hasShot = false;
+        this.lastBossShotFrame = -1;
+    }
 
-        // 2. AttackBox
-        if (this.AttackBox) {
-            if (this.debugHitboxTimer === undefined) this.debugHitboxTimer = 0;
-            
-            // Si attiva nel frame esatto dell'attacco
-            if (this.isAttacking && this.framesCurrent === this.attackFrame) {
-                this.debugHitboxTimer = 20; 
+    fireSkullBeam() {
+        if (!Player1) return;
+        PlayGameSound('bossBeam');
+        const startX = this.position.x + this.size.x / 2;
+        const startY = this.position.y + this.size.y / 2;
+        const tx = Player1.position.x + Player1.size.x / 2;
+        const ty = Player1.position.y + Player1.size.y / 2;
+        const angle = Math.atan2(ty - startY, tx - startX);
+        const speed = 20;
+
+        g.Bullets.push(new Bullet({
+            position: { x: startX, y: startY },
+            velocity: { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed },
+            size: { x: 48, y: 48 },
+            color: "#00e5ff",
+            imageSrc: './img/VFX/Bullets/Fireball.png',
+            framesMax: 5,
+            scale: 2.2,
+            Damage: this.Damage,
+            KnockBack: 18,
+            caster: this,
+            isSkullBeam: true
+        }));
+    }
+
+    firePredictiveMissile() {
+        if (!Player1) return;
+        PlayGameSound('bossMissileLock');
+
+        const leadFrames = 42;
+        let predictedX = Player1.position.x + Player1.size.x / 2 + (Player1.velocity.x * leadFrames);
+        predictedX = Math.max(100, Math.min(g.MAX_WIDTH - 100, predictedX));
+        const groundY = g.MAX_HEIGHT - 600;
+
+        const startX = this.position.x + this.size.x / 2;
+        const startY = this.position.y + this.size.y / 2;
+        const dx = predictedX - startX;
+        const dy = groundY - startY;
+        const dist = Math.max(1, Math.hypot(dx, dy));
+        const speed = 18;
+
+        g.Bullets.push(new Bullet({
+            position: { x: startX, y: startY },
+            velocity: { x: (dx / dist) * speed, y: (dy / dist) * speed },
+            size: { x: 70, y: 70 },
+            color: "#ff0055",
+            imageSrc: './img/VFX/Bullets/Fireball.png',
+            framesMax: 5,
+            scale: 3.2,
+            Damage: Math.floor(this.Damage * 1.4),
+            KnockBack: 35,
+            caster: this,
+            isUnblockable: true,
+            isPredictiveMissile: true,
+            targetStrikeX: predictedX,
+            targetStrikeY: groundY
+        }));
+    }
+
+    drawPerkOverlays(dt) {
+        if (this.Dead || !IsInViewport(this)) return;
+
+        if (this.StaticShield && this.hasShield) {
+            this.shieldSprite.position.x = this.position.x - 15;
+            this.shieldSprite.position.y = this.position.y - 5;
+            this.shieldSprite.animateFrames(dt);
+            if (this.shieldSprite.hasValidImage()) this.shieldSprite.Draw();
+            else {
+                c.save();
+                c.strokeStyle = "rgba(56, 189, 248, 0.8)";
+                c.lineWidth = 3;
+                c.beginPath();
+                c.ellipse(this.position.x + this.size.x / 2, this.position.y + this.size.y / 2, this.size.x * 0.75, this.size.y * 0.6, 0, 0, Math.PI * 2);
+                c.stroke();
+                c.restore();
             }
-
-            if (this.debugHitboxTimer > 0) {
-                this.debugHitboxTimer--;
-            }
-
-            const showActive = this.debugHitboxTimer > 0;
-            c.strokeStyle = showActive ? "rgba(255, 0, 0, 1)" : "rgba(255, 165, 0, 0.5)";
-            
-            const radiusX = this.AttackBox.size.x / 2;
-            const radiusY = this.AttackBox.size.y / 2;
-            const centerX = this.AttackBox.position.x + radiusX;
-            const centerY = this.AttackBox.position.y + radiusY;
-            
-            const startAngle = this.Direction.left ? Math.PI / 2 : -Math.PI / 2;
-            const endAngle = this.Direction.left ? (3 * Math.PI) / 2 : Math.PI / 2;
-
-            c.beginPath();
-            if (this.Player === 1) {
-                c.ellipse(centerX, centerY, radiusX, radiusY, 0, startAngle, endAngle);
-            } else {
-                c.arc(centerX, centerY, radiusX, startAngle, endAngle);
-            }
-            c.closePath();
-            c.stroke();
-
-            // Rettangolo vero dell'AttackBox
-            c.strokeStyle = "rgba(0, 0, 255, 0.3)";
-            c.strokeRect(this.AttackBox.position.x, this.AttackBox.position.y, this.AttackBox.size.x, this.AttackBox.size.y);
         }
-        c.restore();
-        // --- FINE DEBUG ---
-        */
 
-    } 
-    
+        if (this.Player !== 1 && Player1 && Player1.Executioner && this.HealthPoints <= this.MaxHealthPoints * 0.30) {
+            this.execMarkSprite.position.x = this.position.x + this.size.x / 2 - 22;
+            this.execMarkSprite.position.y = this.position.y - 62;
+            this.execMarkSprite.animateFrames(dt);
+            if (this.execMarkSprite.hasValidImage()) this.execMarkSprite.Draw();
+            else {
+                c.save();
+                c.strokeStyle = "#ef4444";
+                c.lineWidth = 3;
+                const mx = this.position.x + this.size.x / 2;
+                const my = this.position.y - 42;
+                c.beginPath();
+                c.arc(mx, my, 12, 0, Math.PI * 2);
+                c.stroke();
+                c.restore();
+            }
+        }
+
+        if (this.isAI && this.telegraphTimer > 0) {
+            c.save();
+            c.font = "bold 20px 'Press Start 2P', monospace";
+            c.fillStyle = this.isFlyingBoss ? "#00e5ff" : "#fbbf24";
+            c.textAlign = "center";
+            c.fillText(this.pendingAction === 'bossAttack2' ? "⚠️ MISSILE!" : "!", this.position.x + this.size.x / 2, this.position.y - 24);
+            c.restore();
+        }
+    }
+
     switchSprite(spriteName) {
-        // - - - ATTACK SCENARIO - - -
-        if (
-            this.image === this.sprites.attack.image && 
-            this.framesCurrent < this.sprites.attack.framesMax - 1 && spriteName !== 'death'
-        )   return;  
-
-        // - - - HURT SCENARIO - - -
-        else if (this.image === this.sprites.hurt.image && 
-            this.framesCurrent < this.sprites.hurt.framesMax -1
-        ) return ;  
-
-        // - - - DEATH SCENARIO - - -
-         else if (this.image === this.sprites.death.image && 
-            this.framesCurrent < this.sprites.death.framesMax -1
-        ) return ;  
-       // - - - DEATH SCENARIO ENDED - - -
-        else if (this.image === this.sprites.death.image && 
-            this.framesCurrent === this.sprites.death.framesMax-1
-        ){
+        const activeAttack = this.sprites[this.currentAttackType] || this.sprites.attack;
+        if ((this.image === this.sprites.attack.image || (this.sprites.attack2 && this.image === this.sprites.attack2.image)) &&
+            this.framesCurrent < activeAttack.framesMax - 1 && spriteName !== 'death') return;
+        else if (this.image === this.sprites.hurt.image && this.framesCurrent < this.sprites.hurt.framesMax - 1) return;
+        else if (this.image === this.sprites.death.image && this.framesCurrent < this.sprites.death.framesMax - 1) return;
+        else if (this.image === this.sprites.death.image && this.framesCurrent === this.sprites.death.framesMax - 1) {
             this.imploded = true;
-            if(!this.hasPaid && !Player1.Dead){
+            if (!this.hasPaid && !Player1.Dead) {
                 this.hasPaid = true;
                 Player1.coins += this.value;
-                
-                // --- SOUL COLLECTOR (Nuovo Perk) ---
                 if (Player1.SoulCollector) {
-                    // Contatore segreto monete totali
-                    if(!Player1.runCoins) Player1.runCoins = 0;
-                    Player1.runCoins += this.value;
-                    
-                    // Se superiamo la soglia di 10 monete raccolte...
-                    if (Player1.runCoins >= 10) {
-                        // Resetta e tieni il resto
-                        Player1.runCoins -= 10;
-                        
-                        // Aumenta il danno fisso (es: +1 al danno o +2%)
-                        Player1.Damage = Math.floor(Player1.Damage * 1.02); 
-                        // Feedback grafico al volo
-                        CreateVFX(Player1, "SOUL"); 
-                        
-                    }
+                    g.SoulOrbs.push(new SoulOrb({
+                        position: { x: this.position.x + this.size.x / 2, y: this.position.y + this.size.y / 2 },
+                        target: Player1,
+                        value: this.value
+                    }));
                 }
-                
             }
+            return;
         }
-        // - - - PLUNGE SCENARIO - - -
-        else if (
-            this.sprites.slam && // <-- EVITA IL CRASH SE LO SPRITE NON ESISTE
-            this.image === this.sprites.slam.image && 
-            this.framesCurrent < this.sprites.slam.framesMax - 1
-        ) return;
-        
+
         if (!this.sprites[spriteName]) return;
+        const targetSprite = this.sprites[spriteName];
+        if (this.image === targetSprite.image && this.row === (targetSprite.row || 0)) return;
 
-        if (this.image === this.sprites[spriteName].image) return
-
-        this.image = this.sprites[spriteName].image
-        this.framesMax = this.sprites[spriteName].framesMax
-        this.framesHold = this.sprites[spriteName].framesHold || 6;
+        this.image = targetSprite.image;
+        this.framesMax = targetSprite.framesMax;
+        this.framesHold = targetSprite.framesHold || 6;
+        this.row = targetSprite.row || 0;
+        this.customFrameWidth = targetSprite.frameWidth || null;
+        this.customFrameHeight = targetSprite.frameHeight || null;
         this.framesCurrent = 0;
         this.framesElapsed = 0;
     }
 
     attack() {
-        if (this.attackCooldown === 0){
-            this.switchSprite('attack') 
+        if (this.attackCooldown === 0) {
+            this.currentAttackType = 'attack';
+            this.switchSprite('attack');
             this.isAttacking = true;
-            this.framesCurrent = 0; 
+            this.framesCurrent = 0;
             this.framesElapsed = 0;
             this.hitEnemies = [];
-            // - - - AUDIO - - - 
+            this.hasShot = false;
             this.attackSoundPlayed = false;
+            if (this.Player === 1 && this.OnGround) {
+                this.velocity.x = this.Direction.right ? 8 : -8;
+            }
         }
-        else return ; 
     }
+
     castRangedAttack() {
         if (this.attackCooldown === 0 && !this.isAttacking) {
-            this.switchSprite('attack'); 
+            this.switchSprite('attack');
             this.isAttacking = true;
-            this.framesCurrent = 0; 
+            this.framesCurrent = 0;
             this.framesElapsed = 0;
             this.hitEnemies = [];
+            this.velocity.x = 0;
 
-            this.keys.left.pressed = false;
-            this.keys.right.pressed = false;
-            this.velocity.x = 0; 
-            
-
-            // Se è il BigAhhLauncher spara la meteora (tipo 2), altrimenti il proiettile base (tipo 1)
             const bulletType = this.type === "BigAhhLauncher" ? 2 : 1;
-            this.type === "BigAhhLauncher" ? SoundManager.play('BigFireballs') : SoundManager.play('SmallFireballs');
+            this.type === "BigAhhLauncher" ? PlayGameSound('BigFireballs') : PlayGameSound('SmallFireballs');
             this.castBullet(this, bulletType);
-            
-            // Il boss ha un cooldown più lungo (circa 3 secondi e mezzo)
-            this.attackCooldown = this.type === "BigAhhLauncher" ? 200 : 120; 
+            this.attackCooldown = this.type === "BigAhhLauncher" ? 190 : 115;
         }
     }
 
-    plunge(){
-        this.isPlunging = true;
-        this.switchSprite('slam');
-    }
-    hurt(){
-        this.isAttacking = false;
-        this.switchSprite('hurt') 
-    }
-    death (){
-        this.Dead=true;
-        this.PoweredUp = false;
-        this.switchSprite('death') 
-        
-        
-    }
-    defend (){
-        this.switchSprite('defence') 
-    }
+    plunge() { this.isPlunging = true; this.switchSprite('slam'); }
+    hurt() { if (!this.isFlyingBoss) { this.isAttacking = false; this.switchSprite('hurt'); } }
+    death() { this.Dead = true; this.PoweredUp = false; this.switchSprite('death'); }
+    defend() { this.switchSprite('defence'); }
+
     drawAfterImages() {
         c.save();
-        c.globalCompositeOperation = "lighter"; // stesso trucco dello Shockwave: dà un bagliore, non un colore piatto
-
         this.afterImages.forEach(a => {
-            if (!a.image || !a.image.complete) return;
+            if (!a.image || !a.image.complete || a.image.naturalWidth === 0) return;
             const frameWidth = a.image.width / a.framesMax;
-
             c.save();
-            c.globalAlpha = Math.max(0, a.life) * 0.5;
-
+            c.globalAlpha = Math.max(0, a.life) * 0.4;
             c.translate(a.x + this.size.x / 2, a.y);
-            if (!a.right) c.scale(-1, 1); // <-- ADATTA questo flip a come lo fa già il tuo Sprite.Draw()
-
+            if (!a.right) c.scale(-1, 1);
             c.drawImage(
                 a.image,
                 a.framesCurrent * frameWidth, 0,
                 frameWidth, a.image.height,
-                -this.size.x / 2 - this.offset.x,
-                -this.offset.y,
-                frameWidth * this.scale,
-                a.image.height * this.scale
+                -this.size.x / 2 - this.offset.x, -this.offset.y,
+                frameWidth * this.scale, a.image.height * this.scale
             );
             c.restore();
         });
-
         c.restore();
     }
-    runAI() {
-    if (!g.FlagFight) return;
 
-    // - - - FINDING NEAREST ENEMY - - -
-    let other = null;
-    let minDist = Infinity;
-    g.Fighters.forEach(f => {
-        if (f !== this && !f.Dead && f.Player === 1) {
-            let d = Math.abs(f.position.x - this.position.x);
-            if (d < minDist) { minDist = d; other = f; }
-        }
-    });
-    if (!other) return;
+    // ============================================================================
+    // AI LOGIC (SkullBoss Attack Triggers + Balanced Ground Enemies)
+    // ============================================================================
+    runAI(dt = 1) {
+        if (!g.FlagFight || this.Dead || this.telegraphTimer > 0) return;
+        const other = Player1;
+        if (!other || other.Dead) return;
 
-    // - - - RESET KEYS - - -
-    this.keys.right.pressed = false;
-    this.keys.left.pressed = false;
-    this.keys.up.pressed = false;
-    this.keys.defend.pressed = false;
+        const diffX = other.position.x - this.position.x;
+        const diffY = other.position.y - this.position.y;
+        const dist = Math.abs(diffX);
 
-    const diffX = other.position.x - this.position.x;
-    const diffY = other.position.y - this.position.y;
-    const dist = Math.abs(diffX);
-
-    if (this.type === "base") {
-
-        // - - - REAZIONE RITARDATA ALLA DIFESA - - -
-        // La CPU "nota" l'attacco solo al suo frame 0 (inizio animazione), non ogni frame,
-        // e ci mette un buffer prima di decidere se parare davvero.
-        if (other.isAttacking && other.framesCurrent === 0 && !this.aiReactionPending &&
-            dist < this.AttackBox.size.x + other.size.x + 40) {
-            this.aiReactionPending = true;
-            this.aiReactionTimer = 9 + Math.floor(Math.random() * 12); // ~150-350ms a 60fps
+        // --- 1. FLYING SKULL MONSTER BOSS AI (Flight movement is in update(), here we trigger attacks) ---
+        if (this.type === "SkullBoss") {
+            if (this.bossStunTimer > 0) return;
+            if (this.attackCooldown === 0 && !this.isAttacking) {
+                this.telegraphTimer = 18;
+                this.pendingAction = (Math.random() < 0.55) ? 'bossAttack1' : 'bossAttack2';
+                PlayGameSound('enemyTelegraph');
+            }
+            return;
         }
 
-        if (this.aiReactionPending) {
-            this.aiReactionTimer -= 2; // runAI gira ogni 2 frame reali (vedi aiTimer in update)
-            if (this.aiReactionTimer <= 0) {
-                this.aiReactionPending = false;
-                // Non è garantito che ce la faccia: simula un tempo di reazione imperfetto
-                if (!this.isAttacking && Math.random() < 0.45) {
-                    this.keys.defend.pressed = true;
-                    this.LastKeyPressed = this.ControlKeys.defend;
-                    return; // questo "tick" è consumato dalla parata
+        // --- 2. STANDARD GROUND ENEMIES AI ---
+        this.keys.right.pressed = false;
+        this.keys.left.pressed = false;
+        this.keys.up.pressed = false;
+        this.keys.defend.pressed = false;
+
+        let flockPushX = 0;
+        g.Fighters.forEach(ally => {
+            if (ally !== this && !ally.Dead && ally.Player !== 1) {
+                const dxAlly = this.position.x - ally.position.x;
+                if (Math.abs(dxAlly) < 90 && Math.abs(this.position.y - ally.position.y) < 90) {
+                    flockPushX += dxAlly >= 0 ? 1 : -1;
                 }
             }
-        }
+        });
 
-        // - - - MACCHINA A STATI PER IL MOVIMENTO - - -
-        this.aiStateTimer -= 2;
-
-        if (this.aiStateTimer <= 0) {
-            this.aiStateTimer = 18 + Math.floor(Math.random() * 18); // ~300-600ms a 60fps
-
-            const SafeZone = 100;
-            if (dist > 250) {
-                this.aiState = "APPROACH";
-            } else if (dist < SafeZone - this.size.x) {
-                this.aiState = "RETREAT";
-            } else if (dist < this.AttackBox.size.x && !this.isAttacking) {
-                // In range: non attacca sempre, lascia aperture leggibili
-                this.aiState = Math.random() < 0.5 ? "ATTACK_WINDOW" : "IDLE";
-            } else {
-                this.aiState = Math.random() < 0.7 ? "APPROACH" : "IDLE";
+        if (this.type === "base") {
+            if (diffY < -110 && this.OnGround && dist < 420) {
+                this.keys.up.pressed = true;
+                this.LastKeyPressed = this.ControlKeys.up;
             }
-        }
 
-        // - - - ESECUZIONE DELLO STATO (ogni frame, movimento fluido senza flicker) - - -
-        switch (this.aiState) {
-            case "APPROACH":
+            this.aiStateTimer -= 2;
+            if (this.aiStateTimer <= 0) {
+                this.aiStateTimer = 16 + Math.floor(Math.random() * 16);
+                if (dist > 220) this.aiState = "APPROACH";
+                else if (dist < 55 && flockPushX !== 0) this.aiState = "FLANK";
+                else if (dist < this.AttackBox.size.x * 0.85 && !this.isAttacking && Math.abs(diffY) < 130) {
+                    this.aiState = Math.random() < 0.62 ? "ATTACK_WINDOW" : "IDLE";
+                } else this.aiState = "APPROACH";
+            }
+
+            if (this.aiState === "APPROACH") {
                 if (diffX > 0) { this.keys.right.pressed = true; this.LastKeyPressed = this.ControlKeys.right; }
                 else { this.keys.left.pressed = true; this.LastKeyPressed = this.ControlKeys.left; }
-                break;
+            } else if (this.aiState === "FLANK") {
+                if (flockPushX > 0) { this.keys.right.pressed = true; this.LastKeyPressed = this.ControlKeys.right; }
+                else { this.keys.left.pressed = true; this.LastKeyPressed = this.ControlKeys.left; }
+            } else if (this.aiState === "ATTACK_WINDOW" && dist < this.AttackBox.size.x && !this.isAttacking && this.attackCooldown === 0) {
+                this.telegraphTimer = 10;
+                this.pendingAction = 'melee';
+                PlayGameSound('enemyTelegraph');
+                this.aiStateTimer = 18;
+            }
 
-            case "RETREAT":
+            if (!this.isAttacking) {
+                this.Direction.right = diffX > 0;
+                this.Direction.left = diffX <= 0;
+            }
+        }
+        // --- FIXED LAUNCHER AI: No more infinite kiting! ---
+        else if (this.type === "launcher") {
+            if (this.isAttacking && this.framesCurrent >= this.sprites.attack.framesMax - 1) return;
+
+            if (this.retreatCooldown > 0) this.retreatCooldown -= 2;
+            if (this.retreatTimer > 0) this.retreatTimer -= 2;
+
+            const MinDistance = 130; // Only steps back if Player1 is right in its face
+            const MaxDistance = 520;
+            const distFromSpawn = Math.abs(this.position.x - (this.spawnOriginX || this.position.x));
+            const canRetreat = (distFromSpawn < 280 && this.retreatCooldown <= 0);
+
+            if (dist < MinDistance && canRetreat) {
+                if (this.retreatTimer <= 0) {
+                    this.retreatTimer = 24;     // Steps back for only ~0.4 seconds
+                    this.retreatCooldown = 120; // Then MUST stand its ground for 2 full seconds!
+                }
+            }
+
+            if (this.retreatTimer > 0) {
                 if (diffX > 0) { this.keys.left.pressed = true; this.LastKeyPressed = this.ControlKeys.left; }
                 else { this.keys.right.pressed = true; this.LastKeyPressed = this.ControlKeys.right; }
-                break;
+            } else if (dist > MaxDistance) {
+                // Walk towards the player if too far away
+                if (diffX > 0) { this.keys.right.pressed = true; this.LastKeyPressed = this.ControlKeys.right; }
+                else { this.keys.left.pressed = true; this.LastKeyPressed = this.ControlKeys.left; }
+            }
 
-            case "ATTACK_WINDOW":
-                if (dist < this.AttackBox.size.x && !this.isAttacking && !this.Dead) {
-                    this.attack();
-                    this.aiStateTimer = 0; // ricalcola subito dopo aver colpito
-                }
-                break;
-
-            case "IDLE":
-            default:
-                break; // apertura leggibile: sta fermo
-        }
-
-        // - - - DIRECTION - - -
-        if (!this.isAttacking) {
             this.Direction.right = diffX > 0;
             this.Direction.left = diffX <= 0;
-        }
 
-        // Ground slam casuale, invariato
-        if (Math.random() < 0.01 && !this.OnGround && diffX > 0) {
-            this.plunge();
-        }
-
-        // Salto/difesa d'emergenza, invariato
-        if ((diffY < -100 && this.OnGround) || (Math.random() < 0.005 && this.OnGround)) {
-            const ran = Math.random();
-            if (ran > 0.5) { this.keys.up.pressed = true; this.LastKeyPressed = this.ControlKeys.up; }
-            else { this.keys.defend.pressed = true; this.LastKeyPressed = this.ControlKeys.defend; }
-        }
-
-    }
-       else if (this.type === "launcher") {
-
-    if (this.isAttacking && this.framesCurrent >= this.sprites.attack.framesMax - 1){
-        this.keys.left.pressed = false;
-        this.keys.right.pressed = false;
-        return;
-    }
-
-    // - - - SEPARAZIONE DA ALTRI LAUNCHER (non blocca più l'attacco) - - -
-    const allies = g.Fighters.filter(f => f !== this && !f.Dead && f.type === this.type);
-    let separationX = 0;
-    allies.forEach(ally => {
-        const d = this.position.x - ally.position.x;
-        if (Math.abs(d) < 150) separationX += d > 0 ? 1 : -1;
-    });
-
-    let isSeparating = false;
-    if (separationX !== 0) {
-        this.keys.right.pressed = separationX > 0;
-        this.keys.left.pressed = separationX < 0;
-        this.LastKeyPressed = separationX > 0 ? this.ControlKeys.right : this.ControlKeys.left;
-        isSeparating = true;
-        // NIENTE return: si prosegue comunque a valutare l'attacco più sotto
-    }
-
-    // - - - KITING NORMALE - - -
-    // Si applica solo se in questo frame NON sta già muovendosi per separarsi,
-    // altrimenti le due logiche di movimento entrerebbero in conflitto
-    const MinDistance = 350;
-    const MaxDistance = 550;
-    const CornerMargin = 60;
-    const atLeftWall = this.position.x <= CornerMargin;
-    const atRightWall = (this.position.x + this.size.x) >= (g.MAX_WIDTH - CornerMargin);
-    let isCornered = false;
-
-    if (!isSeparating) {
-        if (dist < MinDistance) {
-            if (diffX > 0) {
-                if (!atLeftWall) { this.keys.left.pressed = true; this.LastKeyPressed = this.ControlKeys.left; }
-                else isCornered = true;
-            } else {
-                if (!atRightWall) { this.keys.right.pressed = true; this.LastKeyPressed = this.ControlKeys.right; }
-                else isCornered = true;
+            // Shoots even if you are close when its retreat is on cooldown
+            if (dist <= MaxDistance && !this.Dead && this.attackCooldown === 0 && Math.random() < 0.05) {
+                this.telegraphTimer = 12;
+                this.pendingAction = 'ranged';
             }
-        } else if (dist > MaxDistance) {
-            if (diffX > 0) { this.keys.right.pressed = true; this.LastKeyPressed = this.ControlKeys.right; }
-            else { this.keys.left.pressed = true; this.LastKeyPressed = this.ControlKeys.left; }
-        }
-
-        if ((isCornered || dist < 120) && this.OnGround && Math.random() < 0.1) {
-            this.keys.up.pressed = true;
-            this.LastKeyPressed = this.ControlKeys.up;
-            if (isCornered ) {
-                const runForward = atLeftWall ? 'right' : 'left';
-                this.keys[runForward].pressed = true;
-                this.LastKeyPressed = this.ControlKeys[runForward];
+        } else if (this.type === "BigAhhLauncher") {
+            this.Direction.right = diffX > 0;
+            this.Direction.left = diffX <= 0;
+            if (!this.Dead && this.attackCooldown === 0 && dist < 1350 && Math.random() < 0.04) {
+                this.telegraphTimer = 18;
+                this.pendingAction = 'ranged';
+                PlayGameSound('enemyTelegraph');
             }
         }
     }
-
-    // - - - ATTACCO RANGED - - -
-    // Valutato SEMPRE, anche nei frame in cui il nemico si sta separando dagli alleati
-    if (((dist >= MinDistance && dist <= MaxDistance) || isCornered) && !this.Dead) {
-        if (Math.random() < 0.04) {
-            this.castRangedAttack();
-        }
-    }
-}
-        else if (this.type === "BigAhhLauncher") {
-
-            if (this.isAttacking && this.framesCurrent >= this.sprites.attack.framesMax - 1){
-                return;
-            }
-            
-            // 1. NON SI MUOVE MAI. Si limita a guardare minacciosamente il player.
-            if (diffX > 0) {
-                this.Direction.right = true;
-                this.Direction.left = false;
-            } else {
-                this.Direction.right = false;
-                this.Direction.left = true;
-            }
-
-            // 2. ATTACCO RANGED (Spara a intervalli regolari)
-            if (!this.Dead && this.attackCooldown === 0) {
-                if (Math.random() < 0.03) { 
-                    this.castRangedAttack();
-                }
-            }
-        }
-    } 
 
     castBullet(caster, type = 1) {
-        if (caster.attackCooldown >0) return ; 
-        const New = Bullet.CreateBullet(type, caster);
-        g.Bullets.push(New);
+        if (caster.attackCooldown > 0) return;
+        g.Bullets.push(Bullet.CreateBullet(type, caster));
     }
-    static createFighters(ids, index = 0 ) {
-        // 1. Mappiamo gli ID direttamente ai loro dati (molto più scalabile!)
+
+    static createFighters(ids, index = 0) {
         const configMap = {
             1: FIGHTER_STATS.Sekiro,
             2: FIGHTER_STATS.Night,
             3: FIGHTER_STATS.Night3,
-            4: FIGHTER_STATS.Night2
+            4: FIGHTER_STATS.Night2,
+            5: FIGHTER_STATS.SkullBoss
         };
-    
-        // Prende i dati giusti in base all'ID, se non lo trova usa Night di default
-        const configData = configMap[ids] || FIGHTER_STATS.Night; 
-    
-        const basePos = ids === 1 ? g.StartingPositionP1 : g.StartingPositionP2;
-        let spawnPos =  { x : basePos.x, y: basePos.y };
-        
-        if (ids >= 2) {
-            spawnPos.x -= (index * 180) + Math.random() * 60;
-        }
 
-        // --- FIX DEL BUG DEI CLONI ---
-        // Creiamo una COPIA INDIPENDENTE degli sprites per ogni nuovo nemico!
+        const configData = configMap[ids] || FIGHTER_STATS.Night;
+        const basePos = ids === 1 ? g.StartingPositionP1 : g.StartingPositionP2;
+        let spawnPos = { x: basePos.x, y: basePos.y };
+
+        if (ids >= 2) spawnPos.x -= (index * 180) + Math.random() * 60;
+
         let clonedSprites = {};
         for (const [key, value] of Object.entries(configData.sprites)) {
             clonedSprites[key] = {
                 imageSrc: value.imageSrc,
                 framesMax: value.framesMax,
-                framesHold: value.framesHold // se lo usi
-                // Non copiamo "image", così la classe Sprite se ne creerà una nuova per conto suo!
+                framesHold: value.framesHold,
+                row: value.row || 0,
+                frameWidth: value.frameWidth || null,
+                frameHeight: value.frameHeight || null
             };
         }
 
         return new Fighter({
-            position : spawnPos,
-            size : configData.size,
-            ControlKeys : configData.ControlKeys,
-            color : configData.color,
-            Direction : configData.Direction,
-            AttackBox : configData.AttackBox,
-            Damage : configData.Damage,
-            Player :ids,
-            imageSrc : configData.imageSrc,
-            framesMax : configData.framesMax,
-            scale : configData.scale,
-            offset : configData.offset,
-            
-            // Passiamo i cloni, non l'oggetto originale!
-            sprites : clonedSprites, 
-            
-            isAI : configData.isAI,
-            attackFrame : configData.attackFrame,
-            type : configData.type,
-            HealthPoints : configData.HealthPoints,
-            MaxHealthPoints : configData.MaxHealthPoints,
-            value : configData.value
-        })
+            position: spawnPos,
+            size: { ...configData.size },
+            ControlKeys: configData.ControlKeys,
+            color: configData.color,
+            Direction: { ...configData.Direction },
+            AttackBox: {
+                position: { ...configData.AttackBox.position },
+                size: { ...configData.AttackBox.size },
+                shape: configData.AttackBox.shape
+            },
+            Damage: configData.Damage,
+            Player: ids,
+            imageSrc: configData.imageSrc,
+            framesMax: configData.framesMax,
+            scale: configData.scale,
+            offset: { ...configData.offset },
+            sprites: clonedSprites,
+            isAI: configData.isAI,
+            attackFrame: configData.attackFrame,
+            type: configData.type,
+            HealthPoints: configData.HealthPoints,
+            MaxHealthPoints: configData.MaxHealthPoints || configData.HealthPoints,
+            value: configData.value
+        });
     }
 }
 
-class Mask extends Sprite{
-    constructor({position,velocity = {x: 0 , y : 0},size ,price,color = "black",imageSrc,sprites,scale = 1 , framesMax=1 ,offset = {x:0, y:0},CuringHealth,DamageMult = 1,KnockBack = 1}){
-        super({
-            position,
-            size,
-            color,
-            imageSrc,
-            scale,
-            framesMax,
-            offset,
-            sprites
-        })
+// ============================================================================
+// MASK CLASS (Fixed position overwrite bug so Perks never stack at 0,0!)
+// ============================================================================
+class Mask extends Sprite {
+    constructor({ position, velocity = { x: 0, y: 0 }, size, price, color = "black", imageSrc, sprites, scale = 1, framesMax = 1, offset = { x: 0, y: 0 }, CuringHealth, DamageMult = 1, KnockBack = 1 }) {
+        super({ position, size, color, imageSrc, scale, framesMax, offset, sprites });
         this.velocity = velocity;
         this.CuringHealth = CuringHealth;
         this.DamageMult = DamageMult;
@@ -1134,123 +1457,86 @@ class Mask extends Sprite{
         this.GotTaken = false;
         this.Placed = false;
         this.price = price;
-        this.startY = this.position.y;
-        this.timer =0;
+        this.startY = position.y;
+        this.timer = 0;
     }
+
     update(dt) {
         this.animateFrames(dt);
-        
-        // 1. Oscillazione
         this.timer += 0.05;
         this.position.y = this.startY + Math.sin(this.timer) * 10;
-
-        // 2. Disegna lo sprite
         this.Draw();
 
-        // 3. Controllo Prossimità e Testo a schermo
-        if (!this.GotTaken) {
-            const priceMultplier = 1;
-            const finalPrice = this.price * priceMultplier;
-
-            // Calcola la distanza tra il centro del Player e il centro della Maschera
+        if (!this.GotTaken && Player1) {
+            const finalPrice = this.price;
             const distX = Math.abs((this.position.x + this.size.x / 2) - (Player1.position.x + Player1.size.x / 2));
             const distY = Math.abs((this.position.y + this.size.y / 2) - (Player1.position.y + Player1.size.y / 2));
 
-            // Se il Player è vicino (entro 100px orizzontali e 120px verticali)
-            if (distX < 100 && distY < 120) {
-                
-                // Disegna il box con prezzo e tasto direttamente nel Canvas
+            if (distX < 95 && distY < 135) {
                 c.save();
-                c.font = "bold 12px 'Press Start 2P', sans-serif";
+                c.font = "bold 11px 'Press Start 2P', sans-serif";
                 c.textAlign = "center";
-                
                 const boxX = this.position.x + this.size.x / 2;
                 const boxY = this.position.y - 40;
 
-                // Sfondo nero semitrasparente
-                c.fillStyle = "rgba(0, 0, 0, 0.8)";
-                c.fillRect(boxX - 90, boxY - 35, 180, 45);
-                
-                // Bordo dorato
+                c.fillStyle = "rgba(0, 0, 0, 0.85)";
+                c.fillRect(boxX - 95, boxY - 35, 190, 45);
                 c.strokeStyle = "gold";
                 c.lineWidth = 2;
-                c.strokeRect(boxX - 90, boxY - 35, 180, 45);
+                c.strokeRect(boxX - 95, boxY - 35, 190, 45);
 
-                // Testo
                 c.fillStyle = "gold";
                 c.fillText(`${this.name || 'Mask'}: ${finalPrice} 🪙`, boxX, boxY - 18);
                 c.fillStyle = "#00ffcc";
-                c.fillText("[E] Compra", boxX, boxY);
-                
+                c.fillText("[E] Buy", boxX, boxY);
                 c.restore();
 
-                // Controllo pressione tasto E
                 if (Player1.keys.interact && Player1.keys.interact.pressed) {
-                    Player1.keys.interact.pressed = false; // Consuma l'input
-                    
-                    getPerked(this,priceMultplier);
+                    Player1.keys.interact.pressed = false;
+                    getPerked(this, 1);
                 }
             }
         }
     }
+
     MaskTaken(player) {
-        
-        
-        // 1. Danno e Knockback base (senza il malus del PvP)
-        if (this.DamageMult && this.DamageMult !== 1) {
-            player.Damage = Math.floor(player.Damage * this.DamageMult);
-        }
+        if (this.DamageMult && this.DamageMult !== 1) player.Damage = Math.floor(player.Damage * this.DamageMult);
         if (this.KnockBack) player.KnockBack *= this.KnockBack;
-        
-        // 2. Salute Massima e Cura
         if (this.MaxHealthUp) player.MaxHealthPoints += this.MaxHealthUp;
-        
-        if (this.CuringHealth) player.HealthPoints += this.CuringHealth;
-        
-        // Sicurezza: non farlo andare oltre la vita massima
-        if (player.HealthPoints > player.MaxHealthPoints) {
-            player.HealthPoints = player.MaxHealthPoints;
-        }
-        
-        // 3. Nuove abilità speciali (se presenti nella maschera)
+        if (this.CuringHealth) player.HealthPoints = Math.min(player.MaxHealthPoints, player.HealthPoints + this.CuringHealth);
+
+        if (this.DemonStrength) player.DemonStrength = true;
         if (this.CanShoot) player.CanShoot = true;
-        if (this.LifeSteal) player.lifeSteal = this.LifeSteal;
-        if (this.SpeedMult) player.speedMult = this.SpeedMult;
-        if (this.JumpBoost) player.jumpPower = (player.jumpPower || -15) + this.JumpBoost;
+        if (this.LifeSteal) player.lifeSteal = (player.lifeSteal || 0) + this.LifeSteal;
+        if (this.SpeedMult) player.speedMult = (player.speedMult || 1) + this.SpeedMult;
+        if (this.JumpBoost) player.jumpPower = (player.jumpPower || 0) + this.JumpBoost;
+        if (this.HermesBoots) player.HermesBoots = true;
+        if (this.TitanHeart) player.TitanHeart = true;
         if (this.Ricochet) player.Ricochet = true;
         if (this.ToxicTrail) player.ToxicTrail = true;
         if (this.Executioner) player.Executioner = true;
-        if (this.StaticShield) player.StaticShield = true;
+        if (this.StaticShield) { player.StaticShield = true; player.hasShield = true; player.shieldTimer = 0; }
         if (this.SoulCollector) player.SoulCollector = true;
-        if (this.SplitShot) player.SplitShot = true;
-        if (this.isFightTime) {
-            g.isPerked = true;
-            RemovePerks();
-        }
-        
-        
+        if (this.SplitShot) { player.SplitShot = true; player.CanShoot = true; }
+        if (this.isFightTime) { g.isPerked = true; RemovePerks(); }
+
+        if (this.vfxKey) SpawnPerkVFX(this.vfxKey, { x: player.position.x, y: player.position.y }, false, player);
+        PlayGameSound(this.audioKey || 'perkPickup');
         CreateVFX(player, "MASK", this.name);
-        ReduceAddHP(player); // Aggiorna la UI della vita
-       // --- LOGICA DOM INVENTARIO (STACKING) ---
+        ReduceAddHP(player);
+
         const inventoryDiv = document.getElementById('inventory-container');
         if (inventoryDiv && !this.isFightTime) {
-            // Creiamo un ID univoco usando il nome (es. "Maschera Cura" -> "maschera-cura")
-            // Se non hai definito this.name per sbaglio, usiamo l'URL dell'immagine come fallback di sicurezza
             let rawName = this.name ? this.name : this.image.src;
             let perkId = rawName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
-            
-            // Controlliamo se esiste già uno slot per questo perk
             let existingSlot = inventoryDiv.querySelector(`[data-perk-id="${perkId}"]`);
 
             if (existingSlot) {
-                // IL PERK ESISTE GIÀ: Aggiorniamo il contatore
                 let badge = existingSlot.querySelector('.perk-badge');
-                let count = parseInt(badge.innerText.replace('x', '')) || 1;
-                count++;
+                let count = (parseInt(badge.innerText.replace('x', '')) || 1) + 1;
                 badge.innerText = `x${count}`;
-                badge.style.display = 'block'; // Mostriamo il badge dal x2 in poi
+                badge.style.display = 'block';
             } else {
-                // IL PERK È NUOVO: Creiamo l'icona
                 const slot = document.createElement('div');
                 slot.classList.add('perk-slot');
                 slot.setAttribute('data-perk-id', perkId);
@@ -1262,47 +1548,43 @@ class Mask extends Sprite{
                 const badge = document.createElement('div');
                 badge.classList.add('perk-badge');
                 badge.innerText = 'x1';
-                badge.style.display = 'none'; // A x1 lo teniamo nascosto per pulizia visiva
+                badge.style.display = 'none';
 
                 slot.appendChild(icon);
                 slot.appendChild(badge);
                 inventoryDiv.appendChild(slot);
             }
         }
-        // ----------------------------------------
-        
         this.GotTaken = true;
     }
-    static CreateMask(xPos, yPos) {
-        let selectedId = Math.floor(Math.random() * 12) + 1; 
-        if(g.PowerUps.length === 3){
-            selectedId = 13;
-        }
-        // Estrae un numero a caso da 1 a 12
-        
-        const config = MASK_STATS[selectedId];
+
+    static CreateMask(xPos = 0, yPos = 0, forcedId = null) {
+        let selectedId = forcedId || (Math.floor(Math.random() * 12) + 1);
+        const config = MASK_STATS[selectedId] || MASK_STATS[1];
 
         let newMask = new Mask({
             position: { x: xPos, y: yPos },
-            size: config.size,
+            size: { x: config.size.x, y: config.size.y },
             CuringHealth: config.CuringHealth,
             DamageMult: config.DamageMult,
             KnockBack: config.KnockBack,
             imageSrc: config.imageSrc,
             framesMax: config.framesMax,
             scale: config.scale,
-            offset: config.offset,
+            offset: { x: config.offset.x, y: config.offset.y },
             price: config.price
         });
-        
-        // Stats Vecchie
+
+        // Copy perk flags WITHOUT overwriting position or size!
+        newMask.name = config.name;
         newMask.MaxHealthUp = config.MaxHealthUp;
+        newMask.DemonStrength = config.DemonStrength;
         newMask.CanShoot = config.CanShoot;
         newMask.LifeSteal = config.LifeSteal;
         newMask.SpeedMult = config.SpeedMult;
         newMask.JumpBoost = config.JumpBoost;
-        
-        // Stats Nuove (le passiamo alla maschera prima di essere presa)
+        newMask.HermesBoots = config.HermesBoots;
+        newMask.TitanHeart = config.TitanHeart;
         newMask.Ricochet = config.Ricochet;
         newMask.ToxicTrail = config.ToxicTrail;
         newMask.Executioner = config.Executioner;
@@ -1310,16 +1592,23 @@ class Mask extends Sprite{
         newMask.SoulCollector = config.SoulCollector;
         newMask.SplitShot = config.SplitShot;
         newMask.isFightTime = config.isFightTime;
-
-        newMask.name = config.name;
+        newMask.vfxKey = config.vfxKey;
+        newMask.audioKey = config.audioKey;
         newMask.Placed = true;
 
         return newMask;
     }
-    
 }
-class FloatingText{
-    constructor({position = {x: 0, y:0},velocity = {x:0, y:-0.5},text,opacity = 1,color ="white",fadeSpeed = 0.02}){
+
+// ============================================================================
+// POOLED FLOATING TEXT CLASS
+// ============================================================================
+class FloatingText {
+    constructor(config = {}) {
+        this.reset(config);
+    }
+
+    reset({ position = { x: 0, y: 0 }, velocity = { x: 0, y: -0.5 }, text = "", opacity = 1, color = "white", fadeSpeed = 0.02 }) {
         this.position = position;
         this.velocity = velocity;
         this.text = text;
@@ -1328,447 +1617,312 @@ class FloatingText{
         this.dead = false;
         this.fadeSpeed = fadeSpeed;
     }
-    draw(){
 
-        c.save()
-        c.globalAlpha = this.opacity 
-        c.font = "bold 30px 'Press Start 2P', sans-serif"
-        c.fillStyle = this.color
-        
-        if (this.text !== ""){
-            c.lineWidth = 3
-            c.strokeStyle = 'black'
-            c.strokeText(this.text, this.position.x, this.position.y)
-            c.fillText(this.text, this.position.x, this.position.y)
+    draw() {
+        if (!IsInViewport(this, 100)) return;
+        c.save();
+        c.globalAlpha = this.opacity;
+        c.fillStyle = this.color;
+
+        if (this.text !== "") {
+            c.font = "bold 22px 'Press Start 2P', sans-serif";
+            c.lineWidth = 3;
+            c.strokeStyle = 'black';
+            c.strokeText(this.text, this.position.x, this.position.y);
+            c.fillText(this.text, this.position.x, this.position.y);
+        } else {
+            c.fillRect(this.position.x, this.position.y, 5, 5);
         }
-        else {
-            
-            c.fillRect(this.position.x, this.position.y,5,5);
-        }
-        c.restore()
+        c.restore();
     }
-    update(){
+
+    update() {
         this.draw();
-        this.position.y +=this.velocity.y;
-        this.position.x +=this.velocity.x;
+        this.position.y += this.velocity.y;
+        this.position.x += this.velocity.x;
         this.opacity -= this.fadeSpeed;
-        if (this.opacity<= 0 ){
-            this.opacity = 0 ; 
-            this.dead= true;
+        if (this.opacity <= 0) {
+            this.opacity = 0;
+            this.dead = true;
         }
     }
 }
-class FloatingPointers extends FloatingText{
-    constructor({position,text,color,offset = {x:0,y:0},target,isMob}){
-        super({
-            position,
-            text,
-            color
-        })
+
+class FloatingPointers extends FloatingText {
+    constructor({ position, text, color, offset = { x: 0, y: 0 }, target, isMob }) {
+        super({ position, text, color });
         this.offset = offset;
         this.target = target;
         this.isMob = isMob;
     }
-    static createPointers(player) {
-        let color, name, isMob = false;
 
-        if (player.Player === 1) {
-            color = "#FF3126";
-            name = g.Fighter1Name;
-        } else if (player.Player === 2 && !player.isAI) {
-            color = "#8f00ff";
-            name = "2";
-        } else {
-            color = "red";
-            name = "3"; // Niente nome per i mob
-            isMob = true; 
-        }
-        
+    static createPointers(player) {
+        const isMob = player.Player !== 1;
         return new FloatingPointers({
-            text: name,
-            color: color,
+            text: isMob ? "" : g.Fighter1Name,
+            color: isMob ? "red" : "#FF3126",
             target: player,
-            isMob: isMob
+            isMob
         });
     }
-    draw(){
-        if(!this.isMob){
+
+    draw() {
+        if (!IsInViewport(this.target)) return;
+        if (!this.isMob) {
             super.draw();
-        }
-        else {
-            const barWidth = 50; 
-            const barHeight = 5;
-            const hpPercent = Math.max(0,this.target.HealthPoints / 100);
+        } else {
+            const barWidth = this.target.type === "SkullBoss" ? 90 : 54;
+            const barHeight = this.target.type === "SkullBoss" ? 8 : 6;
+            const maxHp = this.target.MaxHealthPoints || 100;
+            const hpPercent = Math.max(0, Math.min(1, this.target.HealthPoints / maxHp));
 
-            // Color and Style
             c.save();
-            c.fillStyle = '#440000'; 
+            c.fillStyle = '#440000';
             c.fillRect(this.position.x, this.position.y, barWidth, barHeight);
-            if (hpPercent < 0.34){
-                c.fillStyle = '#ff4800'; 
-
-            }
-            else if (hpPercent > 0.34 && hpPercent < 0.5){
-                c.fillStyle = '#ffbf00'; 
-
-            }
-            else {
-                c.fillStyle = '#00ff00'; 
-            }
-            
+            c.fillStyle = this.target.bossArmorActive ? '#00e5ff' : (hpPercent < 0.34 ? '#ff4800' : '#00ff00');
             c.fillRect(this.position.x, this.position.y, barWidth * hpPercent, barHeight);
-            
-            c.strokeStyle = 'black'; 
-            c.lineWidth = 0.5;
+            c.strokeStyle = 'black';
             c.strokeRect(this.position.x, this.position.y, barWidth, barHeight);
             c.restore();
-
         }
     }
-    update(){
-        const player = this.target;
-        if (player.Dead) return ;
-        if (this.isMob) {
-            this.position.x = player.position.x + (player.size.x /2) -20;
-            this.position.y = player.position.y - 15;
-        }
-        else {
-            this.position.x = player.position.x + this.offset.x;
-            this.position.y = player.position.y + this.offset.y;
 
-        }
+    update() {
+        const player = this.target;
+        if (!player || player.Dead) return;
+        this.position.x = player.position.x + (player.size.x / 2) - (player.type === "SkullBoss" ? 45 : 27);
+        this.position.y = player.position.y - 18;
         this.draw();
     }
 }
-class Platform extends Sprite{
-    constructor({position,size = {x:300,y:15},color,imageSrc,sprites,scale = 1 , framesMax=1 ,offset = {x:0, y:0}}){
-        super({
-            position,
-            size,
-            color,
-            imageSrc,
-            scale,
-            framesMax,
-            offset,
-            sprites
-        })
+
+class Platform extends Sprite {
+    constructor({ position, size = { x: 300, y: 15 }, color, imageSrc, sprites, scale = 1, framesMax = 1, offset = { x: 0, y: 0 } }) {
+        super({ position, size, color, imageSrc, scale, framesMax, offset, sprites });
     }
-    
 }
-class Bullet extends Sprite{
-    constructor({position,velocity = {x: 0 , y : 0},size ,isMute = false,color = "black",imageSrc,sprites,scale = 1 , framesMax=1 ,offset = {x:0, y:0},Damage,KnockBack,caster,other,liveFrames = 0,isUnblockable = false}){
-        super({
-            position,
-            size,
-            color,
-            imageSrc,
-            scale,
-            framesMax,
-            offset,
-            sprites
-        })
+
+// ============================================================================
+// BULLET CLASS (Includes Skull Beam & Predictive Missile Target Reticle!)
+// ============================================================================
+class Bullet extends Sprite {
+    constructor({ position, velocity = { x: 0, y: 0 }, size, isMute = false, color = "black", imageSrc, sprites, scale = 1, framesMax = 1, offset = { x: 0, y: 0 }, Damage, KnockBack, caster, other, liveFrames = 0, isUnblockable = false, isToxicPool = false, isSkullBeam = false, isPredictiveMissile = false, targetStrikeX = 0, targetStrikeY = 0 }) {
+        super({ position, size, color, imageSrc, scale, framesMax, offset, sprites });
         this.Damage = Damage;
         this.KnockBack = KnockBack;
         this.hasHit = false;
-        this.Bullets = [];
-        this.velocity=velocity;
+        this.velocity = velocity;
         this.caster = caster;
         this.other = other;
         this.liveFrames = liveFrames;
-        this.framesMax = framesMax;
         this.isUnblockable = isUnblockable;
         this.isMute = isMute;
-        
-        this.Direction = {
-            left: this.velocity.x < 0,
-            right: this.velocity.x >= 0
-        };
-
+        this.isToxicPool = isToxicPool;
+        this.isSkullBeam = isSkullBeam;
+        this.isPredictiveMissile = isPredictiveMissile;
+        this.targetStrikeX = targetStrikeX;
+        this.targetStrikeY = targetStrikeY;
     }
-    update(dt){
-        this.liveFrames++;
 
-        this.Direction = {
-            left: this.velocity.x < 0,
-            right: this.velocity.x >= 0
-        };
+    update(dt) {
+        this.liveFrames++;
         this.animateFrames(dt);
 
-         
-        this.position.x += this.velocity.x*dt; 
+        if (this.isPredictiveMissile && Player1 && !Player1.Dead && this.liveFrames < 35) {
+            const desiredX = Player1.position.x + Player1.velocity.x * 20;
+            this.targetStrikeX += (desiredX - this.targetStrikeX) * 0.08;
+            const dx = this.targetStrikeX - this.position.x;
+            const dy = this.targetStrikeY - this.position.y;
+            const mag = Math.max(1, Math.hypot(dx, dy));
+            this.velocity.x = (dx / mag) * 20;
+            this.velocity.y = (dy / mag) * 20;
+        }
 
-        this.velocity.y+=g.Gravity_Acceleration/8;
-        this.position.y +=this.velocity.y *dt;
+        this.position.x += this.velocity.x * dt;
+        if (!this.isToxicPool && !this.isSkullBeam && !this.isPredictiveMissile) {
+            this.velocity.y += g.Gravity_Acceleration / 8;
+        }
+        this.position.y += this.velocity.y * dt;
 
-        // - - - COLLISIONS WITH PLAYERS - - - 
-        if (this.liveFrames > 300 ){
-                    if (!this.isMute){
-                        SoundManager.play('fireExplosion');
-                    }
-                    const index =  g.Bullets.indexOf(this);
-                    this.hasHit = true;
-                    if (index !== -1){
-                        g.Bullets.splice(index,1);
-                    }
-                    CreateVFX(this, "DISAPPEAR","",false)
+        if (this.isPredictiveMissile && this.position.y + this.size.y >= g.MAX_HEIGHT - 600) {
+            PlayGameSound('fireExplosion');
+            g.cameraShake = 12;
+            g.Bullets.push(new Shockwave({ position: { x: this.position.x + this.size.x / 2, y: g.MAX_HEIGHT - 600 } }));
+
+            if (Player1 && !Player1.Dead && Math.abs(Player1.position.x - this.position.x) < 170 && Math.abs(Player1.position.y - this.position.y) < 150) {
+                Player1.HealthPoints -= this.Damage;
+                ReduceAddHP(Player1);
+                Player1.hurt();
+                CreateVFX(Player1, "HIT");
             }
-    
-       else if (!this.hasHit) {
-            // Troviamo i bersagli (se sei P1 colpisci tutti i mob, se sei un mob colpisci P1)
-            const targets = this.caster.Player === 1 
-                ? g.Fighters.filter(f => f.Player !== 1 && !f.Dead) 
+            this.hasHit = true;
+            this.Dead = true;
+            return;
+        }
+
+        if (this.liveFrames > 260) {
+            if (!this.isMute) PlayGameSound('fireExplosion');
+            this.hasHit = true;
+            this.Dead = true;
+            return;
+        }
+
+        if (!this.hasHit) {
+            const targets = this.caster.Player === 1
+                ? g.Fighters.filter(f => f.Player !== 1 && !f.Dead)
                 : g.Fighters.filter(f => f.Player === 1 && !f.Dead);
 
-            // Controlliamo se la fireball tocca uno qualsiasi dei bersagli
             for (let i = 0; i < targets.length; i++) {
                 let victim = targets[i];
-                
                 if (CheckCollisions({ rectangle1: this, rectangle2: victim })) {
-                    
-                    // Applica i danni e gli effetti standard a "victim"
                     if (!victim.Defending || this.isUnblockable) {
-                        victim.HealthPoints -= this.Damage;
+                        const mult = (victim.type === "SkullBoss" && victim.bossArmorActive) ? 0.25 : 1;
+                        victim.HealthPoints -= Math.max(1, Math.floor(this.Damage * mult));
                         ReduceAddHP(victim);
                         victim.hurt();
                         CreateVFX(victim, "HIT");
-                        CreateVFX(victim, "DAM");
-                        const pushDir = this.velocity.x >= 0 ? 1 : -1;
-                        victim.velocity.x = pushDir * this.KnockBack;
+                        if (!this.isToxicPool) {
+                            victim.velocity.x = (this.velocity.x >= 0 ? 1 : -1) * this.KnockBack;
+                        }
                     } else {
                         CreateVFX(victim, "DEF");
-                        if (victim.staminaBar < 3) {
-                            victim.staminaBar++;
-                            ReduceAddStamina(victim);
+                    }
+
+                    if (!this.isToxicPool && this.caster && this.caster.Ricochet && !this.hasBounced) {
+                        this.hasBounced = true;
+                        let nearest = targets.find(t => t !== victim && !t.Dead);
+                        if (nearest) {
+                            PlayGameSound('ricochetBounce');
+                            const dx = nearest.position.x - this.position.x;
+                            const dy = nearest.position.y - this.position.y;
+                            const mag = Math.max(1, Math.hypot(dx, dy));
+                            this.velocity.x = (dx / mag) * 32;
+                            this.velocity.y = (dy / mag) * 32;
+                            this.liveFrames = 0;
+                            break;
                         }
                     }
 
-                    // --- RICOCHET MASTER (Nuovo Perk) ---
-                    if (this.caster && this.caster.Ricochet && !this.hasBounced) {
-                        this.hasBounced = true; // Permette 1 solo rimbalzo
-                        this.Damage = Math.floor(this.Damage * 0.7); // 70% del danno
-
-                        // Trova il nemico più vicino escluso chi hai appena colpito
-                        let nearestEnemy = null;
-                        let minDist = 400; // Cerca nel raggio di 400 pixel
-                        
-                        for (let t of targets) {
-                            if (t !== victim) {
-                                const dist = Math.abs(t.position.x - this.position.x);
-                                if (dist < minDist) {
-                                    minDist = dist;
-                                    nearestEnemy = t;
-                                }
-                            }
-                        }
-
-                        // Se trova una seconda vittima, fa rimbalzare il colpo!
-                        if (nearestEnemy) {
-                            SoundManager.play('parry'); // Suono metallico per il rimbalzo
-                            
-                            const dx = nearestEnemy.position.x - this.position.x;
-                            const dy = nearestEnemy.position.y - this.position.y;
-                            const mag = Math.sqrt(dx*dx + dy*dy);
-                            
-                            // Nuova velocità verso il nemico
-                            this.velocity.x = (dx / mag) * 35;
-                            this.velocity.y = (dy / mag) * 35;
-                            this.liveFrames = 0; // Resetta la vita del bullet
-                            
-                            break; // Esce dal ciclo attuale ma il bullet CONTINUA A VOLARE
-                        }
-                    }
-                    
-                    // --- DISTRUZIONE STANDARD ---
-                    // Se non ha rimbalzato (o ha già rimbalzato 1 volta), esplode e muore
-                    SoundManager.play('fireExplosion');
                     this.hasHit = true;
                     this.Dead = true;
-
-                    const index = g.Bullets.indexOf(this);
-                    if (index !== -1) g.Bullets.splice(index, 1);
-                    CreateVFX(this, "DISAPPEAR", "", false);
-                    
                     break;
                 }
             }
         }
-        
-
-        // - - - COLLISIONS WITH PLATFORMS - - - 
-        g.Platforms.forEach(c => {
-            if (CheckCollisions({ rectangle1: this, rectangle2: c })) {
-                BouncinessPlatformCollisions({ rectangle1: this, rectangle2: c });
-            }
-        });
 
         this.Draw();
     }
-    Draw() {
-        // - - - DEBUG BOX - - -
-        //c.fillStyle = this.color;
-        //c.fillRect(this.position.x, this.position.y, this.size.x, this.size.y);
 
-        if (!this.image || !this.image.complete || this.image.naturalWidth === 0) return;
+    Draw() {
+        if (this.isPredictiveMissile) {
+            c.save();
+            c.strokeStyle = "#ff0055";
+            c.lineWidth = 3;
+            c.beginPath();
+            c.arc(this.targetStrikeX, this.targetStrikeY - 8, 45, 0, Math.PI * 2);
+            c.stroke();
+            c.font = "bold 11px 'Press Start 2P', monospace";
+            c.fillStyle = "#ff0055";
+            c.textAlign = "center";
+            c.fillText("TARGET LOCK", this.targetStrikeX, this.targetStrikeY - 60);
+            c.restore();
+        }
+
+        if (!IsInViewport(this)) return;
+
+        if (this.isSkullBeam) {
+            c.save();
+            c.fillStyle = "#00e5ff";
+            c.beginPath();
+            c.arc(this.position.x + 24, this.position.y + 24, 20, 0, Math.PI * 2);
+            c.fill();
+            c.fillStyle = "#ffffff";
+            c.beginPath();
+            c.arc(this.position.x + 24, this.position.y + 24, 10, 0, Math.PI * 2);
+            c.fill();
+            c.restore();
+            return;
+        }
+
+        if (!this.hasValidImage()) {
+            c.save();
+            c.fillStyle = this.color || "#39ff14";
+            c.fillRect(this.position.x, this.position.y, this.size.x, this.size.y);
+            c.restore();
+            return;
+        }
 
         const frameWidth = this.image.width / this.framesMax;
-        const angle = Math.atan2(this.velocity.y, this.velocity.x);
+        const angle = this.isToxicPool ? 0 : Math.atan2(this.velocity.y, this.velocity.x);
 
         c.save();
-
-        const centerX = this.position.x + this.size.x / 2;
-        const centerY = this.position.y + this.size.y / 2;
-        c.translate(centerX, centerY);
-
+        c.translate(this.position.x + this.size.x / 2, this.position.y + this.size.y / 2);
         c.rotate(angle);
-
         c.drawImage(
             this.image,
-            this.framesCurrent * frameWidth,
-            0,
-            frameWidth,
-            this.image.height,
-            -this.size.x / 2 - this.offset.x, 
-            -this.size.y / 2 - this.offset.y, 
-            frameWidth * this.scale,
-            this.image.height * this.scale
+            this.framesCurrent * frameWidth, 0,
+            frameWidth, this.image.height,
+            -this.size.x / 2 - this.offset.x, -this.size.y / 2 - this.offset.y,
+            frameWidth * this.scale, this.image.height * this.scale
         );
-
         c.restore();
     }
-    static CreateBullet(val, caster) {
-        const config = val === 1 ? BULLET_STATS[1] : BULLET_STATS[2]; 
-        const other = caster.Player === 1 ? Player2 : Player1;
-        const dir = caster.Direction.right ? 1 : -1;
 
-        // 1. Punti di partenza e bersaglio
+    static CreateBullet(val, caster) {
+        const config = val === 1 ? BULLET_STATS[1] : BULLET_STATS[2];
+        const other = Player1;
+        const dir = caster.Direction.right ? 1 : -1;
         const startX = caster.position.x + (dir === 1 ? caster.size.x : -20);
         const startY = caster.position.y + caster.size.y / 2;
-
-        const targetX = other.position.x + other.size.x / 2;
-        const targetY = other.position.y + other.size.y / 2;
-
-        const dx = targetX - startX;
-        const dy = targetY - startY;
-
-        // 2. Gravità applicata al proiettile
-        const gravity = g.Gravity_Acceleration / 8;
-
-        // --- LA MAGIA DELLA VELOCITÀ È QUI ---
+        const dx = (other.position.x + other.size.x / 2) - startX;
         const isMeteor = val === 2;
-        
-        // Impulso verso l'alto: la meteora va altissima e scende pesante (-12)
-        const vy = isMeteor ? -12 : Math.random() * 10 * -1; 
-
-        // Tempo di volo in frame: 100 = roba veloce. 260 = quasi 4 secondi di terrore puro
-        const flightTime = isMeteor ? 260 : 100; 
-        
-        // 5. Velocità orizzontale scalata in base al tempo
-        const vx = dx / flightTime;
+        const flightTime = isMeteor ? 220 : 90;
 
         return new Bullet({
             position: { x: startX, y: startY },
-            velocity: { x: vx, y: vy }, 
+            velocity: { x: dx / flightTime, y: isMeteor ? -12 : -6 },
             size: config.size,
             KnockBack: config.KnockBack,
             imageSrc: config.imageSrc,
             framesMax: config.framesMax,
             scale: config.scale,
             offset: config.offset,
-            Damage: config.Damage, 
-            caster: caster,
-            other: other, 
-            color : config.color,
-            isUnblockable: isMeteor // La meteora (2) non si para
+            Damage: config.Damage,
+            caster,
+            other,
+            color: config.color,
+            isUnblockable: isMeteor
         });
     }
 }
+
 class Shockwave extends Sprite {
     constructor({ position }) {
         super({ position });
-
-        this.size = { x: 0, y: 0 }; 
+        this.size = { x: 100, y: 100 };
         this.isUnblockable = true;
-        this.radius = 5;
+        this.radius = 8;
         this.opacity = 1;
         this.Dead = false;
-        this.hasHit = false; // non fa danni come un Bullet normale
-
-        // Lingue di fiamma che si alzano dal punto d'impatto
-        this.flames = [];
-        const flameCount = 14;
-        for (let i = 0; i < flameCount; i++) {
-            this.flames.push({
-                angle: (Math.PI / (flameCount - 1)) * i, // ventaglio verso l'alto
-                dist: 0,
-                maxDist: 30 + Math.random() * 60,
-                height: 30 + Math.random() * 40,
-                width: 4 + Math.random() * 5,
-                wobble: Math.random() * Math.PI * 2,
-                wobbleSpeed: 0.15 + Math.random() * 0.15,
-                life: 1,
-                decay: 0.015 + Math.random() * 0.015,
-                delay: Math.random() * 6 // partenze sfalsate = più organico
-            });
-        }
+        this.hasHit = false;
     }
 
     update(dt) {
-        this.radius += 10 * dt;
-        this.opacity -= 0.035 * dt;
-
-        this.flames.forEach(f => {
-            if (f.delay > 0) { f.delay -= dt; return; }
-            f.dist = Math.min(f.dist + 2.5 * dt, f.maxDist);
-            f.wobble += f.wobbleSpeed * dt;
-            f.life -= f.decay * dt;
-        });
-
+        this.radius += 12 * dt;
+        this.opacity -= 0.045 * dt;
         this.draw();
         if (this.opacity <= 0) this.Dead = true;
     }
 
     draw() {
+        if (!IsInViewport(this, 300)) return;
         c.save();
-        c.globalCompositeOperation = "lighter";
-
-        // Alone/anello a terra
-        c.globalAlpha = Math.max(0, this.opacity) * 0.5;
-        const ringGrad = c.createRadialGradient(
-            this.position.x, this.position.y, 0,
-            this.position.x, this.position.y, this.radius * 1.6
-        );
-        ringGrad.addColorStop(0, "rgba(140,220,255,0.9)");
-        ringGrad.addColorStop(0.5, "rgba(0,150,255,0.5)");
-        ringGrad.addColorStop(1, "rgba(0,80,255,0)");
+        c.globalAlpha = Math.max(0, this.opacity);
+        c.strokeStyle = "#38bdf8";
+        c.lineWidth = 6;
         c.beginPath();
-        c.ellipse(this.position.x, this.position.y, this.radius * 1.6, this.radius * 0.45, 0, 0, Math.PI * 2);
-        c.fillStyle = ringGrad;
-        c.fill();
-
-        // Lingue di fiamma
-        c.globalAlpha = 1;
-        this.flames.forEach(f => {
-            if (f.life <= 0 || f.delay > 0) return;
-
-            const baseX = this.position.x + Math.cos(f.angle) * f.dist;
-            const baseY = this.position.y - Math.sin(f.angle) * f.dist * 0.3;
-            const sway = Math.sin(f.wobble) * 6;
-            const h = f.height * f.life;
-
-            const grad = c.createLinearGradient(baseX, baseY, baseX + sway, baseY - h);
-            grad.addColorStop(0, `rgba(180,240,255,${0.9 * f.life})`);
-            grad.addColorStop(0.4, `rgba(40,150,255,${0.7 * f.life})`);
-            grad.addColorStop(1, `rgba(10,40,180,0)`);
-
-            c.beginPath();
-            c.moveTo(baseX - f.width / 2, baseY);
-            c.quadraticCurveTo(baseX + sway * 0.6, baseY - h * 0.5, baseX + sway, baseY - h);
-            c.quadraticCurveTo(baseX + sway * 0.4, baseY - h * 0.5, baseX + f.width / 2, baseY);
-            c.closePath();
-            c.fillStyle = grad;
-            c.fill();
-        });
-
+        c.ellipse(this.position.x, this.position.y, this.radius * 1.5, this.radius * 0.4, 0, 0, Math.PI * 2);
+        c.stroke();
         c.restore();
     }
 }

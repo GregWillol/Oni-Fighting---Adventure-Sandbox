@@ -1,351 +1,331 @@
-
-/* Mettilo alla primissima riga di game.css */
+/* ==========================================================================
+   TOUCH & MOBILE OPTIMIZATIONS
+   ========================================================================== */
 *, *::before, *::after {
     -webkit-user-select: none !important;
     user-select: none !important;
     -webkit-touch-callout: none !important;
     -webkit-tap-highlight-color: transparent !important;
-    /* Evita che Safari cerchi di fare lo zoom sui tap veloci */
-    touch-action: manipulation; 
+    touch-action: manipulation;
 }
-canvas{
+
+canvas {
     display: block;
-    background-color: #778899; 
+    background-color: #0d0f18;
+    /* Crisp pixel art rendering with zero GPU upscale cost */
+    image-rendering: -moz-crisp-edges;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: pixelated;
 }
 
 #Gioco {
     position: relative;
-    width: 1280px; 
-    max-width: 100%;
-    margin: 0 auto; 
+    width: 1280px;
+    max-width: 100vw;
+    max-height: 100dvh;
+    aspect-ratio: 16 / 9;
+    margin: 0 auto;
     touch-action: none;
+    overflow: hidden;
+    box-shadow: 0 0 35px rgba(0, 0, 0, 0.9);
+    border: 2px solid rgba(255, 215, 0, 0.25);
 }
-.menu{
-    position: absolute;
-    width: 1280px; 
-    height: 720px;
-    margin: 0 auto; 
-    backdrop-filter: blur(12px);
-    display:flex;
-    z-index :200;
-    align-items: center;
-    justify-content: center;
-}
-#perks{
-    display : none;
-    
-}
-#choosing-perks{
-    display: flex;
-
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    gap : 2vw;
-}
-.perk-slot {
-    position: relative; 
-    display: inline-block;
-}
-.perk-badge {
-    position: absolute;
-    bottom: -6px;
-    right: -6px;
-    background-color: rgba(0, 0, 0, 0.9);
-    border: 1px solid gold;
-    color: white;
-    font-family: 'Press Start 2P', monospace; /* Come il resto del tuo gioco */
-    font-size: clamp(6px, 1vh, 10px); /* Numerino responsive */
-    padding: 2px 3px;
-    border-radius: 4px;
-    z-index: 10;
-}
-.perks-button{
-    background: linear-gradient(to bottom, #000,#b8870b48);
-    color: #ffd700;
-    font-family: 'Press Start 2P', cursive; 
-    font-size: 16px;
-    padding : 20px 40px;
-    border: 2px solid orange;
-    box-shadow: 4px 4px 0px #000;
-    transition: all 0.1s;
-    display: block;
-    margin: 20px auto;
-}
-
-.perks-button:hover{
-    animation : arcade-pulse 1s ease-in-out infinite ; 
-}
-.perks-button.selected{
-    transform: scale(1.1);
-    animation : arcade-pulse 1s linear infinite ; 
-}
-.perks-button img{
-    height: 100%;
-    width : 100%;
-    object-fit: cover;
-}
-@keyframes arcade-pulse {
-    0% {
-        box-shadow: 4px 4px 0px #000; 
-        filter: brightness(100%);
-    }
-    30%{
-        box-shadow: 2px 2px 0px #000, 0 0 15px #ffd700;
-        filter: brightness(80%); 
-        border-color: #fff;
-    }
-    60%{
-        box-shadow: 4px 4px 0px #000, 0 0 15px #ffd700;
-        filter: brightness(120%); 
-        border-color: #fff;
-    }
-    80%{
-        box-shadow: 2px 2px 0px #000, 0 0 15px #ffd700;
-        filter: brightness(80%); 
-        border-color: #fff;
-    }
-    100% {
-        box-shadow: 4px 4px 0px #000; 
-        filter: brightness(100%);
-    }
-}
-#text-press-to-start{
-    font-size: clamp(20px, 4vw, 40px);
-    animation: pulseFade 5s ease-in-out infinite;
-}
-
 
 #Game {
     width: 100%;
-    height: auto;
-    aspect-ratio: 16 / 9;
-    box-shadow: 0 0 20px rgba(0,0,0,0.5);
-    z-index : 1;
+    height: 100%;
+    object-fit: contain;
+    z-index: 1;
 }
+
 @media (max-width: 1024px) {
-    body, html {
-        background-color: #000;
-    }
-    
     #Gioco {
         width: 100vw;
-        height: 100dvh; 
+        height: 100dvh;
+        border: none;
         display: flex;
         align-items: center;
         justify-content: center;
     }
-    
-    #Game {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-    }
 }
-#Fullscreen{
-    position: absolute;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    right:50%;
 
+/* ==========================================================================
+   MENUS & OVERLAYS
+   ========================================================================== */
+.menu {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(8, 10, 18, 0.85);
+    display: flex;
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
 }
+
+#perks {
+    display: none;
+}
+
+#choosing-perks {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 2vw;
+}
+
+#text-press-to-start {
+    font-size: clamp(18px, 3.5vw, 38px);
+    text-align: center;
+    padding: 20px;
+    cursor: pointer;
+    animation: pulseFade 2.5s ease-in-out infinite;
+}
+
+/* ==========================================================================
+   TOP INTERFACE (HP, STAMINA, COINS, TIMER, INVENTORY)
+   ========================================================================== */
 #Interface {
-    top: 2vw;
+    top: 12px;
     left: 0;
     width: 100%;
-    max-width: 1280px;
-    height: clamp(60px, 12vh, 100px); 
-    position: absolute; 
+    height: clamp(55px, 10vh, 90px);
+    position: absolute;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     flex-direction: row;
-    justify-content: space-between; 
-    padding: 0 1vw; 
-    box-sizing: border-box; 
+    justify-content: space-between;
+    padding: 0 18px;
     z-index: 10;
+    pointer-events: none;
 }
-#Timer {
-    height: clamp(50px, 10vw, 90px);
-    width: clamp(50px, 10vw, 90px);
-    position: relative; 
-    display: flex; 
-    align-items: center;
-    justify-content: center;
-    backdrop-filter: blur(12px);
-    border: 1px black dotted;
-    border-radius: 20%;
-    font-size: clamp(20px, 4vw, 40px); /* Testo che si adatta */
-    -webkit-text-stroke: 1px black;
-}
-#Giocatore{
+
+#Giocatore {
     display: flex;
     align-items: center;
-    gap : 2%;
+    gap: 12px;
 }
-.health-bar-container {
-    width: 100%; /* Si adatta automaticamente alla larghezza del P1-container */
-    height: clamp(15px, 4vh, 30px);
-    background-color: rgba(0,0,0,0.5); 
-    border: 2px solid gray; 
-    border-radius: 4px;
-    box-shadow: 0 0 5px rgba(0,0,0,0.5);
-}
-#ContainerP2{
-    transform: scaleX(-1);
-}
-.health-bar{
-    position : relative; 
-    height : 100%; 
-    width : 100%;
-    transition: width 0.3s ease-out;
-    background: linear-gradient(90deg, rgba(209, 69, 38, 1) 0%, rgba(199, 188, 87, 1) 86%, rgba(237, 221, 83, 1) 100%);
-}
+
 .NomeGiocatore {
-    width: clamp(50px, 8vw, 100px); 
-    height: clamp(35px, 6vh, 60px);
-    display: flex ;
+    width: clamp(48px, 7vw, 85px);
+    height: clamp(34px, 6vh, 52px);
+    display: flex;
     align-items: center;
     justify-content: center;
-    font-size: clamp(14px, 3vw, 30px);
+    font-size: clamp(12px, 2vw, 22px);
     font-weight: 800;
     color: #ffffff;
     text-shadow: 2px 2px 0 #000;
-    background: linear-gradient(265deg, #8f00ff,#6916a5);
-    border-radius: 10px;
-    border: clamp(2px, 0.5vw, 5px) solid #b889c7; 
+    background: linear-gradient(135deg, #cb3737, #991b1b);
+    border-radius: 8px;
+    border: 3px solid #fca5a5;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
 }
-#P1{
-    background: linear-gradient(265deg, #cb3737,#FF3126);
-    border : 5px solid #f3b7b7;
-}
-#Announcement{
-    position: absolute;
-    display: none;
-    top : 50%;
-    left : 50%;
-    transform: translate(-50%,-50%);
-    align-items : center; 
-    justify-content: center;
-    width : 900px;
-    height : 300px;
-    background-color: red;
-    /*backdrop-filter: blur(1px);*/
-    -webkit-text-stroke: 2px black;
-    letter-spacing: 2px;
-    /*paint-order: stroke fill;*/
-}
-@keyframes pulseFade {
-  0%, 100% {
-    transform: scale(0.95);
-    opacity: 0.8;
-  }
-  50% {
-    transform: scale(1.08);
-    opacity: 1;
-  }
-}
-@keyframes bounceIn {
-    0% {
-        transform: translate(-50%, -50%) scale(0); 
-        opacity: 0.6;
-    }
-    20% {
-        transform: translate(-50%, -50%) scale(1.1); 
-        opacity: 0.9;
-    }
-    40% {
-        transform: translate(-50%, -50%) scale(1.2); 
-        opacity: 0.9;
-    }
-    60% {
-        transform: translate(-50%, -50%) scale(1.2); 
-        opacity: 1;
-    }
-    80% {
-        transform: translate(-50%, -50%) scale(1.1); 
-        opacity: 0.9;
-    }
-    100% {
-        transform: translate(-50%, -50%) scale(1); 
-        opacity: 0.6;
-    }
-}
-.show-announcement{
-    display : flex !important;
-    white-space: nowrap;
-    overflow: hidden;
-    font-size : 40px;
-    animation: bounceIn 6s cubic-bezier(0.68,-0.55,0.27,1.55) infinite;
-}
-.fight-announcement{
-    display: flex !important;
-    font-size : 150px;
-    animation : bounceIn 2s cubic-bezier(0.68,-0.55,0.27,1.55) infinite; 
-}
+
 #P1-container {
-    width: clamp(150px, 30vw, 400px); /* Magia: calcola lui lo spazio! */
+    width: clamp(150px, 28vw, 360px);
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     justify-content: center;
-    gap: 8px; 
+    gap: 6px;
     position: relative;
 }
 
-#stamina-bar-container {
-    width: 40%; 
-    height: clamp(6px, 1.5vh, 12px);
-    background-color: rgba(50, 0, 0, 0.6);
-    border: 2px solid gray; 
+.health-bar-container {
+    width: 100%;
+    height: clamp(14px, 3.2vh, 24px);
+    background-color: rgba(15, 15, 20, 0.85);
+    border: 2px solid #cbd5e1;
     border-radius: 4px;
-    box-shadow: 0 0 5px rgba(0,0,0,0.5);
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
 }
-#stamina-bar{
-    position : relative; 
-    height : 100%; 
-    width : 0%;
-    transition: width 0.3s ease-out;
-    background: linear-gradient(90deg, rgb(163, 225, 235) 0%, rgb(69, 241, 230) 56%, rgb(83, 103, 237) 100%);
+
+.health-bar {
+    position: relative;
+    height: 100%;
+    width: 100%;
+    transition: width 0.2s ease-out;
+    background: linear-gradient(90deg, #dc2626 0%, #f59e0b 70%, #fde047 100%);
 }
+
+#stamina-bar-container {
+    width: 48%;
+    height: clamp(6px, 1.4vh, 11px);
+    background-color: rgba(15, 23, 42, 0.85);
+    border: 1.5px solid #94a3b8;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+#stamina-bar {
+    position: relative;
+    height: 100%;
+    width: 0%;
+    transition: width 0.2s ease-out;
+    background: linear-gradient(90deg, #38bdf8 0%, #2dd4bf 60%, #6366f1 100%);
+}
+
+#Timer {
+    height: clamp(44px, 8vw, 74px);
+    width: clamp(44px, 8vw, 74px);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 18, 30, 0.88);
+    border: 2px solid #ffd700;
+    border-radius: 14px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.75);
+    font-size: clamp(16px, 3vw, 30px);
+}
+
+/* ==========================================================================
+   PERK INVENTORY SLOTS
+   ========================================================================== */
+#inventory-container {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    width: 100%;
+}
+
+.perk-slot {
+    position: relative;
+    display: inline-block;
+}
+
+.inventory-item {
+    width: clamp(22px, 3.2vh, 34px);
+    height: clamp(22px, 3.2vh, 34px);
+    border: 2px solid #fbbf24;
+    border-radius: 4px;
+    object-fit: contain;
+    background: rgba(10, 12, 20, 0.85);
+}
+
+.perk-badge {
+    position: absolute;
+    bottom: -5px;
+    right: -5px;
+    background-color: #000;
+    border: 1px solid #ffd700;
+    color: #fff;
+    font-size: clamp(6px, 1vh, 9px);
+    padding: 2px 3px;
+    border-radius: 3px;
+    z-index: 10;
+}
+
+/* ==========================================================================
+   ANNOUNCEMENTS (CLEAN ARCADE BANNER WITHOUT UGLY RED BOX)
+   ========================================================================== */
+#Announcement {
+    position: absolute;
+    display: none;
+    top: 42%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    width: 90%;
+    max-width: 950px;
+    padding: 18px 24px;
+    background: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(15,18,30,0.88) 20%, rgba(15,18,30,0.88) 80%, rgba(0,0,0,0) 100%);
+    border-top: 2px solid rgba(255, 215, 0, 0.6);
+    border-bottom: 2px solid rgba(255, 215, 0, 0.6);
+    -webkit-text-stroke: 1.5px #000;
+    letter-spacing: 2px;
+    z-index: 150;
+    pointer-events: none;
+}
+
+.show-announcement {
+    display: flex !important;
+    font-size: clamp(18px, 3.2vw, 38px);
+    animation: bounceIn 4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.fight-announcement {
+    display: flex !important;
+    font-size: clamp(36px, 8vw, 110px);
+    animation: bounceIn 1.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes pulseFade {
+    0%, 100% { transform: scale(0.96); opacity: 0.75; }
+    50% { transform: scale(1.05); opacity: 1; }
+}
+
+@keyframes bounceIn {
+    0%   { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
+    25%  { transform: translate(-50%, -50%) scale(1.08); opacity: 1; }
+    80%  { transform: translate(-50%, -50%) scale(1.0); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(0.95); opacity: 0.85; }
+}
+
+/* ==========================================================================
+   MOBILE TOUCH CONTROLS & FULLSCREEN BUTTON
+   ========================================================================== */
+#Fullscreen {
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 300;
+}
+
+#btn-fullscreen {
+    background: rgba(15, 18, 30, 0.85);
+    border: 2px solid rgba(255, 215, 0, 0.6);
+    color: #ffd700;
+    font-size: 18px;
+    border-radius: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+}
+
 #mobile-controls {
     position: absolute;
-    bottom: 25px;
+    bottom: 20px;
     left: 0;
     width: 100%;
     display: flex;
     justify-content: flex-end;
-    padding: 0 40px;
-    box-sizing: border-box;
+    padding: 0 28px;
     z-index: 100;
-    pointer-events: none; /* Permette il click sotto se premi dove non ci sono bottoni */
+    pointer-events: none;
 }
 
 #mobile-controls button {
     pointer-events: auto;
-    /* Anche i bottoni touch si rimpiccioliscono se lo schermo è piccolo */
-    width: clamp(45px, 12vw, 65px);
-    height: clamp(45px, 12vw, 65px);
+    width: clamp(48px, 11vw, 66px);
+    height: clamp(48px, 11vw, 66px);
     border-radius: 50%;
-    background: rgba(0, 0, 0, 0.4);
-    border: 2px solid rgba(255, 255, 255, 0.4);
+    background: rgba(15, 18, 30, 0.78);
+    border: 2px solid rgba(255, 255, 255, 0.45);
     color: white;
-    font-size: clamp(16px, 4vw, 22px);
-    backdrop-filter: blur(4px);
-    user-select: none;
-    -webkit-user-select: none;
-    touch-action: manipulation;
+    font-size: clamp(16px, 3.8vw, 22px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
 }
 
 #mobile-controls button:active {
-    background: rgba(255, 255, 255, 0.4);
+    background: rgba(255, 215, 0, 0.45);
     transform: scale(0.92);
 }
 
-.dpad, .actions {
+.actions {
     display: flex;
-    gap: 15px;
+    gap: 12px;
 }
+
 #joystick-zone {
     position: absolute;
     bottom: 0;
@@ -354,22 +334,19 @@ canvas{
     height: 45vh;
     z-index: 100;
     pointer-events: auto;
-    
-    
 }
 
 #joystick-base {
     position: fixed;
-    width: 100px;
-    height: 100px;
-    margin-left: -50px;
-    margin-top: -50px;
+    width: 96px;
+    height: 96px;
+    margin-left: -48px;
+    margin-top: -48px;
     border-radius: 50%;
-    background: rgba(0,0,0,0.25);
-    border: 2px solid rgba(255,255,255,0.3);
-    backdrop-filter: blur(4px);
+    background: rgba(15, 18, 30, 0.55);
+    border: 2px solid rgba(255, 255, 255, 0.35);
     opacity: 0;
-    transition: opacity 0.15s;
+    transition: opacity 0.12s;
     pointer-events: none;
     z-index: 999;
 }
@@ -378,92 +355,9 @@ canvas{
     position: absolute;
     top: 50%;
     left: 50%;
-    width: 45px;
-    height: 45px;
+    width: 42px;
+    height: 42px;
     border-radius: 50%;
-    background: rgba(255,255,255,0.55);
+    background: rgba(255, 215, 0, 0.7);
     transform: translate(-50%, -50%);
 }
-/* Tasto Fullscreen */
-#btn-fullscreen {
-    background: rgba(0, 0, 0, 0.6);
-    border: 2px solid rgba(255, 255, 255, 0.5);
-    color: white;
-    font-size: 20px;
-    border-radius: 8px;
-    padding: 8px 12px;
-    cursor: pointer;
-    backdrop-filter: blur(4px);
-    z-index: 100;
-}
-
-#btn-fullscreen:active {
-    transform: scale(0.95);
-}
-
-#Gioco:fullscreen, #Gioco:-webkit-full-screen {
-    width: 100vw;
-    height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #000;
-}
-
-#Gioco:fullscreen #Game, #Gioco:-webkit-full-screen #Game {
-    width: 100vw;
-    height: 100vh;
-    object-fit: contain;
-}
-
-
-/*choosing enemies styles*/
-#choosing-enemies {
-    position: absolute;
-    top: 120px; /* Lo mette in alto a destra, appena sotto i nomi/vita */
-    right: 20px;
-    display: flex;
-    flex-direction: column; /* Mette i bottoni in colonna */
-    gap: 10px;
-    z-index: 100;
-}
-.spawn-enemies {
-    background: linear-gradient(to bottom, #000,#b8870b48);
-    color: #ffd700;
-    border: 1px solid white;
-    padding: 8px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-family: 'Press Start 2P', cursive;
-}
-
-.spawn-enemies:hover {
-    background: linear-gradient(to bottom, #ffd900a8,#b8870b96);
-    animation: arcade-pulse 5s ease-in-out infinite;
-}
-
-.spawn-enemies:active {
-    transform: translate(4px, 4px);
-    box-shadow: 0px 0px 0px #000;
-    animation : none;
-}
-#inventory-container {
-    position: absolute; /* Fluttua sotto le barre */
-    top: 100%;
-    left: 0;
-    display: flex;
-    flex-wrap: wrap; 
-    gap: 8px; /* Leggermente aumentato per far respirare i badge */
-    width: 100%; 
-    margin-top: 8px; 
-}
-
-.inventory-item {
-    width: clamp(20px, 3vh, 35px); /* Un pelo più grande per far leggere il numero */
-    height: clamp(20px, 3vh, 35px);
-    border: 2px solid #ffbf00;
-    border-radius: 3px;
-    object-fit: contain; 
-    background: rgba(0,0,0,0.5); /* Sfondo scuro per far risaltare l'oggetto */
-}
-
