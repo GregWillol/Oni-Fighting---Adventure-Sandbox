@@ -175,7 +175,7 @@ canvas {
     background: linear-gradient(90deg, #d97706 0%, #fbbf24 65%, #fef08a 100%);
 }
 
-#Timer {
+#Timer, #coin-counter {
     height: clamp(42px, 7vw, 64px);
     width: clamp(42px, 7vw, 64px);
     position: relative;
@@ -189,6 +189,9 @@ canvas {
     font-size: clamp(15px, 2.6vw, 24px);
     color: #e2c07d !important;
     text-shadow: 2px 2px 0 #000;
+}
+#coin-counter{
+    font-size: clamp(10px,10vw,12px);
 }
 /* ==========================================================================
    PERK INVENTORY SLOTS

@@ -11,7 +11,7 @@ const Player1 = Fighter.createFighters(1);
 
 const Aura1 = Sprite.CreateAura(1);
 const Aura2 = Sprite.CreateAura(2);
-// Load equipped Skin, Aura, Custom Katana, Trail and Gamepasses from shop.html
+// Load equipped Skin, Aura, Custom Katana, Pet, Kill Effect, Trail and Gamepasses from shop.html
 (function applyShopLoadout() {
     const loadout = JSON.parse(localStorage.getItem('oni_active_loadout') || 'null');
     if (!loadout || !Player1) return;
@@ -19,7 +19,11 @@ const Aura2 = Sprite.CreateAura(2);
     Player1.skinFilter = loadout.skinFilter || 'none';
     Player1.customTrailColor = loadout.trailColor || null;
 
-    // 1. Equip Aura (Fixes Aura not showing in game!)
+    // 1. Equip Pet & Kill Finisher
+    if (loadout.pet && loadout.pet.id !== 'pet_none') Player1.equippedPet = loadout.pet;
+    if (loadout.killEffect && loadout.killEffect.id !== 'kill_none') Player1.killEffect = loadout.killEffect;
+
+    // 2. Equip Aura
     Player1.shopAuraType = loadout.auraType || 'none';
     Player1.shopAuraColor = loadout.auraColor || '#ff3126';
     if (Player1.shopAuraType !== 'none') {
@@ -34,7 +38,7 @@ const Aura2 = Sprite.CreateAura(2);
         }
     }
 
-    // 2. Equip Custom Katana & its passive stat buffs
+    // 3. Equip Custom Katana & its passive stat buffs
     if (loadout.weapon && loadout.weapon.id !== 'wpn_default') {
         Player1.equippedWeapon = loadout.weapon;
         Player1.Damage += (loadout.weapon.dmgBonus || 0);
@@ -48,7 +52,7 @@ const Aura2 = Sprite.CreateAura(2);
         if (loadout.weapon.element === 'chaos') Player1.CanShoot = true;
     }
 
-    // 3. Permanent Gamepass Upgrades
+    // 4. Permanent Gamepass Upgrades
     if (loadout.bonusHp) {
         Player1.MaxHealthPoints += loadout.bonusHp;
         Player1.HealthPoints = Player1.MaxHealthPoints;
@@ -248,16 +252,16 @@ document.addEventListener("keyup", e => {
         case 'q': if (Player1.keys.slam.pressed) Player1.keys.slam.pressed = false; break;
     }
 });
-// Track mouse/touch position in Canvas coordinates for Inventory hover tooltips
 g.mouse = { x: 0, y: 0 };
 function updateCanvasPointer(clientX, clientY) {
     const rect = g.canvas.getBoundingClientRect();
     g.mouse.x = (clientX - rect.left) * (g.canvas.width / rect.width);
     g.mouse.y = (clientY - rect.top) * (g.canvas.height / rect.height);
 }
-g.canvas.addEventListener("mousemove", e => updateCanvasPointer(e.clientX, e.clientY));
-g.canvas.addEventListener("touchstart", e => {
-    if (g.inventoryOpen && e.touches[0]) updateCanvasPointer(e.touches[0].clientX, e.touches[0].clientY);
+// Ascolta su window così i div dell'interfaccia non bloccano mai l'hover del mouse!
+window.addEventListener("mousemove", e => updateCanvasPointer(e.clientX, e.clientY));
+window.addEventListener("touchstart", e => {
+    if (e.touches[0]) updateCanvasPointer(e.touches[0].clientX, e.touches[0].clientY);
 }, { passive: true });
 
 function initMobileControls() {
