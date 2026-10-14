@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Oni Fighting - Blox Shop</title>
+    <title>Oni Fighting -  Shop</title>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <link rel="stylesheet" href="./css/style.css">
     <!-- SDK ufficiale CrazyGames (opzionale: funziona anche offline in locale) -->
@@ -790,31 +791,41 @@
         creditCoins(1500);
     }
 
-    async function watchRewardedAd(packId) {
+    function watchRewardedAd(packId) {
         const pack = SHOP_ITEMS.coins.find(p => p.id === packId);
         if (!pack) return;
 
-        // Usa l'SDK di CrazyGames SOLO se il gioco gira davvero dentro il dominio CrazyGames
-        const isOnCrazyGames = window.location.hostname.includes('crazygames') &&
-                               window.CrazyGames && window.CrazyGames.SDK;
-
-        if (isOnCrazyGames) {
+        // Verifica se l'API di Google H5 Games Ads è caricata e pronta
+        if (typeof window.adBreak === 'function') {
             try {
-                await window.CrazyGames.SDK.init();
-                window.CrazyGames.SDK.ad.requestAd('rewarded', {
-                    adStarted: () => {},
-                    adFinished: () => { creditCoins(pack.rewardCoins); },
-                    adError: () => { simulateLocalAd(pack); }
+                window.adBreak({
+                    type: 'reward', // Tipo video premio
+                    name: 'rewarded_coins_boost',
+                    beforeReward: (showAdFn) => {
+                        // Google è pronto: esegue la funzione per mostrare l'annuncio
+                        showAdFn();
+                    },
+                    adViewed: () => {
+                        // L'utente ha guardato tutto il video: accredita le monete reali!
+                        creditCoins(pack.rewardCoins);
+                    },
+                    adDismissed: () => {
+                        // L'utente ha chiuso il video prima del termine (nessun premio)
+                        console.log("Annuncio chiuso prima del completamento.");
+                    },
+                    adBreakDone: (placementInfo) => {
+                        // Annuncio terminato (successo o chiusura)
+                    }
                 });
                 return;
-            } catch (err) {
+            } catch (e) {
+                // Fallback di sicurezza in caso di blocco locale o adblocker
                 simulateLocalAd(pack);
-                return;
             }
+        } else {
+            // Se in locale lo script di AdSense non è ancora attivo, usa la simulazione
+            simulateLocalAd(pack);
         }
-
-        // In locale (127.0.0.1) o fuori da CrazyGames avvia sempre il Player Video integrato!
-        simulateLocalAd(pack);
     }
 
     function simulateLocalAd(pack) {
