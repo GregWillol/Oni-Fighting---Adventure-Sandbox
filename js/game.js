@@ -7,6 +7,41 @@ g.loadMap(map);
 InitPerkAudioSystem();
 
 const Player1 = Fighter.createFighters(1);
+// Load equipped Skin, Aura, Trail and Gamepasses bought in shop.html
+(function applyShopLoadout() {
+    const loadout = JSON.parse(localStorage.getItem('oni_active_loadout') || 'null');
+    if (!loadout || !Player1) return;
+
+    Player1.skinFilter = loadout.skinFilter || 'none';
+    Player1.customTrailColor = loadout.trailColor || null;
+
+    // Permanent stat upgrades
+    if (loadout.bonusHp) {
+        Player1.MaxHealthPoints += loadout.bonusHp;
+        Player1.HealthPoints = Player1.MaxHealthPoints;
+    }
+    if (loadout.bonusDmg) Player1.Damage += loadout.bonusDmg;
+    if (loadout.vipCoins) {
+        Object.values(FIGHTER_STATS).forEach(st => { if (st.value) st.value *= 2; });
+    }
+    if (loadout.freeStartPerk) {
+        const randId = Math.floor(Math.random() * 12) + 1;
+        Mask.CreateMask(0, 0, randId).MaskTaken(Player1);
+    }
+
+    // Equip permanent Aura
+    if (loadout.auraType === 'sprite1' || loadout.auraType === 'sprite2') {
+        Player1.PoweredUp = true;
+        if (loadout.auraType === 'sprite2' && typeof Aura2 !== 'undefined') {
+            Aura1.image = Aura2.image;
+            Aura1.scale = Aura2.scale;
+            Aura1.offset = Aura2.offset;
+        }
+    } else if (loadout.auraType === 'procedural_gold') {
+        Player1.PoweredUp = true;
+        Player1.speedMult = (Player1.speedMult || 1) + 0.1;
+    }
+})();
 g.Fighters = [Player1];
 
 const Aura1 = Sprite.CreateAura(1);
@@ -189,6 +224,16 @@ document.addEventListener("keyup", e => {
 
 function initMobileControls() {
     const controls = [
+        {
+            id: 'btn-interact',
+            key: 'interact',
+            onPress: () => {
+                if (Player1) {
+                    if (!Player1.keys.interact) Player1.keys.interact = { pressed: false };
+                    Player1.keys.interact.pressed = true;
+                }
+            }
+        },
         { id: 'btn-up', key: 'up' },
         { id: 'btn-defend', key: 'defend' },
         {

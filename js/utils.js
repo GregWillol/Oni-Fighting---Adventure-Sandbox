@@ -48,60 +48,49 @@ function SpawnPooledText(config) {
 // ============================================================================
 // 2. PROCEDURAL PARALLAX DARK FANTASY BACKGROUND
 // ============================================================================
+// Cached sky gradients so iOS WebKit never recompiles shaders every frame
+let _cachedSkyGrad = null;
+let _cachedBiome = "";
+
 function DrawParallaxBackground() {
     const W = g.canvas.width;
     const H = g.canvas.height;
     const camX = g.Camera.camera.x || 0;
 
-    // Select sky palette based on current biome
-    let topCol = "#080b14", midCol = "#161b2e", botCol = "#23192d", moonCol = "rgba(239, 68, 68, 0.85)";
-    if (g.currentBiome === "CURSED FOREST") {
-        topCol = "#06120e"; midCol = "#0f2922"; botCol = "#183a2f"; moonCol = "rgba(52, 211, 153, 0.75)";
-    } else if (g.currentBiome === "DEMON CITADEL") {
-        topCol = "#140507"; midCol = "#2e0b10"; botCol = "#471216"; moonCol = "rgba(255, 49, 38, 0.95)";
+    // Only recreate gradient when biome actually changes!
+    if (!_cachedSkyGrad || _cachedBiome !== g.currentBiome) {
+        _cachedBiome = g.currentBiome;
+        let topCol = "#080b14", midCol = "#161b2e", botCol = "#23192d";
+        if (g.currentBiome === "CURSED FOREST") {
+            topCol = "#06120e"; midCol = "#0f2922"; botCol = "#183a2f";
+        } else if (g.currentBiome === "DEMON CITADEL") {
+            topCol = "#140507"; midCol = "#2e0b10"; botCol = "#471216";
+        }
+        _cachedSkyGrad = c.createLinearGradient(0, 0, 0, H);
+        _cachedSkyGrad.addColorStop(0, topCol);
+        _cachedSkyGrad.addColorStop(0.6, midCol);
+        _cachedSkyGrad.addColorStop(1, botCol);
     }
 
-    // 1. Sky Gradient
-    const skyGrad = c.createLinearGradient(0, 0, 0, H);
-    skyGrad.addColorStop(0, topCol);
-    skyGrad.addColorStop(0.6, midCol);
-    skyGrad.addColorStop(1, botCol);
-    c.fillStyle = skyGrad;
+    c.fillStyle = _cachedSkyGrad;
     c.fillRect(0, 0, W, H);
 
-    // 2. Blood Moon / Eclipse (Moves slowly with camera: 0.03x parallax)
+    // Blood Moon (lightweight arc)
     const moonX = W * 0.75 - (camX * 0.03) % (W * 0.5);
-    const moonY = H * 0.24;
-    c.save();
-    c.fillStyle = moonCol;
+    c.fillStyle = g.currentBiome === "CURSED FOREST" ? "#34d399" : "#ef4444";
     c.beginPath();
-    c.arc(moonX, moonY, 55, 0, Math.PI * 2);
-    c.fill();
-    c.restore();
-
-    // 3. Distant Mountain Silhouettes (0.12x parallax)
-    c.fillStyle = "rgba(10, 12, 20, 0.65)";
-    const mountainStep = 320;
-    const offsetM1 = -((camX * 0.12) % mountainStep);
-    c.beginPath();
-    c.moveTo(0, H);
-    for (let x = offsetM1 - mountainStep; x <= W + mountainStep; x += mountainStep) {
-        c.lineTo(x + mountainStep * 0.5, H * 0.48);
-        c.lineTo(x + mountainStep, H * 0.72);
-    }
-    c.lineTo(W, H);
-    c.closePath();
+    c.arc(moonX, H * 0.24, 45, 0, Math.PI * 2);
     c.fill();
 
-    // 4. Closer Ruin / Hill Silhouettes (0.25x parallax)
-    c.fillStyle = "rgba(6, 8, 14, 0.85)";
-    const hillStep = 240;
-    const offsetM2 = -((camX * 0.25) % hillStep);
+    // Single lightweight mountain silhouette layer on mobile
+    c.fillStyle = "#080a10";
+    const hillStep = 280;
+    const offsetM = -((camX * 0.15) % hillStep);
     c.beginPath();
     c.moveTo(0, H);
-    for (let x = offsetM2 - hillStep; x <= W + hillStep; x += hillStep) {
-        c.lineTo(x + hillStep * 0.4, H * 0.62);
-        c.lineTo(x + hillStep, H * 0.80);
+    for (let x = offsetM - hillStep; x <= W + hillStep; x += hillStep) {
+        c.lineTo(x + hillStep * 0.5, H * 0.58);
+        c.lineTo(x + hillStep, H * 0.78);
     }
     c.lineTo(W, H);
     c.closePath();
@@ -364,20 +353,20 @@ function CheckVictory({ player1, timerId }) {
         }
     });
 
-    if (player1.HealthPoints <= 0 && player1.imploded) {
+    // 2. DEFEAT OR TIMEOUT: Save earned coins to persistent wallet and open shop.html!
+    if ((player1.HealthPoints <= 0 && player1.imploded) || g.timer === 0) {
         g.roundEnded = true;
         clearInterval(timerId);
-        TriggerAnnouncement("YOU DIED", true);
-        return;
-    }
-
-    if (g.timer === 0) {
-        g.roundEnded = true;
-        clearInterval(timerId);
-        if (player1.image !== player1.sprites.death.image) {
-            if (player1.death) player1.death();
+        if (g.timer === 0 && player1.image !== player1.sprites.death.image && player1.death) {
+            player1.death();
         }
-        TriggerAnnouncement("TIME OVER", true);
+
+        // Save run coins into persistent localStorage wallet
+        const savedCoins = parseInt(localStorage.getItem('oni_wallet_coins')) || 0;
+        localStorage.setItem('oni_wallet_coins', savedCoins + (player1.coins || 0));
+
+        TriggerAnnouncement("YOU DIED! OPENING SHOP...", true);
+        setTimeout(() => { window.location.href = "shop.html"; }, 2200);
         return;
     }
 

@@ -18,6 +18,11 @@ class GameContext {
         this.isMobile = /Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent) ||
                         (navigator.maxTouchPoints && navigator.maxTouchPoints > 2) ||
                         window.innerWidth <= 1024;
+        // Lower internal canvas resolution on mobile by 44% to prevent iPhone GPU overheating
+        if (this.isMobile && this.canvas) {
+            this.canvas.width = 960;
+            this.canvas.height = 540;
+        }
 
         // - - - CAMERA SETTINGS - - -
         this.Camera = {

@@ -58,7 +58,8 @@ class Sprite {
             c.scale(-1, 1);
             c.translate(-(this.position.x + this.size.x / 2), -(this.position.y + this.size.y / 2));
         }
-
+        // Apply equipped Skin filter from shop.html (only if set)
+        if (this.skinFilter && this.skinFilter !== 'none') c.filter = this.skinFilter;
         c.drawImage(
             this.image,
             this.framesCurrent * fw,
@@ -467,7 +468,7 @@ class WorldShrine extends Sprite {
 // FIGHTER CLASS (Player, Balanced Enemies, and True Flying Skull Monster Boss)
 // ============================================================================
 class Fighter extends Sprite {
-    constructor({ position, velocity = { x: 0, y: 0 }, size = { x: 0, y: 0 }, color, value = 0, HealthPoints, MaxHealthPoints = 100, keys = { up: { pressed: false }, left: { pressed: false }, attack: { pressed: false }, right: { pressed: false }, defend: { pressed: false }, slam: { pressed: false }, inter: { pressed: false } }, ControlKeys, AttackBox = { position: { x: 0, y: 0 }, size: { x: g.StandardAttBoxWid, y: g.HitHeight }, shape: "" }, Direction = { right: false, left: false }, Player, imageSrc, scale = 1, framesMax = 1, offset = { x: 0, y: 0 }, sprites, Damage = 10, isAI, attackFrame, type }) {
+    constructor({ position, velocity = { x: 0, y: 0 }, size = { x: 0, y: 0 }, color, value = 0, HealthPoints, MaxHealthPoints = 100, keys = { up: { pressed: false }, left: { pressed: false }, attack: { pressed: false }, right: { pressed: false }, defend: { pressed: false }, slam: { pressed: false }, interact: { pressed: false } }, ControlKeys, AttackBox = { position: { x: 0, y: 0 }, size: { x: g.StandardAttBoxWid, y: g.HitHeight }, shape: "" }, Direction = { right: false, left: false }, Player, imageSrc, scale = 1, framesMax = 1, offset = { x: 0, y: 0 }, sprites, Damage = 10, isAI, attackFrame, type }) {
         super({ position, size, color, imageSrc, scale, framesMax, offset, sprites });
 
         this.velocity = velocity;
