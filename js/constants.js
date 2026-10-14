@@ -380,18 +380,18 @@ const FIGHTER_STATS = {
         Damage: 35,
         isAI: true,
         type: "SkullBoss",
-        scale: 2.2,
-        offset: { x: 70, y: 55 },
+        scale: 4,
+        offset: { x: 190, y: 130 },
         sprites: {
             idle: {
-                imageSrc: './img/SkullMonster/SkullMonster.png',
+                imageSrc: './img/Skeleton/idle8.png',
                 framesMax: 8, framesHold: 6,
-                row: 0, frameWidth: 128, frameHeight: 112
+                row: 0, frameWidth: 120, frameHeight: 120
             },
             run: {
-                imageSrc: './img/SkullMonster/SkullMonster.png',
+                imageSrc: './img/Skeleton/idle8.png',
                 framesMax: 8, framesHold: 6,
-                row: 0, frameWidth: 128, frameHeight: 112
+                row: 0, frameWidth: 120, frameHeight: 120
             },
             jump: {
                 imageSrc: './img/SkullMonster/SkullMonster.png',
@@ -400,13 +400,13 @@ const FIGHTER_STATS = {
             },
             // Attack1 (12 frames): Skull Beam / Fireball Barrage
             attack: {
-                imageSrc: './img/SkullMonster/SkullMonster.png',
+                imageSrc: './img/Skeleton/attack1.png',
                 framesMax: 12, framesHold: 5,
                 row: 1, frameWidth: 128, frameHeight: 112
             },
             // Attack2 (12 frames): Predictive Homing Air-to-Ground Missile
             attack2: {
-                imageSrc: './img/SkullMonster/SkullMonster.png',
+                imageSrc: './img/Skeleton/attack2.png',
                 framesMax: 12, framesHold: 5,
                 row: 2, frameWidth: 128, frameHeight: 112
             },
@@ -417,8 +417,8 @@ const FIGHTER_STATS = {
             },
             // Death (9 frames)
             death: {
-                imageSrc: './img/SkullMonster/SkullMonster.png',
-                framesMax: 9, framesHold: 6,
+                imageSrc: './img/Skeleton/death8.png',
+                framesMax: 8, framesHold: 12,
                 row: 3, frameWidth: 128, frameHeight: 112
             }
         },
@@ -478,3 +478,72 @@ const BULLET_STATS = {
         Damage: 35, caster: undefined, color: "red", isUnblockable: true
     }
 };
+// ============================================================================
+// SEKIRO / BLASPHEMOUS ENVIRONMENT PROPS (Drop your PNGs in these paths!)
+// ============================================================================
+const AMBIENT_PROPS_CONFIG = {
+    lampOrange: {
+        imageSrc: './img/VFX/Lamp/OrangeSilver.png',
+        framesMax: 38, framesHold: 4, scale: 1.3,
+        size: { x: 60, y: 120 }, offset: { x: 0, y: 0 },
+        glowColor: 'rgba(251, 146, 60, 0.22)', fallbackType: 'lantern'
+    },
+    lampGothic: {
+        imageSrc: './img/VFX/Lamp/Lamp2.png',
+        framesMax: 38, framesHold: 4, scale: 1.7,
+        size: { x: 60, y: 130 }, offset: { x: 0, y: 0 },
+        glowColor: 'rgba(239, 68, 68, 0.22)', fallbackType: 'lantern'
+    },
+    toriiGate: {
+        imageSrc: './img/VFX/Env/ToriiGate.png',
+        framesMax: 1, framesHold: 10, scale: 2.5,
+        size: { x: 260, y: 320 }, offset: { x: 0, y: 0 },
+        glowColor: null, fallbackType: 'torii'
+    },
+    shrineStatue: {
+        imageSrc: './img/VFX/Env/SculptorIdol.png',
+        framesMax: 6, framesHold: 6, scale: 2.0,
+        size: { x: 90, y: 150 }, offset: { x: 0, y: 0 },
+        glowColor: 'rgba(56, 189, 248, 0.2)', fallbackType: 'statue'
+    },
+    hangingCage: {
+        imageSrc: './img/VFX/Env/HangingCage.png',
+        framesMax: 4, framesHold: 8, scale: 2.0,
+        size: { x: 70, y: 160 }, offset: { x: 0, y: 0 },
+        glowColor: null, fallbackType: 'cage'
+    },
+    deadTree: {
+        imageSrc: './img/VFX/Env/DeadTree.png',
+        framesMax: 1, framesHold: 10, scale: 2.4,
+        size: { x: 200, y: 280 }, offset: { x: 0, y: 0 },
+        glowColor: null, fallbackType: 'tree'
+    }
+};
+
+// World placements across the 3 Biomes (Floor is at g.MAX_HEIGHT - 600)
+const AMBIENT_PLACEMENTS = [
+    // Biome 1: King's Pass (Feudal Lamps & Torii Gates)
+    { type: 'toriiGate',    x: 420,  y: g.MAX_HEIGHT - 600 - 320 },
+    { type: 'lampOrange',   x: 340,  y: g.MAX_HEIGHT - 840 - 120 },
+    { type: 'lampGothic',   x: 920,  y: g.MAX_HEIGHT - 1060 - 130 },
+    { type: 'shrineStatue', x: 1380, y: g.MAX_HEIGHT - 600 - 150 },
+    { type: 'lampOrange',   x: 1680, y: g.MAX_HEIGHT - 850 - 120 },
+    { type: 'deadTree',     x: 2100, y: g.MAX_HEIGHT - 600 - 280 },
+    { type: 'lampGothic',   x: 2450, y: g.MAX_HEIGHT - 920 - 130 },
+
+    // Biome 2: Cursed Forest (Dead Trees, Cages & Idols)
+    { type: 'toriiGate',    x: 3050, y: g.MAX_HEIGHT - 600 - 320 },
+    { type: 'hangingCage',  x: 3320, y: g.MAX_HEIGHT - 860 - 160 },
+    { type: 'lampOrange',   x: 3850, y: g.MAX_HEIGHT - 1100 - 120 },
+    { type: 'deadTree',     x: 4200, y: g.MAX_HEIGHT - 600 - 280 },
+    { type: 'shrineStatue', x: 4600, y: g.MAX_HEIGHT - 860 - 150 },
+    { type: 'lampGothic',   x: 5280, y: g.MAX_HEIGHT - 960 - 130 },
+
+    // Biome 3: Demon Citadel (Gothic Lamps, Cages & Statues)
+    { type: 'toriiGate',    x: 6080, y: g.MAX_HEIGHT - 600 - 320 },
+    { type: 'lampGothic',   x: 6350, y: g.MAX_HEIGHT - 860 - 130 },
+    { type: 'hangingCage',  x: 6900, y: g.MAX_HEIGHT - 1120 - 160 },
+    { type: 'shrineStatue', x: 7550, y: g.MAX_HEIGHT - 880 - 150 },
+    { type: 'lampOrange',   x: 7850, y: g.MAX_HEIGHT - 880 - 120 },
+    { type: 'lampGothic',   x: 8400, y: g.MAX_HEIGHT - 1020 - 130 }
+];

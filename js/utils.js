@@ -780,82 +780,410 @@ function RemovePerks() {
     g.PowerUps = [];
     g.roomState = "RESTART";
 }
+// ============================================================================
+// 1. SPRITE-BASED SEKIRO / BLASPHEMOUS ENVIRONMENT RENDERER
+// ============================================================================
+let _worldProps = null;
+let _ambientParticles = null;
+
+function InitWorldProps() {
+    if (_worldProps) return;
+    _worldProps = [];
+    if (typeof AMBIENT_PLACEMENTS === 'undefined') return;
+
+    AMBIENT_PLACEMENTS.forEach(p => {
+        const cfg = AMBIENT_PROPS_CONFIG[p.type];
+        if (!cfg) return;
+        const spr = new Sprite({
+            position: { x: p.x, y: p.y },
+            size: { x: cfg.size.x, y: cfg.size.y },
+            imageSrc: cfg.imageSrc,
+            framesMax: cfg.framesMax,
+            scale: cfg.scale,
+            offset: cfg.offset,
+            color: null
+        });
+        spr.framesHold = cfg.framesHold || 6;
+        spr.glowColor = cfg.glowColor;
+        spr.fallbackType = cfg.fallbackType;
+        _worldProps.push(spr);
+    });
+}
+
+function DrawAtmosphere(dt = 1) {
+    InitWorldProps();
+    if (!_worldProps) return;
+
+    for (let i = 0; i < _worldProps.length; i++) {
+        const prop = _worldProps[i];
+        // Frustum culling: skip off-screen props completely (zero lag on iPhone)
+        if (!IsInViewport(prop, 220)) continue;
+
+        // Lightweight ambient light halo (uses simple alpha circle, no shader gradients!)
+        if (prop.glowColor) {
+            c.save();
+            c.fillStyle = prop.glowColor;
+            c.beginPath();
+            c.arc(prop.position.x + prop.size.x / 2, prop.position.y + prop.size.y * 0.4, 55, 0, Math.PI * 2);
+            c.fill();
+            c.restore();
+        }
+
+        if (prop.hasValidImage()) {
+            prop.update(dt);
+        } else {
+            // Silhouette fallback if the PNG is not yet in ./img/VFX/Env/
+            DrawPropSilhouetteFallback(prop);
+        }
+    }
+}
+
+function DrawPropSilhouetteFallback(prop) {
+    const x = prop.position.x, y = prop.position.y, w = prop.size.x, h = prop.size.y;
+    c.save();
+    c.fillStyle = "#0b0d14";
+    c.strokeStyle = "#262936";
+    c.lineWidth = 2;
+
+    if (prop.fallbackType === 'torii') {
+        // Traditional Japanese Torii Gate silhouette
+        c.fillRect(x + w * 0.18, y + 30, 18, h - 30);
+        c.fillRect(x + w * 0.82 - 18, y + 30, 18, h - 30);
+        c.fillRect(x, y + 18, w, 18);
+        c.fillRect(x + 20, y + 60, w - 40, 12);
+    } else if (prop.fallbackType === 'lantern') {
+        // Iron post + glowing lantern core
+        c.fillRect(x + w / 2 - 4, y + 25, 8, h - 25);
+        c.fillStyle = "#f97316";
+        c.fillRect(x + w / 2 - 10, y + 12, 20, 22);
+    } else if (prop.fallbackType === 'statue') {
+        // Sculptor's Idol pedestal + figure
+        c.fillRect(x + 10, y + h - 30, w - 20, 30);
+        c.beginPath();
+        c.arc(x + w / 2, y + h - 55, 22, 0, Math.PI * 2);
+        c.fill();
+        c.fillStyle = "#38bdf8";
+        c.fillRect(x + w / 2 - 4, y + h - 60, 8, 8);
+    } else {
+        c.fillRect(x + w / 2 - 8, y, 16, h);
+    }
+    c.restore();
+}
+
+function DrawScreenAtmosphereOverlay() {
+    const W = g.canvas.width, H = g.canvas.height;
+    const count = g.isMobile ? 14 : 32;
+
+    if (!_ambientParticles) {
+        _ambientParticles = [];
+        for (let i = 0; i < count; i++) {
+            _ambientParticles.push({
+                x: Math.random() * W,
+                y: Math.random() * H,
+                s: Math.random() * 2.5 + 1.5,
+                vx: -0.4 - Math.random() * 0.6,
+                vy: -0.5 - Math.random() * 0.8,
+                color: Math.random() > 0.3 ? "#f97316" : "#dc2626"
+            });
+        }
+    }
+
+    c.save();
+    for (let i = 0; i < _ambientParticles.length; i++) {
+        const p = _ambientParticles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.y < -10) { p.y = H + 10; p.x = Math.random() * W; }
+        if (p.x < -10) p.x = W + 10;
+        c.fillStyle = p.color;
+        c.fillRect(p.x, p.y, p.s, p.s);
+    }
+    c.restore();
+}
 
 // ============================================================================
 // 8. MINIMAP & BOSS HEALTH BAR HUD
 // ============================================================================
+let _bossTrailingPct = 1.0; // Smooth delayed yellow damage bar like Sekiro/Dark Souls
+
+
 function DrawOpenWorldHUD() {
     if (!Player1) return;
-
     c.save();
 
-    // --- 1. SKULL BOSS TOP HEALTH BAR ---
+    // --- 1. SEKIRO / BLASPHEMOUS BOSS BAR (Placed at BOTTOM CENTER, away from P1 UI!) ---
     const activeBosses = g.Fighters.filter(f => f.type === "SkullBoss" && !f.Dead);
     if (activeBosses.length > 0) {
         const totalHp = activeBosses.reduce((acc, b) => acc + b.HealthPoints, 0);
         const totalMax = activeBosses.reduce((acc, b) => acc + b.MaxHealthPoints, 0);
         const pct = Math.max(0, Math.min(1, totalHp / totalMax));
 
-        const barW = Math.min(460, g.canvas.width * 0.42);
-        const barH = 18;
-        const barX = (g.canvas.width - barW) / 2;
-        const barY = 22;
+        // Smoothly decay trailing damage bar
+        if (_bossTrailingPct > pct) _bossTrailingPct -= 0.006;
+        else _bossTrailingPct = pct;
 
-        c.fillStyle = "rgba(10, 12, 20, 0.88)";
+        const barW = Math.min(540, g.canvas.width * 0.52);
+        const barH = 14;
+        const barX = (g.canvas.width - barW) / 2;
+        const barY = g.canvas.height - 54; // Bottom center of screen
+
+        const isArmored = activeBosses[0].bossArmorActive;
+
+        // A. Boss Name & Gothic Subtitle above the bar
+        c.font = "bold 11px 'Press Start 2P', monospace";
+        c.fillStyle = "#e2c07d"; // Tarnished Blasphemous gold
+        c.textAlign = "left";
+        c.fillText(`💀 SKULL LORD OF ASH ${activeBosses.length > 1 ? 'x' + activeBosses.length : ''}`, barX, barY - 12);
+
+        // B. Sekiro Deathblow Kanji Emblem (死) on the left of the bar
+        const emblemX = barX - 24;
+        const emblemY = barY + barH / 2;
+        c.fillStyle = isArmored ? "#1e293b" : "#dc2626";
+        c.beginPath();
+        c.arc(emblemX, emblemY, 15, 0, Math.PI * 2);
+        c.fill();
+        c.strokeStyle = "#c89d54";
+        c.lineWidth = 2;
+        c.stroke();
+
+        c.font = "bold 14px serif";
+        c.fillStyle = isArmored ? "#64748b" : "#ffffff";
+        c.textAlign = "center";
+        c.fillText("死", emblemX, emblemY + 5);
+
+        // C. Outer Gothic Frame
+        c.fillStyle = "rgba(8, 8, 12, 0.92)";
         c.fillRect(barX - 4, barY - 4, barW + 8, barH + 8);
-        c.fillStyle = activeBosses[0].bossArmorActive ? "#00e5ff" : "#ef4444";
+
+        // D. Delayed Gold/White Damage Trail Bar
+        c.fillStyle = "#fde047";
+        c.fillRect(barX, barY, barW * _bossTrailingPct, barH);
+
+        // E. Main Arterial Crimson Blood Bar
+        c.fillStyle = "#991b1b";
         c.fillRect(barX, barY, barW * pct, barH);
-        c.strokeStyle = "#ffd700";
+        c.fillStyle = "#dc2626";
+        c.fillRect(barX, barY, barW * pct, barH * 0.55);
+
+        // F. Ornate Metallic Bronze/Gold Border + Diamond Finials
+        c.strokeStyle = "#c89d54";
         c.lineWidth = 2;
         c.strokeRect(barX - 2, barY - 2, barW + 4, barH + 4);
 
-        c.font = "bold 10px 'Press Start 2P', monospace";
-        c.fillStyle = "#ffffff";
-        c.textAlign = "center";
-        const statusText = activeBosses[0].bossArmorActive
-            ? `💀 SKULL MONSTER (x${activeBosses.length}) [USE BLUE ORB TO STOMP HEAD!]`
-            : `💀 SKULL MONSTER STUNNED! ATTACK NOW!`;
-        c.fillText(statusText, g.canvas.width / 2, barY + barH + 16);
+        // Sekiro Posture / Bone Armor Bar right below the HP bar
+        const postureW = barW * 0.7;
+        const postureX = barX + (barW - postureW) / 2;
+        const postureY = barY + barH + 6;
+        c.fillStyle = "#090a0f";
+        c.fillRect(postureX, postureY, postureW, 5);
+        c.fillStyle = isArmored ? "#38bdf8" : "#f59e0b";
+        c.fillRect(postureX, postureY, isArmored ? postureW : postureW * (activeBosses[0].bossStunTimer / 260), 5);
+        c.strokeStyle = "#785c28";
+        c.lineWidth = 1;
+        c.strokeRect(postureX, postureY, postureW, 5);
+
+        // Status hint text
+        c.font = "8px 'Press Start 2P', monospace";
+        c.fillStyle = isArmored ? "#7dd3fc" : "#fde047";
+        c.textAlign = "right";
+        c.fillText(isArmored ? "[POSTURE LOCKED: STOMP HEAD VIA BLUE ORB]" : "[DEATHBLOW WINDOW: UNLEASH ATTACKS!]", barX + barW, barY - 12);
     }
 
-    // --- 2. OPEN WORLD MINIMAP ---
+    // --- 2. COMPACT DARK FANTASY MINIMAP (Top Right) ---
     if (g.isOpenWorld) {
-        const mapW = 220;
-        const mapH = 34;
-        const mapX = g.canvas.width - mapW - 18;
+        const mapW = 190;
+        const mapH = 28;
+        const mapX = g.canvas.width - mapW - 16;
         const mapY = 16;
 
-        c.fillStyle = "rgba(10, 12, 20, 0.8)";
+        c.fillStyle = "rgba(8, 8, 12, 0.88)";
         c.fillRect(mapX, mapY, mapW, mapH);
-        c.strokeStyle = "rgba(255, 215, 0, 0.45)";
+        c.strokeStyle = "#c89d54";
         c.lineWidth = 1.5;
         c.strokeRect(mapX, mapY, mapW, mapH);
 
-        // Shrines & Chests
         if (g.WorldObjects) {
-            g.WorldObjects.forEach(obj => {
-                if (obj.cooldown > 0) return;
+            for (let i = 0; i < g.WorldObjects.length; i++) {
+                const obj = g.WorldObjects[i];
+                if (obj.cooldown > 0) continue;
                 const rx = mapX + (obj.position.x / g.MAX_WIDTH) * mapW;
                 const ry = mapY + (obj.position.y / g.MAX_HEIGHT) * mapH;
-                c.fillStyle = obj.type === 'soulChest' ? "#fbbf24" : "#38bdf8";
+                c.fillStyle = obj.type === 'soulChest' ? "#eab308" : "#38bdf8";
                 c.fillRect(rx - 2, ry - 2, 4, 4);
-            });
+            }
         }
 
-        // Enemies & Bosses
-        g.Fighters.forEach(f => {
-            if (f.Player === 1 || f.Dead) return;
+        for (let i = 0; i < g.Fighters.length; i++) {
+            const f = g.Fighters[i];
+            if (f.Player === 1 || f.Dead) continue;
             const rx = mapX + (f.position.x / g.MAX_WIDTH) * mapW;
             const ry = mapY + (f.position.y / g.MAX_HEIGHT) * mapH;
-            c.fillStyle = f.type === "SkullBoss" ? "#ff00ff" : "#ff3126";
-            c.fillRect(rx - 3, ry - 3, f.type === "SkullBoss" ? 6 : 4, f.type === "SkullBoss" ? 6 : 4);
-        });
+            c.fillStyle = f.type === "SkullBoss" ? "#f43f5e" : "#dc2626";
+            c.fillRect(rx - 2.5, ry - 2.5, 5, 5);
+        }
 
-        // Player 1
         const px = mapX + (Player1.position.x / g.MAX_WIDTH) * mapW;
         const py = mapY + (Player1.position.y / g.MAX_HEIGHT) * mapH;
-        c.fillStyle = "#00ffcc";
+        c.fillStyle = "#e2c07d";
         c.fillRect(px - 3, py - 3, 6, 6);
+    }
+
+    c.restore();
+}
+// ============================================================================
+// CANVAS INVENTORY (Key 'M') WITH MOUSE HOVER TOOLTIPS (Zero DOM Lag)
+// ============================================================================
+const PERK_DESCRIPTIONS = {
+    "Health Potion":      "Ripristina +500 HP istantaneamente.",
+    "Demon Strength":     "Aumenta il Danno del +45% e il Knockback del +35%.",
+    "Magic Caster":       "Spara una Fireball magica ad ogni fendente (+15% Danno).",
+    "Vampire Blood":      "Ruba il 15% dei danni inflitti curando i tuoi HP.",
+    "Hermes Boots":       "+15% Velocità di corsa, salto potenziato e triplo salto.",
+    "Titan Heart":        "+400 HP Massimi permanenti e +20% Knockback.",
+    "Ricochet Master":    "I tuoi proiettili rimbalzano automaticamente su un 2° nemico.",
+    "Toxic Trail":        "Lascia pozze d'acido velenoso mentre corri che danneggiano i nemici.",
+    "Executioner's Mark": "Infligge x2.5 Danni Critici ai nemici sotto il 30% di vita.",
+    "Static Shield":      "Genera uno scudo elettrico ogni 12s che para e stordisce chi ti colpisce.",
+    "Soul Collector":     "Assorbe le anime dei nemici uccisi aumentando il tuo Danno base.",
+    "Split Shot":         "Spara 3 palle di fuoco a ventaglio ad ogni attacco."
+};
+
+function DrawCanvasInventory() {
+    if (!Player1) return;
+    const perks = Player1.perkList || [];
+    const mx = g.mouse ? g.mouse.x : -1;
+    const my = g.mouse ? g.mouse.y : -1;
+
+    c.save();
+    let hoveredPerk = null;
+
+    // ========================================================================
+    // A. HUD PERK BAR (Always visible below HP Bar using ./img/PowerUp/*.png)
+    // ========================================================================
+    const hudStartX = 92;
+    const hudStartY = 82;
+    const iconSize = 36;
+    const iconGap = 8;
+
+    for (let i = 0; i < perks.length; i++) {
+        const perk = perks[i];
+        const sx = hudStartX + i * (iconSize + iconGap);
+        const sy = hudStartY;
+
+        const isHover = (mx >= sx && mx <= sx + iconSize && my >= sy && my <= sy + iconSize);
+        if (isHover) hoveredPerk = perk;
+
+        // Slot background & gold border
+        c.fillStyle = isHover ? "#282c42" : "rgba(10, 12, 20, 0.85)";
+        c.fillRect(sx, sy, iconSize, iconSize);
+        c.strokeStyle = isHover ? "#ffd700" : "#c89d54";
+        c.lineWidth = isHover ? 2.5 : 1.5;
+        c.strokeRect(sx, sy, iconSize, iconSize);
+
+        // Draw your actual Perk PNG (./img/PowerUp/...)
+        if (perk.image && !perk.image._failed && perk.image.complete && perk.image.naturalWidth > 0) {
+            c.drawImage(perk.image, sx + 3, sy + 3, iconSize - 6, iconSize - 6);
+        }
+
+        // Stack badge (x2, x3...)
+        if (perk.count > 1) {
+            c.fillStyle = "rgba(0, 0, 0, 0.9)";
+            c.fillRect(sx + iconSize - 20, sy + iconSize - 14, 20, 14);
+            c.fillStyle = "#ffd700";
+            c.font = "bold 8px 'Press Start 2P', monospace";
+            c.textAlign = "right";
+            c.fillText(`x${perk.count}`, sx + iconSize - 2, sy + iconSize - 3);
+        }
+    }
+
+    // Hover Tooltip right below the HUD icons when moving the mouse over a Perk!
+    if (hoveredPerk && !g.inventoryOpen) {
+        const tipX = hudStartX;
+        const tipY = hudStartY + iconSize + 10;
+        const tipW = 420;
+        const tipH = 58;
+
+        c.fillStyle = "rgba(10, 11, 18, 0.94)";
+        c.fillRect(tipX, tipY, tipW, tipH);
+        c.strokeStyle = "#ffd700";
+        c.lineWidth = 2;
+        c.strokeRect(tipX, tipY, tipW, tipH);
+
+        c.textAlign = "left";
+        c.fillStyle = "#ffd700";
+        c.font = "bold 10px 'Press Start 2P', monospace";
+        c.fillText(`${hoveredPerk.name} (x${hoveredPerk.count})`, tipX + 12, tipY + 22);
+
+        c.fillStyle = "#e2e8f0";
+        c.font = "8px 'Press Start 2P', monospace";
+        c.fillText(hoveredPerk.desc, tipX + 12, tipY + 44);
+    }
+
+    // ========================================================================
+    // B. FULL MODAL INVENTORY (Opens when pressing 'M')
+    // ========================================================================
+    if (g.inventoryOpen) {
+        const W = g.canvas.width, H = g.canvas.height;
+        c.fillStyle = "rgba(6, 7, 12, 0.85)";
+        c.fillRect(0, 0, W, H);
+
+        const winW = Math.min(560, W * 0.88);
+        const winH = Math.min(340, H * 0.78);
+        const winX = (W - winW) / 2;
+        const winY = (H - winH) / 2;
+
+        c.fillStyle = "#11131c";
+        c.fillRect(winX, winY, winW, winH);
+        c.strokeStyle = "#c89d54";
+        c.lineWidth = 3;
+        c.strokeRect(winX, winY, winW, winH);
+
+        c.font = "bold 13px 'Press Start 2P', monospace";
+        c.fillStyle = "#e2c07d";
+        c.textAlign = "center";
+        c.fillText("📜 PERK ATTIVI [PREMI M PER CHIUDERE]", W / 2, winY + 32);
+
+        const cols = 6, slotSize = 62, gap = 14;
+        const gridW = cols * slotSize + (cols - 1) * gap;
+        const startX = (W - gridW) / 2;
+        const startY = winY + 58;
+
+        for (let i = 0; i < 12; i++) {
+            const sx = startX + (i % cols) * (slotSize + gap);
+            const sy = startY + Math.floor(i / cols) * (slotSize + gap);
+            const perk = perks[i];
+
+            const isHover = (mx >= sx && mx <= sx + slotSize && my >= sy && my <= sy + slotSize);
+            if (isHover && perk) hoveredPerk = perk;
+
+            c.fillStyle = isHover ? "#282c42" : "#181b28";
+            c.fillRect(sx, sy, slotSize, slotSize);
+            c.strokeStyle = isHover ? "#ffd700" : (perk ? "#c89d54" : "#334155");
+            c.lineWidth = isHover ? 2.5 : 1.5;
+            c.strokeRect(sx, sy, slotSize, slotSize);
+
+            if (perk && perk.image && !perk.image._failed && perk.image.complete) {
+                c.drawImage(perk.image, sx + 8, sy + 8, slotSize - 16, slotSize - 16);
+                c.fillStyle = "#ffd700";
+                c.font = "bold 9px 'Press Start 2P', monospace";
+                c.fillText(`x${perk.count}`, sx + slotSize - 16, sy + slotSize - 6);
+            }
+        }
+
+        const tipY = startY + 2 * (slotSize + gap) + 12;
+        c.fillStyle = "#0a0b10";
+        c.fillRect(winX + 24, tipY, winW - 48, 68);
+        c.strokeStyle = "#c89d54";
+        c.strokeRect(winX + 24, tipY, winW - 48, 68);
+
+        c.fillStyle = hoveredPerk ? "#ffd700" : "#64748b";
+        c.font = "bold 10px 'Press Start 2P', monospace";
+        c.fillText(hoveredPerk ? `${hoveredPerk.name} (Stack: x${hoveredPerk.count})` : "Passa il mouse su uno slot per i dettagli", W / 2, tipY + 25);
+        if (hoveredPerk) {
+            c.fillStyle = "#cbd5e1";
+            c.font = "8.5px 'Press Start 2P', monospace";
+            c.fillText(hoveredPerk.desc, W / 2, tipY + 48);
+        }
     }
 
     c.restore();

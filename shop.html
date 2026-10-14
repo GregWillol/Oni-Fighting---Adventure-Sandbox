@@ -274,7 +274,8 @@
         <!-- CATALOG PANEL -->
         <div class="catalog-panel">
             <div class="tabs-row">
-                <button class="tab-btn active" onclick="switchTab('skins', this)">🎨 SKINS</button>
+                <button class="tab-btn active" onclick="switchTab('weapons', this)">⚔️ KATANE (60)</button>
+                <button class="tab-btn" onclick="switchTab('skins', this)">🎨 SKINS</button>
                 <button class="tab-btn" onclick="switchTab('auras', this)">🔥 AURE & ANIM</button>
                 <button class="tab-btn" onclick="switchTab('trails', this)">💨 SCIE DASH</button>
                 <button class="tab-btn" onclick="switchTab('upgrades', this)">⚡ GAMEPASS</button>
@@ -284,251 +285,303 @@
     </div>
 
     <script>
-        // ====================================================================
-        // 1. SHOP CATALOG DEFINITION (Skins, Auras, Trails, Permanent Upgrades)
-        // ====================================================================
-        const SHOP_ITEMS = {
-            skins: [
-                { id: 'skin_default', name: 'Ronin Base',      price: 0,  rarity: 'BASE',   icon: '🥋', desc: 'Lo stile classico del guerriero.', filter: 'none', spriteFolder: './img/MartialHero/' },
-                { id: 'skin_golden',  name: 'Golden Emperor',  price: 25, rarity: 'LEGEND', icon: '👑', desc: 'Armatura dorata imperiale.',        filter: 'sepia(1) saturate(3.5) hue-rotate(5deg) brightness(1.15)', spriteFolder: './img/MartialHero/' },
-                { id: 'skin_cyber',   name: 'Cyber Shinobi',   price: 35, rarity: 'MYTHIC', icon: '🤖', desc: 'Tinta al neon ciano cibernetica.',  filter: 'hue-rotate(175deg) saturate(2.5) brightness(1.1)', spriteFolder: './img/MartialHero/' },
-                { id: 'skin_shadow',  name: 'Shadow Specter',  price: 45, rarity: 'DARK',   icon: '🌑', desc: 'Spettro oscuro dell\'ombra.',       filter: 'invert(0.88) hue-rotate(180deg) contrast(1.3)', spriteFolder: './img/MartialHero/' },
-                { id: 'skin_demon',   name: 'Crimson Oni',     price: 60, rarity: 'ONI',    icon: '👹', desc: 'Furia cremisi del demone.',         filter: 'hue-rotate(325deg) saturate(3.2) contrast(1.2)', spriteFolder: './img/MartialHero/' }
-            ],
-            auras: [
-                { id: 'aura_none',    name: 'Nessuna Aura',    price: 0,  rarity: 'BASE',   icon: '✖️', desc: 'Combatti senza aura visiva.',       auraType: 'none', color: 'transparent' },
-                { id: 'aura_red',     name: 'Oni Flame Aura',  price: 20, rarity: 'RARE',   icon: '🔥', desc: 'Attiva l\'Aura Rossa animata!',     auraType: 'sprite1', imageSrc: './img/MartialHero/Aura.png', color: '#ff3126' },
-                { id: 'aura_purple',  name: 'Night Void Aura', price: 30, rarity: 'EPIC',   icon: '🔮', desc: 'Attiva l\'Aura Viola del Vuoto!',   auraType: 'sprite2', imageSrc: './img/Night/Aura.png', color: '#a855f7' },
-                { id: 'aura_thunder', name: 'Thunder God',     price: 45, rarity: 'MYTHIC', icon: '⚡', desc: 'Scintille elettriche attorno a te!', auraType: 'procedural_lightning', color: '#00e5ff' },
-                { id: 'aura_gold',    name: 'Super Saiyan',    price: 70, rarity: 'GODLY',  icon: '✨', desc: 'Aura divina dorata +10% Speed!',     auraType: 'procedural_gold', color: '#ffd700' }
-            ],
-            trails: [
-                { id: 'trail_red',    name: 'Scia Cremisi',    price: 0,  rarity: 'BASE',   icon: '🩸', desc: 'Scia standard rossa.',              trailColor: '#FF3126' },
-                { id: 'trail_cyan',   name: 'Scia Cyber Lampo',price: 15, rarity: 'RARE',   icon: '💠', desc: 'Particelle e scia azzurro neon.',   trailColor: '#00e5ff' },
-                { id: 'trail_emerald',name: 'Scia Veleno Jade',price: 20, rarity: 'EPIC',   icon: '🧪', desc: 'Scia verde smeraldo radioattiva.',  trailColor: '#39ff14' },
-                { id: 'trail_gold',   name: 'Scia Polvere Oro',price: 35, rarity: 'LEGEND', icon: '🌟', desc: 'Scintille dorate a ogni passo.',    trailColor: '#ffd700' }
-            ],
-            upgrades: [
-                { id: 'up_vip',       name: '2X Coins VIP Pass', price: 40, rarity: 'PASS', icon: '🪙', desc: 'Raddoppia per sempre le monete ottenute!', isUpgrade: true },
-                { id: 'up_hp',        name: 'Titan Vitality',    price: 25, rarity: 'BUFF', icon: '❤️', desc: 'Inizia ogni run con +600 HP Massimi!',    isUpgrade: true },
-                { id: 'up_dmg',       name: 'Demon Katana',      price: 30, rarity: 'BUFF', icon: '🗡️', desc: 'Inizia ogni run con +35 Danno Base!',     isUpgrade: true },
-                { id: 'up_perk',      name: 'Lucky Mask Start',  price: 50, rarity: 'OP!',  icon: '🎭', desc: 'Inizia ogni run con 1 Perk casuale gratis!', isUpgrade: true }
-            ]
-        };
+    // ========================================================================
+    // 1. PROCEDURAL GENERATOR FOR 60 ELEMENTAL KATANAS (10 Elements x 6 Forms)
+    // ========================================================================
+    const ELEMENTS = [
+        { key: 'fire',      name: 'Ignis',      icon: '🔥', blade: '#fef08a', glow: '#f97316', perkDesc: 'Brucia i nemici (+25% Burn Dmg)' },
+        { key: 'lightning', name: 'Raikiri',    icon: '⚡', blade: '#e0f2fe', glow: '#00e5ff', perkDesc: 'Paralizza i nemici (Stun Elettrico)' },
+        { key: 'poison',    name: 'Viper',      icon: '☠️', blade: '#dcfce7', glow: '#39ff14', perkDesc: 'Infetta con nube tossica (+20% Veleno)' },
+        { key: 'ice',       name: 'Cryo',       icon: '❄️', blade: '#f0f9ff', glow: '#38bdf8', perkDesc: 'Congela e rallenta i nemici (-50% Speed)' },
+        { key: 'blood',     name: 'Muramasa',   icon: '🩸', blade: '#fecdd3', glow: '#e11d48', perkDesc: 'Ruba vita ad ogni fendente (+12% Vampirismo)' },
+        { key: 'void',      name: 'Abyss',      icon: '🌑', blade: '#f3e8ff', glow: '#9333ea', perkDesc: 'Giustizia i nemici sotto il 35% HP' },
+        { key: 'wind',      name: 'Gale',       icon: '🌪️', blade: '#ecfdf5', glow: '#10b981', perkDesc: 'Leggera come il vento (+15% Velocità)' },
+        { key: 'holy',      name: 'Celestial',  icon: '✨', blade: '#ffffff', glow: '#facc15', perkDesc: 'Benedizione Divina (+400 HP Massimi)' },
+        { key: 'earth',     name: 'Obsidian',   icon: '🪨', blade: '#cbd5e1', glow: '#d97706', perkDesc: 'Impatto sismico (+50% Knockback)' },
+        { key: 'chaos',     name: 'Amaterasu',  icon: '👹', blade: '#ffedd5', glow: '#ff0055', perkDesc: 'Spara palle di fuoco ad ogni fendente!' }
+    ];
 
-        // ====================================================================
-        // 2. PERSISTENT STATE IN LOCALSTORAGE
-        // ====================================================================
-        let walletCoins = parseInt(localStorage.getItem('oni_wallet_coins')) || 0;
-        let ownedItems = JSON.parse(localStorage.getItem('oni_shop_owned') || '["skin_default","aura_none","trail_red"]');
-        let equipped = JSON.parse(localStorage.getItem('oni_shop_equipped') || '{"skin":"skin_default","aura":"aura_none","trail":"trail_red"}');
-        let currentTab = 'skins';
+    const BLADE_FORMS = [
+        { suffix: 'Wakizashi',   rarity: 'COMMON', len: 78,  w: 6,  serrated: false, mult: 1.0 },
+        { suffix: 'Uchigatana',  rarity: 'RARE',   len: 92,  w: 7,  serrated: false, mult: 1.4 },
+        { suffix: 'Tachi',       rarity: 'EPIC',   len: 102, w: 8,  serrated: false, mult: 1.9 },
+        { suffix: 'Nodachi',     rarity: 'LEGEND', len: 118, w: 8,  serrated: false, mult: 2.5 },
+        { suffix: 'Oni Fang',    rarity: 'MYTHIC', len: 110, w: 9,  serrated: true,  mult: 3.2 },
+        { suffix: 'Dragon Relic',rarity: 'GODLY',  len: 126, w: 10, serrated: true,  mult: 4.2 }
+    ];
 
-        function saveShopData() {
-            localStorage.setItem('oni_wallet_coins', walletCoins);
-            localStorage.setItem('oni_shop_owned', JSON.stringify(ownedItems));
-            localStorage.setItem('oni_shop_equipped', JSON.stringify(equipped));
-            updateUI();
-        }
+    const GENERATED_WEAPONS = [
+        { id: 'wpn_default', name: 'Katana Standard', price: 0, rarity: 'BASE', icon: '🗡️', desc: 'La spada originale del guerriero.', element: 'none', dmgBonus: 0 }
+    ];
 
-        function switchTab(tab, btnEl) {
-            currentTab = tab;
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            if (btnEl) btnEl.classList.add('active');
-            renderGrid();
-        }
-
-        function updateUI() {
-            document.getElementById('wallet-display').innerText = `🪙 ${walletCoins}`;
-            const skinObj = SHOP_ITEMS.skins.find(s => s.id === equipped.skin) || SHOP_ITEMS.skins[0];
-            const auraObj = SHOP_ITEMS.auras.find(a => a.id === equipped.aura) || SHOP_ITEMS.auras[0];
-            const trailObj = SHOP_ITEMS.trails.find(t => t.id === equipped.trail) || SHOP_ITEMS.trails[0];
-
-            // Save direct config object so game.js can read it in 1 line
-            localStorage.setItem('oni_active_loadout', JSON.stringify({
-                skinFilter: skinObj.filter,
-                spriteFolder: skinObj.spriteFolder,
-                auraId: auraObj.id,
-                auraType: auraObj.auraType,
-                auraColor: auraObj.color,
-                trailColor: trailObj.trailColor,
-                vipCoins: ownedItems.includes('up_vip'),
-                bonusHp: ownedItems.includes('up_hp') ? 600 : 0,
-                bonusDmg: ownedItems.includes('up_dmg') ? 35 : 0,
-                freeStartPerk: ownedItems.includes('up_perk')
-            }));
-
-            document.getElementById('equipped-summary').innerHTML =
-                `SKIN: <b style="color:#ffd700">${skinObj.name}</b><br>` +
-                `AURA: <b style="color:#38bdf8">${auraObj.name}</b><br>` +
-                `SCIA: <b style="color:${trailObj.trailColor}">${trailObj.name}</b>`;
-
-            renderGrid();
-        }
-
-        function renderGrid() {
-            const grid = document.getElementById('shop-grid');
-            grid.innerHTML = '';
-            const list = SHOP_ITEMS[currentTab] || [];
-
-            list.forEach(item => {
-                const isOwned = ownedItems.includes(item.id);
-                const isEquipped = (
-                    (currentTab === 'skins' && equipped.skin === item.id) ||
-                    (currentTab === 'auras' && equipped.aura === item.id) ||
-                    (currentTab === 'trails' && equipped.trail === item.id) ||
-                    (currentTab === 'upgrades' && isOwned)
-                );
-
-                const card = document.createElement('div');
-                card.className = 'shop-card' + (isEquipped ? ' equipped' : '');
-
-                let btnHtml = '';
-                if (!isOwned) {
-                    btnHtml = `<button class="card-btn btn-buy" onclick="buyItem('${item.id}', ${item.price})">🪙 COMPRA (${item.price})</button>`;
-                } else if (item.isUpgrade) {
-                    btnHtml = `<button class="card-btn btn-equipped" disabled>ATTIVO ✅</button>`;
-                } else if (isEquipped) {
-                    btnHtml = `<button class="card-btn btn-equipped" disabled>EQUIPAGGIATO ✅</button>`;
-                } else {
-                    btnHtml = `<button class="card-btn btn-equip" onclick="equipItem('${item.id}')">EQUIPAGGIA</button>`;
-                }
-
-                card.innerHTML = `
-                    <div class="card-rarity">${item.rarity}</div>
-                    <div class="card-icon">${item.icon}</div>
-                    <div class="card-title">${item.name}</div>
-                    <div class="card-desc">${item.desc}</div>
-                    ${btnHtml}
-                `;
-                grid.appendChild(card);
+    ELEMENTS.forEach((el, eIdx) => {
+        BLADE_FORMS.forEach((form, fIdx) => {
+            const indexNum = eIdx * 6 + fIdx + 1;
+            const price = Math.floor((8 + eIdx * 4) * form.mult);
+            const dmgBonus = Math.floor((10 + eIdx * 5) * form.mult);
+            GENERATED_WEAPONS.push({
+                id: `wpn_${el.key}_${fIdx}`,
+                name: `#${indexNum} ${el.name} ${form.suffix}`,
+                price: price,
+                rarity: form.rarity,
+                icon: el.icon,
+                desc: `+${dmgBonus} Danno | ${el.perkDesc}`,
+                element: el.key,
+                bladeColor: el.blade,
+                glowColor: el.glow,
+                length: form.len,
+                width: form.w,
+                serrated: form.serrated,
+                dmgBonus: dmgBonus
             });
+        });
+    });
+
+    // ========================================================================
+    // 2. FULL SHOP CATALOG
+    // ========================================================================
+    const SHOP_ITEMS = {
+        weapons: GENERATED_WEAPONS,
+        skins: [
+            { id: 'skin_default', name: 'Ronin Base',      price: 0,  rarity: 'BASE',   icon: '🥋', desc: 'Lo stile classico del guerriero.', filter: 'none' },
+            { id: 'skin_golden',  name: 'Golden Emperor',  price: 25, rarity: 'LEGEND', icon: '👑', desc: 'Armatura dorata imperiale.',        filter: 'sepia(1) saturate(3.5) hue-rotate(5deg) brightness(1.15)' },
+            { id: 'skin_cyber',   name: 'Cyber Shinobi',   price: 35, rarity: 'MYTHIC', icon: '🤖', desc: 'Tinta al neon ciano cibernetica.',  filter: 'hue-rotate(175deg) saturate(2.5) brightness(1.1)' },
+            { id: 'skin_shadow',  name: 'Shadow Specter',  price: 45, rarity: 'DARK',   icon: '🌑', desc: 'Spettro oscuro dell\'ombra.',       filter: 'invert(0.88) hue-rotate(180deg) contrast(1.3)' },
+            { id: 'skin_demon',   name: 'Crimson Oni',     price: 60, rarity: 'ONI',    icon: '👹', desc: 'Furia cremisi del demone.',         filter: 'hue-rotate(325deg) saturate(3.2) contrast(1.2)' }
+        ],
+        auras: [
+            { id: 'aura_none',    name: 'Nessuna Aura',    price: 0,  rarity: 'BASE',   icon: '✖️', desc: 'Combatti senza aura visiva.',       auraType: 'none', color: 'transparent' },
+            { id: 'aura_red',     name: 'Oni Flame Aura',  price: 20, rarity: 'RARE',   icon: '🔥', desc: 'Attiva l\'Aura Rossa animata!',     auraType: 'sprite1', color: '#ff3126' },
+            { id: 'aura_purple',  name: 'Night Void Aura', price: 30, rarity: 'EPIC',   icon: '🔮', desc: 'Attiva l\'Aura Viola del Vuoto!',   auraType: 'sprite2', color: '#a855f7' },
+            { id: 'aura_thunder', name: 'Thunder God',     price: 45, rarity: 'MYTHIC', icon: '⚡', desc: 'Scintille elettriche attorno a te!', auraType: 'procedural_lightning', color: '#00e5ff' },
+            { id: 'aura_gold',    name: 'Super Saiyan',    price: 70, rarity: 'GODLY',  icon: '✨', desc: 'Aura divina dorata +12% Speed!',     auraType: 'procedural_gold', color: '#ffd700' }
+        ],
+        trails: [
+            { id: 'trail_red',    name: 'Scia Cremisi',    price: 0,  rarity: 'BASE',   icon: '🩸', desc: 'Scia standard rossa.',              trailColor: '#FF3126' },
+            { id: 'trail_cyan',   name: 'Scia Cyber Lampo',price: 15, rarity: 'RARE',   icon: '💠', desc: 'Particelle e scia azzurro neon.',   trailColor: '#00e5ff' },
+            { id: 'trail_emerald',name: 'Scia Veleno Jade',price: 20, rarity: 'EPIC',   icon: '🧪', desc: 'Scia verde smeraldo radioattiva.',  trailColor: '#39ff14' },
+            { id: 'trail_gold',   name: 'Scia Polvere Oro',price: 35, rarity: 'LEGEND', icon: '🌟', desc: 'Scintille dorate a ogni passo.',    trailColor: '#ffd700' }
+        ],
+        upgrades: [
+            { id: 'up_vip',       name: '2X Coins VIP Pass', price: 40, rarity: 'PASS', icon: '🪙', desc: 'Raddoppia per sempre le monete ottenute!', isUpgrade: true },
+            { id: 'up_hp',        name: 'Titan Vitality',    price: 25, rarity: 'BUFF', icon: '❤️', desc: 'Inizia ogni run con +600 HP Massimi!',    isUpgrade: true },
+            { id: 'up_dmg',       name: 'Demon Katana',      price: 30, rarity: 'BUFF', icon: '🗡️', desc: 'Inizia ogni run con +35 Danno Base!',     isUpgrade: true },
+            { id: 'up_perk',      name: 'Lucky Mask Start',  price: 50, rarity: 'OP!',  icon: '🎭', desc: 'Inizia ogni run con 1 Perk casuale gratis!', isUpgrade: true }
+        ]
+    };
+
+    let walletCoins = parseInt(localStorage.getItem('oni_wallet_coins')) || 0;
+    let ownedItems = JSON.parse(localStorage.getItem('oni_shop_owned') || '["wpn_default","skin_default","aura_none","trail_red"]');
+    let equipped = JSON.parse(localStorage.getItem('oni_shop_equipped') || '{"weapon":"wpn_default","skin":"skin_default","aura":"aura_none","trail":"trail_red"}');
+    if (!equipped.weapon) equipped.weapon = 'wpn_default';
+    let currentTab = 'weapons';
+
+    function saveShopData() {
+        localStorage.setItem('oni_wallet_coins', walletCoins);
+        localStorage.setItem('oni_shop_owned', JSON.stringify(ownedItems));
+        localStorage.setItem('oni_shop_equipped', JSON.stringify(equipped));
+        updateUI();
+    }
+
+    function switchTab(tab, btnEl) {
+        currentTab = tab;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        if (btnEl) btnEl.classList.add('active');
+        renderGrid();
+    }
+
+    function updateUI() {
+        document.getElementById('wallet-display').innerText = `🪙 ${walletCoins}`;
+        const wpnObj  = SHOP_ITEMS.weapons.find(w => w.id === equipped.weapon) || SHOP_ITEMS.weapons[0];
+        const skinObj = SHOP_ITEMS.skins.find(s => s.id === equipped.skin) || SHOP_ITEMS.skins[0];
+        const auraObj = SHOP_ITEMS.auras.find(a => a.id === equipped.aura) || SHOP_ITEMS.auras[0];
+        const trailObj = SHOP_ITEMS.trails.find(t => t.id === equipped.trail) || SHOP_ITEMS.trails[0];
+
+        localStorage.setItem('oni_active_loadout', JSON.stringify({
+            weapon: wpnObj,
+            skinFilter: skinObj.filter,
+            auraId: auraObj.id,
+            auraType: auraObj.auraType,
+            auraColor: auraObj.color,
+            trailColor: trailObj.trailColor,
+            vipCoins: ownedItems.includes('up_vip'),
+            bonusHp: ownedItems.includes('up_hp') ? 600 : 0,
+            bonusDmg: ownedItems.includes('up_dmg') ? 35 : 0,
+            freeStartPerk: ownedItems.includes('up_perk')
+        }));
+
+        document.getElementById('equipped-summary').innerHTML =
+            `ARMA: <b style="color:${wpnObj.glowColor || '#fff'}">${wpnObj.name}</b><br>` +
+            `SKIN: <b style="color:#ffd700">${skinObj.name}</b><br>` +
+            `AURA: <b style="color:#38bdf8">${auraObj.name}</b>`;
+
+        renderGrid();
+    }
+
+    function renderGrid() {
+        const grid = document.getElementById('shop-grid');
+        grid.innerHTML = '';
+        const list = SHOP_ITEMS[currentTab] || [];
+
+        list.forEach(item => {
+            const isOwned = ownedItems.includes(item.id);
+            const isEquipped = (
+                (currentTab === 'weapons' && equipped.weapon === item.id) ||
+                (currentTab === 'skins'   && equipped.skin === item.id) ||
+                (currentTab === 'auras'   && equipped.aura === item.id) ||
+                (currentTab === 'trails'  && equipped.trail === item.id) ||
+                (currentTab === 'upgrades' && isOwned)
+            );
+
+            const card = document.createElement('div');
+            card.className = 'shop-card' + (isEquipped ? ' equipped' : '');
+
+            let btnHtml = '';
+            if (!isOwned) {
+                btnHtml = `<button class="card-btn btn-buy" onclick="buyItem('${item.id}', ${item.price})">🪙 COMPRA (${item.price})</button>`;
+            } else if (item.isUpgrade) {
+                btnHtml = `<button class="card-btn btn-equipped" disabled>ATTIVO ✅</button>`;
+            } else if (isEquipped) {
+                btnHtml = `<button class="card-btn btn-equipped" disabled>EQUIPAGGIATO ✅</button>`;
+            } else {
+                btnHtml = `<button class="card-btn btn-equip" onclick="equipItem('${item.id}')">EQUIPAGGIA</button>`;
+            }
+
+            card.innerHTML = `
+                <div class="card-rarity" style="background:${item.glowColor || '#ec4899'}; color:#000; font-weight:bold;">${item.rarity}</div>
+                <div class="card-icon">${item.icon}</div>
+                <div class="card-title" style="color:${item.glowColor || '#ffd700'}">${item.name}</div>
+                <div class="card-desc">${item.desc}</div>
+                ${btnHtml}
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    function buyItem(id, price) {
+        if (walletCoins < price) {
+            const w = document.getElementById('wallet-display');
+            w.style.background = 'rgba(239, 68, 68, 0.45)';
+            setTimeout(() => w.style.background = 'rgba(255, 215, 0, 0.15)', 400);
+            return;
+        }
+        walletCoins -= price;
+        if (!ownedItems.includes(id)) ownedItems.push(id);
+        equipItem(id);
+        saveShopData();
+    }
+
+    function equipItem(id) {
+        if (currentTab === 'weapons') equipped.weapon = id;
+        else if (currentTab === 'skins') equipped.skin = id;
+        else if (currentTab === 'auras') equipped.aura = id;
+        else if (currentTab === 'trails') equipped.trail = id;
+        saveShopData();
+    }
+
+    // ========================================================================
+    // 3. LIVE PREVIEW CANVAS WITH ATTACHED CUSTOM KATANA & SLASH ANIMATION
+    // ========================================================================
+    const pCanvas = document.getElementById('preview-canvas');
+    const ctx = pCanvas.getContext('2d');
+
+    const idleImg = new Image(); idleImg.src = './img/MartialHero/Idle.png';
+    const attackImg = new Image(); attackImg.src = './img/MartialHero/Attack1.png';
+    const aura1Img = new Image(); aura1Img.src = './img/MartialHero/Aura.png';
+    const aura2Img = new Image(); aura2Img.src = './img/Night/Aura.png';
+
+    let pFrame = 0, pTick = 0, isPreviewAttacking = false, auraFrame = 0;
+
+    function triggerPreviewAttack() {
+        isPreviewAttacking = true;
+        pFrame = 0;
+    }
+
+    function animatePreview() {
+        ctx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+
+        const wpnObj  = SHOP_ITEMS.weapons.find(w => w.id === equipped.weapon) || SHOP_ITEMS.weapons[0];
+        const skinObj = SHOP_ITEMS.skins.find(s => s.id === equipped.skin) || SHOP_ITEMS.skins[0];
+        const auraObj = SHOP_ITEMS.auras.find(a => a.id === equipped.aura) || SHOP_ITEMS.auras[0];
+
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(20, 175, 180, 6);
+
+        // 1. Draw Aura in Preview
+        if (auraObj.auraType === 'procedural_lightning' || auraObj.auraType === 'procedural_gold') {
+            ctx.save();
+            ctx.strokeStyle = auraObj.color;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(110, 125, 46 + Math.sin(Date.now() * 0.01) * 5, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+        } else if ((auraObj.auraType === 'sprite1' && aura1Img.complete && aura1Img.naturalWidth > 0) ||
+                   (auraObj.auraType === 'sprite2' && aura2Img.complete && aura2Img.naturalWidth > 0)) {
+            const aImg = auraObj.auraType === 'sprite1' ? aura1Img : aura2Img;
+            const afw = aImg.width / 16;
+            ctx.drawImage(aImg, auraFrame * afw, 0, afw, aImg.height, 35, 45, afw * 1.4, aImg.height * 1.4);
         }
 
-        function buyItem(id, price) {
-            if (walletCoins < price) {
-                const w = document.getElementById('wallet-display');
-                w.style.background = 'rgba(239, 68, 68, 0.4)';
-                setTimeout(() => w.style.background = 'rgba(255, 215, 0, 0.15)', 400);
-                return;
-            }
-            walletCoins -= price;
-            if (!ownedItems.includes(id)) ownedItems.push(id);
-            equipItem(id);
-            saveShopData();
+        // 2. Draw Character Sprite
+        const activeImg = isPreviewAttacking ? attackImg : idleImg;
+        const maxF = isPreviewAttacking ? 6 : 8;
+
+        pTick++;
+        if (pTick % 6 === 0) {
+            pFrame++;
+            auraFrame = (auraFrame + 1) % 16;
+            if (pFrame >= maxF) { pFrame = 0; isPreviewAttacking = false; }
         }
 
-        function equipItem(id) {
-            if (currentTab === 'skins') equipped.skin = id;
-            else if (currentTab === 'auras') equipped.aura = id;
-            else if (currentTab === 'trails') equipped.trail = id;
-            saveShopData();
+        ctx.save();
+        if (skinObj.filter && skinObj.filter !== 'none') ctx.filter = skinObj.filter;
+        if (activeImg.complete && activeImg.naturalWidth > 0) {
+            const fw = activeImg.width / maxF;
+            ctx.drawImage(activeImg, pFrame * fw, 0, fw, activeImg.height, 110 - (fw * 1.8) / 2, 125 - (activeImg.height * 1.8) / 2, fw * 1.8, activeImg.height * 1.8);
         }
+        ctx.restore();
 
-        // ====================================================================
-        // 3. LIVE INTERACTIVE CHARACTER PREVIEW CANVAS
-        // ====================================================================
-        const pCanvas = document.getElementById('preview-canvas');
-        const ctx = pCanvas.getContext('2d');
-
-        const idleImg = new Image();
-        idleImg.src = './img/MartialHero/Idle.png';
-        const attackImg = new Image();
-        attackImg.src = './img/MartialHero/Attack1.png';
-        const aura1Img = new Image();
-        aura1Img.src = './img/MartialHero/Aura.png';
-        const aura2Img = new Image();
-        aura2Img.src = './img/Night/Aura.png';
-
-        let pFrame = 0, pTick = 0, isPreviewAttacking = false;
-        let auraFrame = 0;
-        const previewParticles = [];
-
-        function triggerPreviewAttack() {
-            isPreviewAttacking = true;
-            pFrame = 0;
-        }
-
-        function animatePreview() {
-            ctx.clearRect(0, 0, pCanvas.width, pCanvas.height);
-
-            const skinObj = SHOP_ITEMS.skins.find(s => s.id === equipped.skin) || SHOP_ITEMS.skins[0];
-            const auraObj = SHOP_ITEMS.auras.find(a => a.id === equipped.aura) || SHOP_ITEMS.auras[0];
-            const trailObj = SHOP_ITEMS.trails.find(t => t.id === equipped.trail) || SHOP_ITEMS.trails[0];
-
-            // Floor line
-            ctx.fillStyle = '#1e293b';
-            ctx.fillRect(20, 175, 180, 6);
-
-            // Spawn trail particles
-            if (Math.random() < 0.35) {
-                previewParticles.push({
-                    x: 90 + Math.random() * 40,
-                    y: 170,
-                    vy: -1 - Math.random() * 2,
-                    life: 1,
-                    color: trailObj.trailColor
-                });
+        // 3. Draw Custom Katana Overlay on Preview Character
+        if (wpnObj && wpnObj.id !== 'wpn_default') {
+            let hx = 104, hy = 134, ang = 4/5 * Math.PI, slash = false;
+            if (isPreviewAttacking) {
+                if (pFrame <= 1) { hx = 104; hy = 102; ang = -2.0; }
+                else if (pFrame === 2) { hx = 118; hy = 108; ang = -1.0; }
+                else { hx = 135; hy = 128; ang = 0.3; slash = true; }
             }
-            for (let i = previewParticles.length - 1; i >= 0; i--) {
-                const pt = previewParticles[i];
-                pt.y += pt.vy;
-                pt.life -= 0.03;
-                if (pt.life <= 0) { previewParticles.splice(i, 1); continue; }
-                ctx.fillStyle = pt.color;
-                ctx.globalAlpha = pt.life;
-                ctx.fillRect(pt.x, pt.y, 5, 5);
-            }
-            ctx.globalAlpha = 1;
-
-            // Procedural or Sprite Aura
-            if (auraObj.auraType === 'procedural_lightning' || auraObj.auraType === 'procedural_gold') {
-                ctx.save();
-                ctx.strokeStyle = auraObj.color;
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.arc(110, 125, 48 + Math.sin(Date.now() * 0.01) * 6, 0, Math.PI * 2);
-                ctx.stroke();
-                ctx.restore();
-            } else if ((auraObj.auraType === 'sprite1' && aura1Img.complete && aura1Img.naturalWidth > 0) ||
-                       (auraObj.auraType === 'sprite2' && aura2Img.complete && aura2Img.naturalWidth > 0)) {
-                const aImg = auraObj.auraType === 'sprite1' ? aura1Img : aura2Img;
-                const afw = aImg.width / 16;
-                ctx.drawImage(aImg, auraFrame * afw, 0, afw, aImg.height, 35, 45, afw * 1.4, aImg.height * 1.4);
-            }
-
-            // Draw Character Sprite with selected Skin Filter
-            const activeImg = isPreviewAttacking ? attackImg : idleImg;
-            const maxF = isPreviewAttacking ? 6 : 8;
-
-            pTick++;
-            if (pTick % 6 === 0) {
-                pFrame++;
-                auraFrame = (auraFrame + 1) % 16;
-                if (pFrame >= maxF) {
-                    pFrame = 0;
-                    isPreviewAttacking = false;
-                }
-            }
+            const len = (wpnObj.length || 90) * 0.65;
+            const w = (wpnObj.width || 7) * 0.75;
 
             ctx.save();
-            if (skinObj.filter && skinObj.filter !== 'none') {
-                ctx.filter = skinObj.filter;
-            }
-            if (activeImg.complete && activeImg.naturalWidth > 0) {
-                const fw = activeImg.width / maxF;
-                ctx.drawImage(activeImg, pFrame * fw, 0, fw, activeImg.height, 110 - (fw * 1.8) / 2, 125 - (activeImg.height * 1.8) / 2, fw * 1.8, activeImg.height * 1.8);
-            } else {
-                ctx.fillStyle = '#ff3126';
-                ctx.fillRect(85, 85, 50, 90);
-            }
+            ctx.translate(hx, hy);
+            ctx.rotate(ang);
+            ctx.fillStyle = wpnObj.glowColor;
+            ctx.globalAlpha = 0.5;
+            ctx.fillRect(0, -w, len + 5, w * 2);
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = wpnObj.bladeColor;
+            ctx.fillRect(0, -w / 2, len, w);
+            ctx.fillStyle = '#ffd700';
+            ctx.fillRect(-3, -w - 2, 4, w * 2 + 4);
             ctx.restore();
 
-            requestAnimationFrame(animatePreview);
+            if (slash) {
+                ctx.save();
+                ctx.strokeStyle = wpnObj.glowColor;
+                ctx.lineWidth = 6;
+                ctx.beginPath();
+                ctx.arc(115, 125, len + 18, -1.0, 0.8);
+                ctx.stroke();
+                ctx.restore();
+            }
         }
 
-        updateUI();
-        animatePreview();
-    </script>
+        requestAnimationFrame(animatePreview);
+    }
+
+    updateUI();
+    animatePreview();
+</script>
 </body>
 </html>

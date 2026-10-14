@@ -108,20 +108,21 @@ canvas {
     gap: 12px;
 }
 
-.NomeGiocatore {
-    width: clamp(48px, 7vw, 85px);
-    height: clamp(34px, 6vh, 52px);
+.NomeGiocatore, #P1 {
+    width: clamp(44px, 6vw, 64px);
+    height: clamp(44px, 6vw, 64px);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: clamp(12px, 2vw, 22px);
+    font-size: clamp(11px, 1.8vw, 16px);
     font-weight: 800;
-    color: #ffffff;
+    color: #e2c07d;
     text-shadow: 2px 2px 0 #000;
-    background: linear-gradient(135deg, #cb3737, #991b1b);
-    border-radius: 8px;
-    border: 3px solid #fca5a5;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+    background: radial-gradient(circle, #2b1114 0%, #0d0c12 100%);
+    border: 2px solid #c89d54;
+    outline: 2px solid #000;
+    border-radius: 4px;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.9), 0 4px 10px rgba(0, 0, 0, 0.8);
 }
 
 #P1-container {
@@ -136,54 +137,59 @@ canvas {
 
 .health-bar-container {
     width: 100%;
-    height: clamp(14px, 3.2vh, 24px);
-    background-color: rgba(15, 15, 20, 0.85);
-    border: 2px solid #cbd5e1;
-    border-radius: 4px;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+    height: clamp(13px, 2.6vh, 20px);
+    background-color: #09080c;
+    border: 2px solid #c89d54;
+    outline: 1.5px solid #1a1410;
+    border-radius: 1px;
+    padding: 2px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.85);
 }
 
+/* Deep Arterial Crimson Blood Fill */
 .health-bar {
     position: relative;
     height: 100%;
     width: 100%;
-    transition: width 0.2s ease-out;
-    background: linear-gradient(90deg, #dc2626 0%, #f59e0b 70%, #fde047 100%);
+    transition: width 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    background: linear-gradient(180deg, #ef4444 0%, #991b1b 45%, #450a0a 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
+/* Sekiro Posture / Resolve Bar Frame */
 #stamina-bar-container {
-    width: 48%;
-    height: clamp(6px, 1.4vh, 11px);
-    background-color: rgba(15, 23, 42, 0.85);
-    border: 1.5px solid #94a3b8;
-    border-radius: 3px;
+    width: 65%;
+    height: clamp(6px, 1.3vh, 9px);
+    background-color: #09080c;
+    border: 1.5px solid #856836;
+    border-radius: 1px;
     overflow: hidden;
 }
 
+/* Glowing Amber / Posture Gold Fill */
 #stamina-bar {
     position: relative;
     height: 100%;
     width: 0%;
     transition: width 0.2s ease-out;
-    background: linear-gradient(90deg, #38bdf8 0%, #2dd4bf 60%, #6366f1 100%);
+    background: linear-gradient(90deg, #d97706 0%, #fbbf24 65%, #fef08a 100%);
 }
 
 #Timer {
-    height: clamp(44px, 8vw, 74px);
-    width: clamp(44px, 8vw, 74px);
+    height: clamp(42px, 7vw, 64px);
+    width: clamp(42px, 7vw, 64px);
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(15, 18, 30, 0.9);
-    border: 2px solid #ffd700;
-    border-radius: 14px;
-    font-size: clamp(16px, 3vw, 30px);
-    color: #ffd700 !important;
+    background: radial-gradient(circle, #1c1917 0%, #09080c 100%);
+    border: 2px solid #c89d54;
+    outline: 2px solid #000;
+    border-radius: 4px;
+    font-size: clamp(15px, 2.6vw, 24px);
+    color: #e2c07d !important;
     text-shadow: 2px 2px 0 #000;
 }
-
 /* ==========================================================================
    PERK INVENTORY SLOTS
    ========================================================================== */

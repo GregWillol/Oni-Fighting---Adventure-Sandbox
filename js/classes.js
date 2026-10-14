@@ -1,14 +1,27 @@
 // ============================================================================
 // BASE SPRITE CLASS (Supports both single-row sheets & multi-row sheets like Skull Monster)
 // ============================================================================
+// Global Image Cache: loads each PNG only ONCE in RAM and blocks repeated 404 requests!
+window._imgCache = window._imgCache || {};
+function GetCachedImage(src) {
+    if (!src) return null;
+    if (!window._imgCache[src]) {
+        const img = new Image();
+        img._failed = false;
+        img.onerror = () => { img._failed = true; }; // Stop 404 console spam if file is missing
+        img.src = src;
+        window._imgCache[src] = img;
+    }
+    return window._imgCache[src];
+}
+
 class Sprite {
     constructor({ position = { x: 0, y: 0 }, size, color, imageSrc, scale = 1, framesMax = 1, offset = { x: 0, y: 0 }, sprites, row = 0, frameWidth = null, frameHeight = null }) {
         this.position = { x: position.x, y: position.y };
         this.size = size ? { x: size.x, y: size.y } : { x: 50, y: 50 };
         this.color = color;
 
-        this.image = new Image();
-        if (imageSrc) this.image.src = imageSrc;
+        this.image = GetCachedImage(imageSrc);
 
         this.scale = scale;
         this.framesMax = framesMax;
@@ -45,6 +58,7 @@ class Sprite {
             }
             return;
         }
+        
 
         // Supports multi-row single spritesheets (like 128x112 Skull Monster) AND standard horizontal strips
         const isMultiRowSheet = (this.customFrameWidth && this.image.height >= this.customFrameHeight * 2);
@@ -597,6 +611,11 @@ class Fighter extends Sprite {
         }
 
         this.Draw();
+        // 3. DISEGNA LA KATANA DAVANTI (Solo durante l'Attacco)
+        if (this.isAttacking) this.drawWeapon(dt);
+
+        // 4. DISEGNA L'AURA SOPRA AL GIOCATORE (Sincronizzata allo stesso identico pixel!)
+        this.drawAura(dt);
         this.drawPerkOverlays(dt);
         this.animateFrames(dt);
 
@@ -948,6 +967,29 @@ class Fighter extends Sprite {
                             victim.HealthPoints -= Math.max(1, Math.floor(this.Damage * mult));
                             ReduceAddHP(victim);
                             victim.hurt();
+                            // --- APPLY EQUIPPED KATANA ELEMENTAL PERK ON HIT ---
+                            if (this.Player === 1 && this.equippedWeapon) {
+                                const el = this.equippedWeapon.element;
+                                if (el === 'fire') {
+                                    victim.HealthPoints -= Math.floor(this.Damage * 0.25); // Burn burst
+                                    CreateVFX(victim, "CRIT", "🔥 BURN!");
+                                } else if (el === 'lightning') {
+                                    victim.HitStun = 38; // Electric paralysis
+                                    SpawnPerkVFX('staticBurst', { x: victim.position.x, y: victim.position.y });
+                                } else if (el === 'poison') {
+                                    SpawnPerkVFX('toxicHit', { x: victim.position.x, y: victim.position.y });
+                                    victim.HealthPoints -= Math.floor(this.Damage * 0.20);
+                                } else if (el === 'ice') {
+                                    victim.speedMult = 0.5; // Frost slow
+                                    CreateVFX(victim, "DEF", "❄️ FROZEN!");
+                                } else if (el === 'void' && victim.HealthPoints <= victim.MaxHealthPoints * 0.35) {
+                                    victim.HealthPoints -= Math.floor(this.Damage * 0.8); // Void execute
+                                    CreateVFX(victim, "CRIT", "🌑 VOID EXECUTE!");
+                                } else if (el === 'gold' && Math.random() < 0.45) {
+                                    this.coins += 2; // Greed gold drop on hit
+                                    CreateVFX(this, "MASK", "+2 🪙");
+                                }
+                            }
 
                             if (this.lifeSteal) {
                                 const stolen = Math.max(1, Math.floor((this.Damage * mult) * this.lifeSteal));
@@ -1079,7 +1121,7 @@ class Fighter extends Sprite {
             position: { x: startX, y: startY },
             velocity: { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed },
             size: { x: 48, y: 48 },
-            color: "#00e5ff",
+            color: "#ff0000",
             imageSrc: './img/VFX/Bullets/Fireball.png',
             framesMax: 5,
             scale: 2.2,
@@ -1389,6 +1431,122 @@ class Fighter extends Sprite {
         if (caster.attackCooldown > 0) return;
         g.Bullets.push(Bullet.CreateBullet(type, caster));
     }
+    drawAura(dt) {
+        if (this.Dead || this.Player !== 1 || !this.PoweredUp || !IsInViewport(this)) return;
+        const auraType = this.shopAuraType || 'sprite1';
+        if (auraType === 'none') return;
+
+        // Sincronizza le coordinate PRIMA di disegnare l'aura sopra il player
+        if ((auraType === 'sprite1' || auraType === 'sprite2') && typeof Aura1 !== 'undefined') {
+            Aura1.position.x = this.position.x;
+            Aura1.position.y = this.position.y;
+            Aura1.update(dt);
+        } else if (auraType === 'procedural_lightning' || auraType === 'procedural_gold') {
+            const cx = this.position.x + this.size.x / 2;
+            const cy = this.position.y + this.size.y / 2;
+            const time = Date.now() * 0.008;
+            const auraCol = this.shopAuraColor || '#00e5ff';
+
+            c.save();
+            c.globalCompositeOperation = "lighter";
+            c.strokeStyle = auraCol;
+            c.fillStyle = auraCol;
+            c.globalAlpha = 0.45 + Math.sin(time * 2) * 0.15;
+
+            c.lineWidth = 3;
+            c.beginPath();
+            c.ellipse(cx, cy + 5, 46 + Math.sin(time * 3) * 5, 66 + Math.cos(time * 3) * 5, 0, 0, Math.PI * 2);
+            c.stroke();
+
+            for (let i = 0; i < 4; i++) {
+                const sx = cx + Math.sin(time * 2.5 + i * 1.7) * 35;
+                const sy = cy + 45 - ((time * 25 + i * 28) % 100);
+                c.fillRect(sx - 2, sy - 6, 4, 12);
+            }
+            c.restore();
+        }
+    }
+
+    drawWeapon(dt) {
+        if (this.Dead || this.Player !== 1 || !this.equippedWeapon || !IsInViewport(this)) return;
+        const wp = this.equippedWeapon;
+
+        const cx = this.position.x + this.size.x / 2;
+        const cy = this.position.y + this.size.y / 2;
+        const dir = this.Direction.left ? -1 : 1;
+        const breathY = (this.framesCurrent % 2 === 0) ? 0 : 2;
+
+        // In Idle/Run/Jump parte da dietro la schiena/fianco a 1.2 * Math.PI
+        let handX = -6, handY = 10 + breathY, bladeAngle = 1.2 * Math.PI, drawSlashArc = false;
+
+        if (this.isAttacking) {
+            const f = this.framesCurrent;
+            if (f <= 1)      { handX = -6; handY = -26; bladeAngle = 1.35 * Math.PI; }
+            else if (f === 2){ handX = 12; handY = -20; bladeAngle = -0.35 * Math.PI; }
+            else if (f === 3){ handX = 32; handY = -2;  bladeAngle = -0.05 * Math.PI; drawSlashArc = true; }
+            else             { handX = 38; handY = 8;   bladeAngle = 0.12 * Math.PI;  drawSlashArc = true; }
+        } else if (this.velocity.y !== 0) {
+            handX = -8; handY = 2; bladeAngle = 1.15 * Math.PI;
+        } else if (Math.abs(this.velocity.x) > 1) {
+            handX = -10; handY = 12 + breathY; bladeAngle = 1.12 * Math.PI;
+        }
+
+        const bladeLen = (wp.length || 90) * 0.85;
+        const bladeW = wp.width || 6;
+
+        c.save();
+        c.translate(cx, cy);
+        c.scale(dir, 1);
+
+        c.save();
+        c.translate(handX, handY);
+        c.rotate(bladeAngle);
+
+        // Alone elementale
+        c.fillStyle = wp.glowColor;
+        c.globalAlpha = this.isAttacking ? 0.55 : 0.3;
+        c.beginPath();
+        c.moveTo(0, -bladeW);
+        c.quadraticCurveTo(bladeLen * 0.6, -bladeW * 1.3, bladeLen + 6, -1);
+        c.lineTo(bladeLen, bladeW);
+        c.lineTo(0, bladeW * 0.5);
+        c.closePath();
+        c.fill();
+
+        // Lama curva affusolata
+        c.globalAlpha = 1;
+        c.fillStyle = wp.bladeColor;
+        c.beginPath();
+        c.moveTo(0, -bladeW * 0.45);
+        c.quadraticCurveTo(bladeLen * 0.55, -bladeW * 0.8, bladeLen + 5, -1);
+        c.lineTo(bladeLen - 2, bladeW * 0.45);
+        c.quadraticCurveTo(bladeLen * 0.5, 0, 0, bladeW * 0.45);
+        c.closePath();
+        c.fill();
+
+        // Filo bianco + Elsa
+        c.fillStyle = "#ffffff";
+        c.fillRect(2, -1, bladeLen * 0.88, 1.5);
+        c.fillStyle = "#111318";
+        c.fillRect(-16, -2.5, 16, 5);
+        c.fillStyle = "#d4af37";
+        c.fillRect(-2, -bladeW, 4, bladeW * 2);
+        c.restore();
+
+        // Fendente elementale durante l'attacco
+        if (drawSlashArc) {
+            c.strokeStyle = wp.glowColor;
+            c.lineWidth = 9;
+            c.globalAlpha = 0.75;
+            c.beginPath();
+            c.arc(22, 0, bladeLen + 28, -1.0, 0.75);
+            c.stroke();
+            c.strokeStyle = wp.bladeColor;
+            c.lineWidth = 3.5;
+            c.stroke();
+        }
+        c.restore();
+    }
 
     static createFighters(ids, index = 0) {
         const configMap = {
@@ -1526,34 +1684,19 @@ class Mask extends Sprite {
         CreateVFX(player, "MASK", this.name);
         ReduceAddHP(player);
 
-        const inventoryDiv = document.getElementById('inventory-container');
-        if (inventoryDiv && !this.isFightTime) {
-            let rawName = this.name ? this.name : this.image.src;
-            let perkId = rawName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
-            let existingSlot = inventoryDiv.querySelector(`[data-perk-id="${perkId}"]`);
-
-            if (existingSlot) {
-                let badge = existingSlot.querySelector('.perk-badge');
-                let count = (parseInt(badge.innerText.replace('x', '')) || 1) + 1;
-                badge.innerText = `x${count}`;
-                badge.style.display = 'block';
+        // --- ZERO-DOM CANVAS INVENTORY STORAGE (No browser reflow lag!) ---
+        if (!this.isFightTime) {
+            if (!player.perkList) player.perkList = [];
+            const existing = player.perkList.find(p => p.name === this.name);
+            if (existing) {
+                existing.count++;
             } else {
-                const slot = document.createElement('div');
-                slot.classList.add('perk-slot');
-                slot.setAttribute('data-perk-id', perkId);
-
-                const icon = document.createElement('img');
-                icon.src = this.image.src;
-                icon.classList.add('inventory-item');
-
-                const badge = document.createElement('div');
-                badge.classList.add('perk-badge');
-                badge.innerText = 'x1';
-                badge.style.display = 'none';
-
-                slot.appendChild(icon);
-                slot.appendChild(badge);
-                inventoryDiv.appendChild(slot);
+                player.perkList.push({
+                    name: this.name || "Perk",
+                    desc: PERK_DESCRIPTIONS[this.name] || "Potenziamento speciale attivo.",
+                    image: this.image,
+                    count: 1
+                });
             }
         }
         this.GotTaken = true;

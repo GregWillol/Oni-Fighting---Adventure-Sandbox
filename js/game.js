@@ -8,6 +8,10 @@ InitPerkAudioSystem();
 
 const Player1 = Fighter.createFighters(1);
 // Load equipped Skin, Aura, Trail and Gamepasses bought in shop.html
+
+const Aura1 = Sprite.CreateAura(1);
+const Aura2 = Sprite.CreateAura(2);
+// Load equipped Skin, Aura, Custom Katana, Trail and Gamepasses from shop.html
 (function applyShopLoadout() {
     const loadout = JSON.parse(localStorage.getItem('oni_active_loadout') || 'null');
     if (!loadout || !Player1) return;
@@ -15,7 +19,36 @@ const Player1 = Fighter.createFighters(1);
     Player1.skinFilter = loadout.skinFilter || 'none';
     Player1.customTrailColor = loadout.trailColor || null;
 
-    // Permanent stat upgrades
+    // 1. Equip Aura (Fixes Aura not showing in game!)
+    Player1.shopAuraType = loadout.auraType || 'none';
+    Player1.shopAuraColor = loadout.auraColor || '#ff3126';
+    if (Player1.shopAuraType !== 'none') {
+        Player1.PoweredUp = true;
+        if (Player1.shopAuraType === 'sprite2' && Aura2) {
+            Aura1.image = Aura2.image;
+            Aura1.scale = Aura2.scale;
+            Aura1.offset = Aura2.offset;
+        }
+        if (Player1.shopAuraType === 'procedural_gold') {
+            Player1.speedMult = (Player1.speedMult || 1) + 0.12;
+        }
+    }
+
+    // 2. Equip Custom Katana & its passive stat buffs
+    if (loadout.weapon && loadout.weapon.id !== 'wpn_default') {
+        Player1.equippedWeapon = loadout.weapon;
+        Player1.Damage += (loadout.weapon.dmgBonus || 0);
+        if (loadout.weapon.element === 'blood') Player1.lifeSteal = (Player1.lifeSteal || 0) + 0.12;
+        if (loadout.weapon.element === 'wind') Player1.speedMult = (Player1.speedMult || 1) + 0.15;
+        if (loadout.weapon.element === 'holy') {
+            Player1.MaxHealthPoints += 400;
+            Player1.HealthPoints = Player1.MaxHealthPoints;
+        }
+        if (loadout.weapon.element === 'earth') Player1.KnockBack *= 1.5;
+        if (loadout.weapon.element === 'chaos') Player1.CanShoot = true;
+    }
+
+    // 3. Permanent Gamepass Upgrades
     if (loadout.bonusHp) {
         Player1.MaxHealthPoints += loadout.bonusHp;
         Player1.HealthPoints = Player1.MaxHealthPoints;
@@ -28,24 +61,10 @@ const Player1 = Fighter.createFighters(1);
         const randId = Math.floor(Math.random() * 12) + 1;
         Mask.CreateMask(0, 0, randId).MaskTaken(Player1);
     }
-
-    // Equip permanent Aura
-    if (loadout.auraType === 'sprite1' || loadout.auraType === 'sprite2') {
-        Player1.PoweredUp = true;
-        if (loadout.auraType === 'sprite2' && typeof Aura2 !== 'undefined') {
-            Aura1.image = Aura2.image;
-            Aura1.scale = Aura2.scale;
-            Aura1.offset = Aura2.offset;
-        }
-    } else if (loadout.auraType === 'procedural_gold') {
-        Player1.PoweredUp = true;
-        Player1.speedMult = (Player1.speedMult || 1) + 0.1;
-    }
 })();
 g.Fighters = [Player1];
 
-const Aura1 = Sprite.CreateAura(1);
-const Aura2 = Sprite.CreateAura(2);
+
 
 g.Pointers.push(FloatingPointers.createPointers(Player1));
 
@@ -102,9 +121,9 @@ function Gameloop(currentTime) {
         g.BlueOrbs[i].update(dt);
     }
 
-    if (Player1.PoweredUp && !Player1.Dead) {
+    /*if (Player1.PoweredUp && !Player1.Dead) {
         Aura1.update(dt);
-    }
+    }*/
 
     // - - - SHOP MASKS - - -
     for (let i = g.PowerUps.length - 1; i >= 0; i--) {
@@ -164,7 +183,10 @@ function Gameloop(currentTime) {
     c.restore();
 
     // Draw Screen-Space HUD (Boss Health Bar + Open World Minimap)
+    // Draw Screen-Space HUD (Boss Health Bar + Open World Minimap)
+    if (typeof DrawScreenAtmosphereOverlay === 'function') DrawScreenAtmosphereOverlay();
     DrawOpenWorldHUD();
+    DrawCanvasInventory();
 
     // Restore Screen Shake
     c.restore();
@@ -200,6 +222,11 @@ document.addEventListener("keydown", e => {
             Player1.keys.interact.pressed = true;
             Player1.LastKeyPressed = KeyPressed;
             break;
+        case 'm':
+            if (!e.repeat) {
+                g.inventoryOpen = !g.inventoryOpen;
+            }
+            break;
     }
 });
 
@@ -221,6 +248,17 @@ document.addEventListener("keyup", e => {
         case 'q': if (Player1.keys.slam.pressed) Player1.keys.slam.pressed = false; break;
     }
 });
+// Track mouse/touch position in Canvas coordinates for Inventory hover tooltips
+g.mouse = { x: 0, y: 0 };
+function updateCanvasPointer(clientX, clientY) {
+    const rect = g.canvas.getBoundingClientRect();
+    g.mouse.x = (clientX - rect.left) * (g.canvas.width / rect.width);
+    g.mouse.y = (clientY - rect.top) * (g.canvas.height / rect.height);
+}
+g.canvas.addEventListener("mousemove", e => updateCanvasPointer(e.clientX, e.clientY));
+g.canvas.addEventListener("touchstart", e => {
+    if (g.inventoryOpen && e.touches[0]) updateCanvasPointer(e.touches[0].clientX, e.touches[0].clientY);
+}, { passive: true });
 
 function initMobileControls() {
     const controls = [
