@@ -230,7 +230,7 @@ const ArenaLayouts = [
 const MAP_CONFIG = {
     1: {
         background: {
-            link: "./img/BackGround/Background1.png",
+            link: undefined,
             framesMax: 1,
             offset: { x: 0, y: 0 },
             scale: 1.4
