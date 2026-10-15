@@ -32,7 +32,7 @@ class GameContext {
                 zoom: 1,
                 initialized: false
             },
-            MAX_ZOOM: 1.0,
+            MAX_ZOOM: 0.72,
             MIN_ZOOM: 0.52,
             PADDING: 200,
             SMOOTHING: 0.06

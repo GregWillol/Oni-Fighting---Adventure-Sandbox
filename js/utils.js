@@ -1,11 +1,34 @@
 // ============================================================================
+// 0. ANTI-CHEAT WALLET PROTECTION (Prevents F12 LocalStorage Tampering)
+// ============================================================================
+window.ComputeOniSignature = function(coins, ownedJson) {
+    const str = `${coins}_ONI_SALT_2026_${ownedJson || ''}`;
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++) {
+        h ^= str.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+    }
+    return (h >>> 0).toString(36);
+};
+
+window.AddVerifiedWalletCoins = function(earnedCoins) {
+    const ownedJson = localStorage.getItem('oni_shop_owned') || '["wpn_default","pet_none","skin_default","aura_none","kill_none","trail_red"]';
+    let currentCoins = parseInt(localStorage.getItem('oni_wallet_coins')) || 0;
+    const savedSig = localStorage.getItem('oni_wallet_sig');
+
+    // Se l'utente ha modificato a mano localStorage da F12, la firma non coincide e resetta a 0
+    if (savedSig && savedSig !== window.ComputeOniSignature(currentCoins, ownedJson)) {
+        currentCoins = 0;
+    }
+
+    const newTotal = Math.max(0, currentCoins + (earnedCoins || 0));
+    localStorage.setItem('oni_wallet_coins', newTotal);
+    localStorage.setItem('oni_wallet_sig', window.ComputeOniSignature(newTotal, ownedJson));
+};
+
+// ============================================================================
 // 1. MOBILE PERFORMANCE: VIEWPORT CULLING & OBJECT POOLING
 // ============================================================================
-
-/**
- * Checks if a world entity is currently inside the camera's visible frustum.
- * Prevents off-screen draw calls and boosts mobile framerate by ~70%.
- */
 function IsInViewport(obj, margin = 180) {
     if (!obj || !obj.position) return false;
     const zoom = g.Camera.camera.zoom || 1;
@@ -26,10 +49,6 @@ function IsInViewport(obj, margin = 180) {
     );
 }
 
-/**
- * Retrieves a pre-allocated FloatingText instance from g.TextPool instead of
- * allocating new objects every frame (prevents Garbage Collector stutters on mobile).
- */
 function SpawnPooledText(config) {
     if (!g.TextPool) g.TextPool = [];
 
@@ -48,7 +67,6 @@ function SpawnPooledText(config) {
 // ============================================================================
 // 2. PROCEDURAL PARALLAX DARK FANTASY BACKGROUND
 // ============================================================================
-// Cached sky gradients so iOS WebKit never recompiles shaders every frame
 let _cachedSkyGrad = null;
 let _cachedBiome = "";
 
@@ -57,7 +75,6 @@ function DrawParallaxBackground() {
     const H = g.canvas.height;
     const camX = g.Camera.camera.x || 0;
 
-    // Only recreate gradient when biome actually changes!
     if (!_cachedSkyGrad || _cachedBiome !== g.currentBiome) {
         _cachedBiome = g.currentBiome;
         let topCol = "#080b14", midCol = "#161b2e", botCol = "#23192d";
@@ -75,14 +92,12 @@ function DrawParallaxBackground() {
     c.fillStyle = _cachedSkyGrad;
     c.fillRect(0, 0, W, H);
 
-    // Blood Moon (lightweight arc)
     const moonX = W * 0.75 - (camX * 0.03) % (W * 0.5);
     c.fillStyle = g.currentBiome === "CURSED FOREST" ? "#34d399" : "#ef4444";
     c.beginPath();
     c.arc(moonX, H * 0.24, 45, 0, Math.PI * 2);
     c.fill();
 
-    // Single lightweight mountain silhouette layer on mobile
     c.fillStyle = "#080a10";
     const hillStep = 280;
     const offsetM = -((camX * 0.15) % hillStep);
@@ -98,83 +113,28 @@ function DrawParallaxBackground() {
 }
 
 // ============================================================================
-// 3. AUDIO EXTENSION WITH SAFE SYNTH FALLBACK
+// 3. AUDIO & VFX BRIDGES (Non sovrascrivono il sintetizzatore di classes.js!)
 // ============================================================================
 function InitPerkAudioSystem() {
-    if (typeof window.SoundManager === 'undefined') {
-        window.SoundManager = {
-            sounds: {},
-            init() {},
-            play(name) { PlayGameSound(name); },
-            playMusic() {}
-        };
+    if (typeof window.SoundManager !== 'undefined' && window.SoundManager.init) {
+        window.SoundManager.init();
     }
-
-    if (!window.SoundManager._perkAudioMap) {
-        window.SoundManager._perkAudioMap = {};
-        if (typeof PERK_AUDIO_CONFIG !== 'undefined') {
-            for (const [key, cfg] of Object.entries(PERK_AUDIO_CONFIG)) {
-                const audio = new Audio();
-                audio.preload = "none";
-                audio.src = cfg.src;
-                audio.volume = cfg.volume || 0.5;
-                window.SoundManager._perkAudioMap[key] = { audio, cfg };
-            }
-        }
-
-        const originalPlay = window.SoundManager.play ? window.SoundManager.play.bind(window.SoundManager) : null;
-        window.SoundManager.play = function (key) {
-            if (window.SoundManager._perkAudioMap && window.SoundManager._perkAudioMap[key]) {
-                const entry = window.SoundManager._perkAudioMap[key];
-                const clone = entry.audio.cloneNode();
-                clone.volume = entry.cfg.volume || 0.5;
-                clone.play().catch(() => {
-                    PlaySynthFallback(entry.cfg.freq || 440, 0.11);
-                });
-                return;
-            }
-            if (originalPlay) {
-                try { originalPlay(key); } catch (e) {}
-            }
-        };
-    }
-}
-
-function PlaySynthFallback(freq = 440, duration = 0.11) {
-    try {
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        if (!AudioCtx) return;
-        if (!window._fallbackAudioCtx) window._fallbackAudioCtx = new AudioCtx();
-        const ctx = window._fallbackAudioCtx;
-        if (ctx.state === 'suspended') ctx.resume();
-
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = freq < 200 ? 'sawtooth' : 'triangle';
-        osc.frequency.setValueAtTime(freq, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(freq * 1.3, ctx.currentTime + duration);
-
-        gain.gain.setValueAtTime(0.06, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
-
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + duration);
-    } catch (e) {}
 }
 
 function PlayGameSound(key) {
-    if (typeof SoundManager !== 'undefined' && SoundManager.play) {
+    if (typeof SoundManager !== 'undefined' && SoundManager.sounds && SoundManager.sounds[key]) {
         SoundManager.play(key);
+    } else if (typeof PlaySynthSFX === 'function') {
+        PlaySynthSFX(key);
     }
 }
 
 function SpawnPerkVFX(vfxKey, position, flipLeft = false, targetFollow = null) {
-    if (typeof PERK_VFX_CONFIG === 'undefined' || !PERK_VFX_CONFIG[vfxKey]) return null;
-    if (g.isMobile && g.SpriteEffects.length > 12) return null;
+    if (typeof g === 'undefined') return null;
+    if (!g.SpriteEffects) g.SpriteEffects = [];
+    if (g.isMobile && g.SpriteEffects.length > 14) return null;
     const fx = SpriteVFX.createFromConfig(vfxKey, position, flipLeft, targetFollow);
-    g.SpriteEffects.push(fx);
+    if (fx) g.SpriteEffects.push(fx);
     return fx;
 }
 
@@ -270,7 +230,6 @@ function CheckAttackCollision({ attacker, victim }) {
 // 5. ROUND TIMER, HP, STAMINA & VICTORY LOGIC
 // ============================================================================
 function reduceTimer() {
-    // Only clear leftover perks once when transitioning into FIGHTING
     if (g.roomState === "FIGHTING" && g.PowerUps.length > 0) {
         g.isPerked = false;
         g.PowerUps = [];
@@ -348,22 +307,20 @@ function CheckVictory({ player1, timerId }) {
     if (g.roundEnded) return;
 
     g.Fighters.forEach(f => {
-        if (f.HealthPoints <= 0 && f.image !== f.sprites.death.image) {
+        if (f.HealthPoints <= 0 && !f.Dead) {
             if (f.death) f.death();
         }
     });
 
-    // 2. DEFEAT OR TIMEOUT: Save earned coins to persistent wallet and open shop.html!
+    // Sconfitta o Timeout: salva le monete con firma Anti-Cheat e apri shop.html
     if ((player1.HealthPoints <= 0 && player1.imploded) || g.timer === 0) {
         g.roundEnded = true;
         clearInterval(timerId);
-        if (g.timer === 0 && player1.image !== player1.sprites.death.image && player1.death) {
+        if (g.timer === 0 && !player1.Dead && player1.death) {
             player1.death();
         }
 
-        // Save run coins into persistent localStorage wallet
-        const savedCoins = parseInt(localStorage.getItem('oni_wallet_coins')) || 0;
-        localStorage.setItem('oni_wallet_coins', savedCoins + (player1.coins || 0));
+        window.AddVerifiedWalletCoins(player1.coins || 0);
 
         TriggerAnnouncement("YOU DIED! OPENING SHOP...", true);
         setTimeout(() => { window.location.href = "shop.html"; }, 2200);
@@ -418,9 +375,9 @@ function CreateVFX(player, typo, text, bool = true) {
         HP:        { text: text || "+HP",           color: player.Player === 1 ? "#2ecc71" : "#8f00ff", offset: { x: player.size.x / 2, y: player.size.y }, velocity: { x: 0, y: -1.2 }, count: 1 },
         DEF:       { text: text || "BLOCKED",       color: "#6d8df5", offset: { x: player.size.x / 2, y: player.size.y }, velocity: { x: 0, y: -1.2 }, count: 1 },
         MASK:      { text: text || "POWER UP!",     color: "#fbbf24", offset: { x: 0, y: player.size.y + 15 }, velocity: { x: 0, y: -0.9 }, count: 1 },
-        RUN:       { text: "",                      color: player.Player === 1 ? "#FF3126" : "#8f00ff", offset: { x: 0, y: 0 }, velocity: { x: 0, y: -Math.random() * 2 }, count: g.isMobile ? 0 : 1 },
+        RUN:       { text: "",                      color: player.Player === 1 ? (player.customTrailColor || "#FF3126") : "#8f00ff", offset: { x: 0, y: 0 }, velocity: { x: 0, y: -Math.random() * 2 }, count: g.isMobile ? 0 : 1 },
         JUMP:      { text: "",                      color: player.Player === 1 ? "#FF3126" : "#8f00ff", offset: { x: 0, y: 0 }, velocity: { x: 0, y: 0 }, count: Math.max(1, Math.floor(2 * mult)) },
-        DASH:      { text: "",                      color: player.Player === 1 ? "#FF3126" : "#8f00ff", offset: { x: player.size.x / 2, y: player.size.y / 2 }, velocity: { x: 0, y: 0 }, count: Math.max(4, Math.floor(20 * mult)) },
+        DASH:      { text: "",                      color: player.Player === 1 ? (player.customTrailColor || "#FF3126") : "#8f00ff", offset: { x: player.size.x / 2, y: player.size.y / 2 }, velocity: { x: 0, y: 0 }, count: Math.max(4, Math.floor(20 * mult)) },
         DAM:       { text: "",                      color: player.Player !== 1 ? "#FF3126" : "#8f00ff", offset: { x: player.size.x, y: player.size.y / 2 }, velocity: { x: 0, y: 0 }, count: Math.max(3, Math.floor(10 * mult)) },
         COOLDOWN:  { text: text,                    color: player.Player === 1 ? "#FF3126" : "#8f00ff", offset: { x: player.size.x / 2, y: player.size.y }, velocity: { x: 0, y: -0.8 }, count: 1 },
         DISAPPEAR: { text: "",                      color: "orange",  offset: { x: player.size.x, y: player.size.y / 2 }, velocity: { x: 0, y: 0 }, count: Math.max(4, Math.floor(14 * mult)) },
@@ -482,11 +439,12 @@ function ApplyKnockback(gotHit, Attacker) {
 }
 
 // ============================================================================
-// 7. CAMERA, CHEST/SHRINE DYNAMIC SPAWNER & ROUND HANDLER
+// 7. CAMERA ANCORATA AL TERRENO (Vedi sempre dove atterri anche col Boss!)
 // ============================================================================
 function updateCamera() {
     if (!Player1 || Player1.Dead) return;
 
+    const floorY = g.MAX_HEIGHT - 600;
     const playerCenterX = Player1.position.x + Player1.size.x / 2;
     const playerCenterY = Player1.position.y + Player1.size.y / 2;
 
@@ -503,7 +461,9 @@ function updateCamera() {
     });
 
     let targetX = playerCenterX;
-    let targetY = Player1.position.y - 120;
+    // Mantiene la telecamera bassa vicino al pavimento (floorY) così vedi sempre dove salti e atterri!
+    // Se fai un super-salto, segue il player solo al 35% senza mai far sparire il pavimento.
+    let targetY = (floorY - 110) * 0.65 + (Player1.position.y - 60) * 0.35;
     let targetZoom = 0.84;
 
     if (enemies.length > 0) {
@@ -519,13 +479,17 @@ function updateCamera() {
         });
 
         const midpointX = (minX + maxX) / 2;
-        targetX = playerCenterX * 0.70 + midpointX * 0.30;
-        if (hasBoss) targetY = Player1.position.y - 180;
+        targetX = playerCenterX * 0.72 + midpointX * 0.28;
 
         const spread = maxX - minX;
         targetZoom = g.canvas.width / (spread + 1450);
-        if (targetZoom < 0.56) targetZoom = 0.56;
-        if (targetZoom > 0.90) targetZoom = 0.90;
+        if (hasBoss) {
+            // Leggero zoom-out col Boss, ma tenendo il pavimento ben visibile in basso!
+            targetZoom = Math.min(targetZoom, 0.72);
+            targetY = (floorY - 135) * 0.70 + (Player1.position.y - 70) * 0.30;
+        }
+        if (targetZoom < 0.58) targetZoom = 0.58;
+        if (targetZoom > 0.88) targetZoom = 0.88;
     } else {
         const lookAheadOffset = Player1.Direction.right ? 140 : -140;
         targetX = playerCenterX + lookAheadOffset;
@@ -556,7 +520,7 @@ function updateCamera() {
         if (targetY + halfViewHeight > WORLD_HEIGHT) targetY = WORLD_HEIGHT - halfViewHeight;
     }
 
-    const smooth = 0.06;
+    const smooth = 0.07;
     g.Camera.camera.x += (targetX - g.Camera.camera.x) * smooth;
     g.Camera.camera.y += (targetY - g.Camera.camera.y) * smooth;
     g.Camera.camera.zoom += (targetZoom - g.Camera.camera.zoom) * smooth;
@@ -575,15 +539,10 @@ function Only3(str) {
     return str.length <= 3 ? str : str.substring(0, 3);
 }
 
-/**
- * Spawns fresh Treasure Chests, Shrines, and Wind Geysers EVERY round
- * both around the player's current position and on nearby platforms!
- */
 function SpawnRoundWorldObjects() {
     const floorY = g.MAX_HEIGHT - 600;
     const playerX = Player1 ? Player1.position.x : 800;
 
-    // On Round 1, initialize base world shrines across the 3 biomes
     if (!g.WorldObjects || g.WorldObjects.length === 0) {
         g.WorldObjects = [
             new WorldShrine({ type: 'healShrine',  position: { x: 1150, y: floorY - 110 } }),
@@ -596,11 +555,9 @@ function SpawnRoundWorldObjects() {
         ];
     }
 
-    // Reset cooldowns on existing shrines and remove already opened chests so we can spawn fresh ones
     g.WorldObjects = g.WorldObjects.filter(obj => !(obj.type === 'soulChest' && obj.cooldown > 0));
     g.WorldObjects.forEach(obj => { obj.cooldown = 0; });
 
-    // Dynamically spawn 3 NEW Treasure Chests & 1 Healing Shrine every round near the Player!
     const elevatedPlatforms = g.Platforms.filter((p, idx) =>
         idx > 0 && Math.abs((p.position.x + p.size.x / 2) - playerX) < 2200
     );
@@ -648,12 +605,10 @@ function RoomHandler() {
         });
     });
 
-    // Spawn fresh chests and shrines every round!
     if (g.isOpenWorld) {
         SpawnRoundWorldObjects();
     }
 
-    // Clear active entities and leftover perks
     g.Bullets = [];
     g.BlueOrbs = [];
     g.PowerUps = [];
@@ -663,12 +618,11 @@ function RoomHandler() {
     const playerX = Player1 ? Player1.position.x : 800;
     const floorY = g.MAX_HEIGHT - 600;
 
-    // --- SPAWN FLYING SKULL BOSS (Spawns at Round 1 for immediate action, and every 5 rounds: 5, 10, 15...) ---
     const isBossRound = (g.difficulty === 1 || g.difficulty % 5 === 0);
     if (isBossRound) {
         const bossCount = g.difficulty === 1 ? 1 : Math.floor(g.difficulty / 5);
         for (let b = 0; b < bossCount; b++) {
-            let boss = Fighter.createFighters(5, b); // ID 5 = SkullBoss
+            let boss = Fighter.createFighters(5, b);
             const scaleFactor = g.difficulty === 1 ? 0.65 : (1 + (g.difficulty - 5) * 0.25);
             boss.MaxHealthPoints = Math.floor(boss.MaxHealthPoints * scaleFactor);
             boss.HealthPoints = boss.MaxHealthPoints;
@@ -676,20 +630,18 @@ function RoomHandler() {
 
             const side = (b % 2 === 0) ? 1 : -1;
             boss.position.x = Math.max(250, Math.min(g.MAX_WIDTH - 300, playerX + side * (360 + b * 240)));
-            boss.position.y = floorY - 340;
-            boss.flightBaseY = floorY - 340;
+            boss.position.y = floorY - 380;
+            boss.flightBaseY = floorY - 380;
 
             g.Pointers.push(FloatingPointers.createPointers(boss));
             g.Fighters.push(boss);
         }
 
-        // Spawn the Blue Jump Orb on the ground to super-jump and stomp the Boss's head!
         g.BlueOrbs.push(new BlueJumpOrb({
             position: { x: playerX + 200, y: floorY - 70 }
         }));
     }
 
-    // Spawn standard enemies
     const mobCount = isBossRound ? Math.max(1, Math.floor(newVal.enemyCount * 0.45)) : newVal.enemyCount;
     const nearbyPlatforms = g.Platforms.filter((plat, idx) =>
         idx > 0 && Math.abs((plat.position.x + plat.size.x / 2) - playerX) < 1800
@@ -710,7 +662,7 @@ function RoomHandler() {
 
         enemy.position.x = spawnX;
         enemy.position.y = floorY - enemy.size.y;
-        enemy.spawnOriginX = spawnX; // Used to tether launchers so they don't run away forever!
+        enemy.spawnOriginX = spawnX;
 
         if (enemy.type === "BigAhhLauncher" && nearbyPlatforms.length > 0) {
             let target = nearbyPlatforms[Math.floor(Math.random() * nearbyPlatforms.length)];
@@ -737,10 +689,6 @@ function getDifficultyScaling() {
     };
 }
 
-/**
- * Spawns 3 distinct random Perks + "Return To Combat" neatly spaced by 180px
- * around the player at ground level (fixes overlapping at 0,0).
- */
 function ShowPerks() {
     g.PowerUps = [];
     const spacing = 180;
@@ -750,14 +698,13 @@ function ShowPerks() {
     const startX = centerMap - (spacing * 1.5);
     const groundY = (g.MAX_HEIGHT - 600) - 115;
 
-    // Pick 3 unique perk IDs between 1 and 12
     const pool = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
     const chosenIds = [];
     for (let k = 0; k < 3; k++) {
         const randIdx = Math.floor(Math.random() * pool.length);
         chosenIds.push(pool.splice(randIdx, 1)[0]);
     }
-    chosenIds.push(13); // 4th slot is always Return To Combat
+    chosenIds.push(13);
 
     for (let i = 0; i < 4; i++) {
         const maskX = startX + (spacing * i);
@@ -780,8 +727,9 @@ function RemovePerks() {
     g.PowerUps = [];
     g.roomState = "RESTART";
 }
+
 // ============================================================================
-// 1. SPRITE-BASED SEKIRO / BLASPHEMOUS ENVIRONMENT RENDERER
+// ENVIRONMENT & LANDING / BOSS RADAR GUIDES
 // ============================================================================
 let _worldProps = null;
 let _ambientParticles = null;
@@ -812,30 +760,71 @@ function InitWorldProps() {
 
 function DrawAtmosphere(dt = 1) {
     InitWorldProps();
-    if (!_worldProps) return;
+    const floorY = g.MAX_HEIGHT - 600;
 
-    for (let i = 0; i < _worldProps.length; i++) {
-        const prop = _worldProps[i];
-        // Frustum culling: skip off-screen props completely (zero lag on iPhone)
-        if (!IsInViewport(prop, 220)) continue;
+    if (_worldProps) {
+        for (let i = 0; i < _worldProps.length; i++) {
+            const prop = _worldProps[i];
+            if (!IsInViewport(prop, 220)) continue;
 
-        // Lightweight ambient light halo (uses simple alpha circle, no shader gradients!)
-        if (prop.glowColor) {
-            c.save();
-            c.fillStyle = prop.glowColor;
-            c.beginPath();
-            c.arc(prop.position.x + prop.size.x / 2, prop.position.y + prop.size.y * 0.4, 55, 0, Math.PI * 2);
-            c.fill();
-            c.restore();
-        }
+            if (prop.glowColor) {
+                c.save();
+                c.fillStyle = prop.glowColor;
+                c.beginPath();
+                c.arc(prop.position.x + prop.size.x / 2, prop.position.y + prop.size.y * 0.4, 55, 0, Math.PI * 2);
+                c.fill();
+                c.restore();
+            }
 
-        if (prop.hasValidImage()) {
-            prop.update(dt);
-        } else {
-            // Silhouette fallback if the PNG is not yet in ./img/VFX/Env/
-            DrawPropSilhouetteFallback(prop);
+            if (prop.hasValidImage()) prop.update(dt);
+            else DrawPropSilhouetteFallback(prop);
         }
     }
+
+    // --- 1. MIRINO D'ATTERRAGGIO GIOCATORE (Vedi sempre dove atterri quando salti!) ---
+    if (Player1 && !Player1.Dead && !Player1.OnGround) {
+        const px = Player1.position.x + Player1.size.x / 2;
+        c.save();
+        c.strokeStyle = "rgba(0, 229, 255, 0.55)";
+        c.lineWidth = 2;
+        c.setLineDash([6, 6]);
+        c.beginPath();
+        c.moveTo(px, Player1.position.y + Player1.size.y);
+        c.lineTo(px, floorY);
+        c.stroke();
+        c.setLineDash([]);
+
+        c.fillStyle = "rgba(0, 229, 255, 0.35)";
+        c.beginPath();
+        c.ellipse(px, floorY - 2, 26, 7, 0, 0, Math.PI * 2);
+        c.fill();
+        c.restore();
+    }
+
+    // --- 2. LASER VERTICALE SOTTO IL BOSS (Sai sempre dove si trova il Boss sopra di te!) ---
+    g.Fighters.forEach(boss => {
+        if (boss.type === "SkullBoss" && !boss.Dead) {
+            const bx = boss.position.x + boss.size.x / 2;
+            const by = boss.position.y + boss.size.y;
+            c.save();
+            c.strokeStyle = boss.bossArmorActive ? "rgba(0, 229, 255, 0.4)" : "rgba(239, 68, 68, 0.5)";
+            c.lineWidth = 2;
+            c.setLineDash([8, 8]);
+            c.beginPath();
+            c.moveTo(bx, by);
+            c.lineTo(bx, floorY);
+            c.stroke();
+            c.setLineDash([]);
+
+            // Cerchio bersaglio sul pavimento sotto il Boss
+            c.strokeStyle = boss.bossArmorActive ? "#00e5ff" : "#ef4444";
+            c.lineWidth = 3;
+            c.beginPath();
+            c.ellipse(bx, floorY - 3, 48, 12, 0, 0, Math.PI * 2);
+            c.stroke();
+            c.restore();
+        }
+    });
 }
 
 function DrawPropSilhouetteFallback(prop) {
@@ -846,18 +835,15 @@ function DrawPropSilhouetteFallback(prop) {
     c.lineWidth = 2;
 
     if (prop.fallbackType === 'torii') {
-        // Traditional Japanese Torii Gate silhouette
         c.fillRect(x + w * 0.18, y + 30, 18, h - 30);
         c.fillRect(x + w * 0.82 - 18, y + 30, 18, h - 30);
         c.fillRect(x, y + 18, w, 18);
         c.fillRect(x + 20, y + 60, w - 40, 12);
     } else if (prop.fallbackType === 'lantern') {
-        // Iron post + glowing lantern core
         c.fillRect(x + w / 2 - 4, y + 25, 8, h - 25);
         c.fillStyle = "#f97316";
         c.fillRect(x + w / 2 - 10, y + 12, 20, 22);
     } else if (prop.fallbackType === 'statue') {
-        // Sculptor's Idol pedestal + figure
         c.fillRect(x + 10, y + h - 30, w - 20, 30);
         c.beginPath();
         c.arc(x + w / 2, y + h - 55, 22, 0, Math.PI * 2);
@@ -902,40 +888,81 @@ function DrawScreenAtmosphereOverlay() {
 }
 
 // ============================================================================
-// 8. MINIMAP & BOSS HEALTH BAR HUD
+// 8. PUNTATORE DINAMICO SUL BOSS + MINIMAP + BOSS HEALTH BAR HUD
 // ============================================================================
-let _bossTrailingPct = 1.0; // Smooth delayed yellow damage bar like Sekiro/Dark Souls
-
+let _bossTrailingPct = 1.0;
 
 function DrawOpenWorldHUD() {
     if (!Player1) return;
     c.save();
 
-    // --- 1. SEKIRO / BLASPHEMOUS BOSS BAR (Placed at BOTTOM CENTER, away from P1 UI!) ---
     const activeBosses = g.Fighters.filter(f => f.type === "SkullBoss" && !f.Dead);
+
+    // --- 0. PUNTATORE DINAMICO A SCHERMO PER IL BOSS E IL GLOBO BLU ---
+    if (activeBosses.length > 0) {
+        const boss = activeBosses[0];
+        const zoom = g.Camera.camera.zoom || 1;
+        const camX = g.Camera.camera.x;
+        const camY = g.Camera.camera.y;
+
+        const bossCenterX = boss.position.x + boss.size.x / 2;
+        const bossCenterY = boss.position.y + boss.size.y / 2;
+
+        // Converti coordinate mondo del Boss in coordinate schermo
+        const screenX = (bossCenterX - camX) * zoom + g.canvas.width / 2;
+        const screenY = (bossCenterY - camY) * zoom + g.canvas.height / 2;
+
+        const pad = 54;
+        const clampedX = Math.max(pad, Math.min(g.canvas.width - pad, screenX));
+        const clampedY = Math.max(pad + 30, Math.min(g.canvas.height - pad - 70, screenY));
+        const isOffScreen = (screenY < 40 || screenX < 30 || screenX > g.canvas.width - 30);
+
+        // Disegna sempre un puntatore tattico in alto verso il Boss (o sopra di lui)
+        const ptrX = isOffScreen ? clampedX : screenX;
+        const ptrY = isOffScreen ? clampedY : Math.max(65, screenY - 65);
+        const distMeters = Math.round(Math.hypot(bossCenterX - Player1.position.x, bossCenterY - Player1.position.y) / 25);
+
+        c.save();
+        // Badge puntatore
+        c.fillStyle = "rgba(10, 12, 22, 0.9)";
+        c.strokeStyle = boss.bossArmorActive ? "#00e5ff" : "#ef4444";
+        c.lineWidth = 2.5;
+        c.beginPath();
+        c.roundRect ? c.roundRect(ptrX - 68, ptrY - 18, 136, 32, 8) : c.rect(ptrX - 68, ptrY - 18, 136, 32);
+        c.fill();
+        c.stroke();
+
+        // Freccia direzionale verso il Boss
+        const ang = Math.atan2(screenY - ptrY, screenX - ptrX);
+        c.fillStyle = boss.bossArmorActive ? "#00e5ff" : "#ef4444";
+        c.font = "bold 9px 'Press Start 2P', monospace";
+        c.textAlign = "center";
+        const arrowChar = screenY < ptrY ? "▲" : (screenX < ptrX ? "◄" : (screenX > ptrX ? "►" : "▼"));
+        c.fillText(`${arrowChar} 💀 BOSS (${distMeters}m)`, ptrX, ptrY + 3);
+        c.restore();
+    }
+
+    // --- 1. SEKIRO / BLASPHEMOUS BOSS BAR (Bottom Center) ---
     if (activeBosses.length > 0) {
         const totalHp = activeBosses.reduce((acc, b) => acc + b.HealthPoints, 0);
         const totalMax = activeBosses.reduce((acc, b) => acc + b.MaxHealthPoints, 0);
         const pct = Math.max(0, Math.min(1, totalHp / totalMax));
 
-        // Smoothly decay trailing damage bar
         if (_bossTrailingPct > pct) _bossTrailingPct -= 0.006;
         else _bossTrailingPct = pct;
 
         const barW = Math.min(540, g.canvas.width * 0.52);
         const barH = 14;
         const barX = (g.canvas.width - barW) / 2;
-        const barY = g.canvas.height - 54; // Bottom center of screen
+        const barY = g.canvas.height - 54;
 
         const isArmored = activeBosses[0].bossArmorActive;
 
-        // A. Boss Name & Gothic Subtitle above the bar
         c.font = "bold 11px 'Press Start 2P', monospace";
-        c.fillStyle = "#e2c07d"; // Tarnished Blasphemous gold
+        c.fillStyle = "#e2c07d";
         c.textAlign = "left";
         c.fillText(`💀 SKULL LORD OF ASH ${activeBosses.length > 1 ? 'x' + activeBosses.length : ''}`, barX, barY - 12);
 
-        // B. Sekiro Deathblow Kanji Emblem (死) on the left of the bar
         const emblemX = barX - 24;
         const emblemY = barY + barH / 2;
         c.fillStyle = isArmored ? "#1e293b" : "#dc2626";
@@ -951,26 +978,21 @@ function DrawOpenWorldHUD() {
         c.textAlign = "center";
         c.fillText("死", emblemX, emblemY + 5);
 
-        // C. Outer Gothic Frame
         c.fillStyle = "rgba(8, 8, 12, 0.92)";
         c.fillRect(barX - 4, barY - 4, barW + 8, barH + 8);
 
-        // D. Delayed Gold/White Damage Trail Bar
         c.fillStyle = "#fde047";
         c.fillRect(barX, barY, barW * _bossTrailingPct, barH);
 
-        // E. Main Arterial Crimson Blood Bar
         c.fillStyle = "#991b1b";
         c.fillRect(barX, barY, barW * pct, barH);
         c.fillStyle = "#dc2626";
         c.fillRect(barX, barY, barW * pct, barH * 0.55);
 
-        // F. Ornate Metallic Bronze/Gold Border + Diamond Finials
         c.strokeStyle = "#c89d54";
         c.lineWidth = 2;
         c.strokeRect(barX - 2, barY - 2, barW + 4, barH + 4);
 
-        // Sekiro Posture / Bone Armor Bar right below the HP bar
         const postureW = barW * 0.7;
         const postureX = barX + (barW - postureW) / 2;
         const postureY = barY + barH + 6;
@@ -982,7 +1004,6 @@ function DrawOpenWorldHUD() {
         c.lineWidth = 1;
         c.strokeRect(postureX, postureY, postureW, 5);
 
-        // Status hint text
         c.font = "8px 'Press Start 2P', monospace";
         c.fillStyle = isArmored ? "#7dd3fc" : "#fde047";
         c.textAlign = "right";
@@ -1030,22 +1051,23 @@ function DrawOpenWorldHUD() {
 
     c.restore();
 }
+
 // ============================================================================
-// CANVAS INVENTORY (Key 'M') WITH MOUSE HOVER TOOLTIPS (Zero DOM Lag)
+// 9. CANVAS INVENTORY (Key 'M') WITH MOUSE HOVER TOOLTIPS
 // ============================================================================
 const PERK_DESCRIPTIONS = {
     "Health Potion":      "Ripristina +500 HP istantaneamente.",
     "Demon Strength":     "Aumenta il Danno del +45% e il Knockback del +35%.",
-    "Magic Caster":       "Spara una Fireball magica ad ogni fendente (+15% Danno).",
+    "Magic Caster":       "Spara una Fireball magica ogni ~2s (+35% Danno).",
     "Vampire Blood":      "Ruba il 15% dei danni inflitti curando i tuoi HP.",
     "Hermes Boots":       "+15% Velocità di corsa, salto potenziato e triplo salto.",
     "Titan Heart":        "+400 HP Massimi permanenti e +20% Knockback.",
-    "Ricochet Master":    "I tuoi proiettili rimbalzano automaticamente su un 2° nemico.",
+    "Ricochet Master":    "I tuoi proiettili rimbalzano su altri nemici vicini.",
     "Toxic Trail":        "Lascia pozze d'acido velenoso mentre corri che danneggiano i nemici.",
-    "Executioner's Mark": "Infligge x2.5 Danni Critici ai nemici sotto il 30% di vita.",
-    "Static Shield":      "Genera uno scudo elettrico ogni 12s che para e stordisce chi ti colpisce.",
+    "Executioner's Mark": "Infligge Danni Critici massicci ai nemici sotto il 30% di vita.",
+    "Static Shield":      "Genera uno scudo elettrico che para e stordisce chi ti colpisce.",
     "Soul Collector":     "Assorbe le anime dei nemici uccisi aumentando il tuo Danno base.",
-    "Split Shot":         "Spara 3 palle di fuoco a ventaglio ad ogni attacco."
+    "Split Shot":         "Aggiunge palle di fuoco extra a ventaglio a Magic Caster."
 };
 
 function DrawCanvasInventory() {
@@ -1057,9 +1079,6 @@ function DrawCanvasInventory() {
     c.save();
     let hoveredPerk = null;
 
-    // ========================================================================
-    // A. HUD PERK BAR (Always visible below HP Bar using ./img/PowerUp/*.png)
-    // ========================================================================
     const hudStartX = 92;
     const hudStartY = 82;
     const iconSize = 36;
@@ -1073,19 +1092,16 @@ function DrawCanvasInventory() {
         const isHover = (mx >= sx && mx <= sx + iconSize && my >= sy && my <= sy + iconSize);
         if (isHover) hoveredPerk = perk;
 
-        // Slot background & gold border
         c.fillStyle = isHover ? "#282c42" : "rgba(10, 12, 20, 0.85)";
         c.fillRect(sx, sy, iconSize, iconSize);
         c.strokeStyle = isHover ? "#ffd700" : "#c89d54";
         c.lineWidth = isHover ? 2.5 : 1.5;
         c.strokeRect(sx, sy, iconSize, iconSize);
 
-        // Draw your actual Perk PNG (./img/PowerUp/...)
         if (perk.image && !perk.image._failed && perk.image.complete && perk.image.naturalWidth > 0) {
             c.drawImage(perk.image, sx + 3, sy + 3, iconSize - 6, iconSize - 6);
         }
 
-        // Stack badge (x2, x3...)
         if (perk.count > 1) {
             c.fillStyle = "rgba(0, 0, 0, 0.9)";
             c.fillRect(sx + iconSize - 20, sy + iconSize - 14, 20, 14);
@@ -1096,11 +1112,10 @@ function DrawCanvasInventory() {
         }
     }
 
-    // Hover Tooltip right below the HUD icons when moving the mouse over a Perk!
     if (hoveredPerk && !g.inventoryOpen) {
         const tipX = hudStartX;
         const tipY = hudStartY + iconSize + 10;
-        const tipW = 420;
+        const tipW = 440;
         const tipH = 58;
 
         c.fillStyle = "rgba(10, 11, 18, 0.94)";
@@ -1119,9 +1134,6 @@ function DrawCanvasInventory() {
         c.fillText(hoveredPerk.desc, tipX + 12, tipY + 44);
     }
 
-    // ========================================================================
-    // B. FULL MODAL INVENTORY (Opens when pressing 'M')
-    // ========================================================================
     if (g.inventoryOpen) {
         const W = g.canvas.width, H = g.canvas.height;
         c.fillStyle = "rgba(6, 7, 12, 0.85)";

@@ -480,26 +480,27 @@
     // 2. CATALOGO MEGA SHOP + MICROTRANSAZIONI MONETE
     // ========================================================================
     const SHOP_ITEMS = {
+        // DENTRO SHOP_ITEMS: Sostituisci "coins" e "pets" con questi valori bilanciati:
         coins: [
-            { id: 'coin_ad',     name: 'Spot Ricompensa',    rewardCoins: 750,    realPrice: 'GRATIS 🎬', rarity: 'AD REWARD', icon: '📺', desc: 'Guarda un breve video per +750 🪙 immediate!', isAd: true, color: '#a855f7' },
-            { id: 'coin_daily',  name: 'Tributo Giornaliero',rewardCoins: 1500,   realPrice: 'BONUS 🎁',  rarity: 'DAILY',     icon: '🎁', desc: 'Riscatta +1.500 🪙 gratis una volta al giorno!', isDaily: true, color: '#38bdf8' },
-            { id: 'coin_pack1',  name: 'Sacchetto Ronin',    rewardCoins: 3500,   realPrice: '€ 0.99',    rarity: 'STARTER',   icon: '🪙', desc: 'Accredita subito +3.500 🪙 nel portafoglio.', color: '#4ade80' },
-            { id: 'coin_pack2',  name: 'Cassa dello Shogun', rewardCoins: 12000,  realPrice: '€ 2.49',    rarity: '+20% BONUS',icon: '🧰', desc: 'Accredita subito +12.000 🪙 nel portafoglio.', color: '#38bdf8' },
-            { id: 'coin_pack3',  name: 'Forziere Imperiale', rewardCoins: 32000,  realPrice: '€ 4.99',    rarity: 'PIÙ VENDUTO',icon:'🏯', desc: 'Accredita subito +32.000 🪙 nel portafoglio!', color: '#facc15' },
-            { id: 'coin_pack4',  name: 'Tesoro del Dio Oni', rewardCoins: 100000, realPrice: '€ 9.99',    rarity: 'MEGA PACK', icon: '👹', desc: 'Accredita +100.000 🪙 per sbloccare tutto!', color: '#ff0055' }
+            { id: 'coin_ad',     name: 'Spot Ricompensa',    rewardCoins: 150,    realPrice: 'GRATIS 🎬', rarity: 'AD REWARD', icon: '📺', desc: 'Guarda uno spot video per +150 🪙 (Cooldown 2m).', isAd: true, color: '#a855f7' },
+            { id: 'coin_daily',  name: 'Tributo Giornaliero',rewardCoins: 300,    realPrice: 'BONUS 🎁',  rarity: 'DAILY',     icon: '🎁', desc: 'Riscatta +300 🪙 gratis una volta ogni 24 ore!', isDaily: true, color: '#38bdf8' },
+            { id: 'coin_pack1',  name: 'Sacchetto Ronin',    rewardCoins: 1500,   realPrice: '€ 0.99',    rarity: 'STARTER',   icon: '🪙', desc: 'Pacchetto +1.500 🪙 (Richiede Store Ufficiale).', color: '#4ade80' },
+            { id: 'coin_pack2',  name: 'Cassa dello Shogun', rewardCoins: 5000,   realPrice: '€ 2.49',    rarity: '+15% BONUS',icon: '🧰', desc: 'Pacchetto +5.000 🪙 (Richiede Store Ufficiale).', color: '#38bdf8' },
+            { id: 'coin_pack3',  name: 'Forziere Imperiale', rewardCoins: 14000,  realPrice: '€ 4.99',    rarity: 'POPOLARE',  icon: '🏯', desc: 'Pacchetto +14.000 🪙 (Richiede Store Ufficiale).', color: '#facc15' },
+            { id: 'coin_pack4',  name: 'Tesoro del Dio Oni', rewardCoins: 45000,  realPrice: '€ 9.99',    rarity: 'MEGA PACK', icon: '👹', desc: 'Pacchetto +45.000 🪙 (Richiede Store Ufficiale).', color: '#ff0055' }
         ],
         weapons: GENERATED_WEAPONS,
         pets: [
             { id: 'pet_none',    name: 'Nessun Pet',         price: 0,     rarity: 'BASE',     icon: '✖️', desc: 'Viaggia in solitaria.', color: '#64748b' },
-            { id: 'pet_wisp',    name: 'Fuoco Fatuo',        price: 800,   rarity: 'COMMON',   icon: '🔵', desc: 'Spara dardi spirituali (35 Dmg / 3.5s)', color: '#38bdf8', dmg: 35, fireRate: 210 },
-            { id: 'pet_bat',     name: 'Pipistrello Vampiro',price: 1800,  rarity: 'RARE',     icon: '🦇', desc: 'Spara dardi cremisi (60 Dmg / 3.2s)',    color: '#e11d48', dmg: 60, fireRate: 190 },
-            { id: 'pet_skull',   name: 'Teschio Maledetto',  price: 3500,  rarity: 'EPIC',     icon: '💀', desc: 'Spara fiamme d\'ossa (95 Dmg / 2.8s)',   color: '#a855f7', dmg: 95, fireRate: 170 },
-            { id: 'pet_fox',     name: 'Volpe Kitsune',      price: 6500,  rarity: 'LEGEND',   icon: '🦊', desc: 'Spirito sacro rapido (140 Dmg / 2.4s)',  color: '#f97316', dmg: 140, fireRate: 145 },
-            { id: 'pet_drone',   name: 'Cyber Drone X9',     price: 11000, rarity: 'MYTHIC',   icon: '🛸', desc: 'Laser al plasma (210 Dmg / 2.0s)',       color: '#00e5ff', dmg: 210, fireRate: 120 },
-            { id: 'pet_phoenix', name: 'Fenice di Ghiaccio', price: 18000, rarity: 'MYTHIC',   icon: '🦅', desc: 'Tempesta glaciale (300 Dmg / 1.8s)',     color: '#7dd3fc', dmg: 300, fireRate: 108 },
-            { id: 'pet_eye',     name: 'Occhio dell\'Abisso',price: 26000, rarity: 'DARK',     icon: '👁️', desc: 'Raggio del vuoto (420 Dmg / 1.5s)',      color: '#9333ea', dmg: 420, fireRate: 90 },
-            { id: 'pet_dragon',  name: 'Cucciolo di Drago',  price: 38000, rarity: 'GODLY',    icon: '🐉', desc: 'Soffio draconico (600 Dmg / 1.2s)',      color: '#ffd700', dmg: 600, fireRate: 72 },
-            { id: 'pet_oni',     name: 'Dio Oni Custode',    price: 50000, rarity: 'IMMORTAL', icon: '👹', desc: 'Distruzione totale (950 Dmg / 0.9s)',    color: '#ff0055', dmg: 950, fireRate: 55 }
+            { id: 'pet_wisp',    name: 'Fuoco Fatuo',        price: 800,   rarity: 'COMMON',   icon: '🔵', desc: 'Spara dardi spirituali (8 Dmg / 4.0s)',  color: '#38bdf8', dmg: 8,  fireRate: 240 },
+            { id: 'pet_bat',     name: 'Pipistrello Vampiro',price: 1800,  rarity: 'RARE',     icon: '🦇', desc: 'Spara dardi cremisi (14 Dmg / 3.8s)',    color: '#e11d48', dmg: 14, fireRate: 228 },
+            { id: 'pet_skull',   name: 'Teschio Maledetto',  price: 3500,  rarity: 'EPIC',     icon: '💀', desc: 'Spara fiamme d\'ossa (22 Dmg / 3.5s)',   color: '#a855f7', dmg: 22, fireRate: 210 },
+            { id: 'pet_fox',     name: 'Volpe Kitsune',      price: 6500,  rarity: 'LEGEND',   icon: '🦊', desc: 'Spirito sacro rapido (30 Dmg / 3.2s)',   color: '#f97316', dmg: 30, fireRate: 192 },
+            { id: 'pet_drone',   name: 'Cyber Drone X9',     price: 11000, rarity: 'MYTHIC',   icon: '🛸', desc: 'Laser di supporto (40 Dmg / 3.0s)',      color: '#00e5ff', dmg: 40, fireRate: 180 },
+            { id: 'pet_phoenix', name: 'Fenice di Ghiaccio', price: 18000, rarity: 'MYTHIC',   icon: '🦅', desc: 'Dardo glaciale (52 Dmg / 2.8s)',         color: '#7dd3fc', dmg: 52, fireRate: 168 },
+            { id: 'pet_eye',     name: 'Occhio dell\'Abisso',price: 26000, rarity: 'DARK',     icon: '👁️', desc: 'Raggio del vuoto (64 Dmg / 2.6s)',       color: '#9333ea', dmg: 64, fireRate: 156 },
+            { id: 'pet_dragon',  name: 'Cucciolo di Drago',  price: 38000, rarity: 'GODLY',    icon: '🐉', desc: 'Soffio draconico (78 Dmg / 2.4s)',       color: '#ffd700', dmg: 78, fireRate: 144 },
+            { id: 'pet_oni',     name: 'Dio Oni Custode',    price: 50000, rarity: 'IMMORTAL', icon: '👹', desc: 'Spirito supremo (90 Dmg / 2.2s)',        color: '#ff0055', dmg: 90, fireRate: 135 }
         ],
         skins: [
             { id: 'skin_default', name: 'Ronin Base',         price: 0,     rarity: 'BASE',     icon: '🥋', desc: 'Lo stile classico del guerriero.', filter: 'none' },
@@ -566,15 +567,51 @@
     // ========================================================================
     // 3. SALVATAGGIO E GESTIONE UI
     // ========================================================================
+    // ========================================================================
+    // 3. SALVATAGGIO PROTETTO DA FIRMA ANTI-CHEAT (Blocca modifiche da F12!)
+    // ========================================================================
+    function computeSignature(coins, ownedArr) {
+        const str = `${coins}_ONI_SALT_2026_${JSON.stringify(ownedArr)}`;
+        let h = 2166136261;
+        for (let i = 0; i < str.length; i++) {
+            h ^= str.charCodeAt(i);
+            h = Math.imul(h, 16777619);
+        }
+        return (h >>> 0).toString(36);
+    }
+
+    const DEFAULT_OWNED = ["wpn_default","pet_none","skin_default","aura_none","kill_none","trail_red"];
     let walletCoins = parseInt(localStorage.getItem('oni_wallet_coins')) || 0;
-    let ownedItems = JSON.parse(localStorage.getItem('oni_shop_owned') || '["wpn_default","pet_none","skin_default","aura_none","kill_none","trail_red"]');
+    let ownedItems = JSON.parse(localStorage.getItem('oni_shop_owned') || JSON.stringify(DEFAULT_OWNED));
+    const savedSig = localStorage.getItem('oni_wallet_sig');
+
+    // Se qualcuno ha alterato oni_wallet_coins o oni_shop_owned da F12, oppure aveva i 100k del test precedente senza firma, resetta!
+    if (!savedSig || savedSig !== computeSignature(walletCoins, ownedItems)) {
+        walletCoins = 0;
+        ownedItems = [...DEFAULT_OWNED];
+        localStorage.setItem('oni_wallet_coins', 0);
+        localStorage.setItem('oni_shop_owned', JSON.stringify(ownedItems));
+        localStorage.setItem('oni_wallet_sig', computeSignature(0, ownedItems));
+    }
+
     let equipped = JSON.parse(localStorage.getItem('oni_shop_equipped') || '{"weapon":"wpn_default","pet":"pet_none","skin":"skin_default","aura":"aura_none","kill":"kill_none","trail":"trail_red"}');
-    if (!equipped.weapon) equipped.weapon = 'wpn_default';
-    if (!equipped.pet) equipped.pet = 'pet_none';
-    if (!equipped.kill) equipped.kill = 'kill_none';
+    if (!ownedItems.includes(equipped.weapon)) equipped.weapon = 'wpn_default';
+    if (!ownedItems.includes(equipped.pet))    equipped.pet = 'pet_none';
+    if (!ownedItems.includes(equipped.skin))   equipped.skin = 'skin_default';
+    if (!ownedItems.includes(equipped.aura))   equipped.aura = 'aura_none';
+    if (!ownedItems.includes(equipped.kill))   equipped.kill = 'kill_none';
+    if (!ownedItems.includes(equipped.trail))  equipped.trail = 'trail_red';
+
     let currentTab = 'weapons';
     let pendingCoinPack = null;
 
+    function saveShopData() {
+        localStorage.setItem('oni_wallet_coins', walletCoins);
+        localStorage.setItem('oni_shop_owned', JSON.stringify(ownedItems));
+        localStorage.setItem('oni_wallet_sig', computeSignature(walletCoins, ownedItems));
+        localStorage.setItem('oni_shop_equipped', JSON.stringify(equipped));
+        updateUI();
+    }
     function saveShopData() {
         localStorage.setItem('oni_wallet_coins', walletCoins);
         localStorage.setItem('oni_shop_owned', JSON.stringify(ownedItems));
@@ -762,6 +799,7 @@
         confirmBtn.innerText = `AUTORIZZA (${pack.realPrice})`;
         document.getElementById('iap-modal').style.display = 'flex';
     }
+    
 
     let _adInterval = null;
     let _adAnimReq = null;
@@ -778,17 +816,21 @@
         if (!pendingCoinPack) return;
         const confirmBtn = document.getElementById('iap-confirm-btn');
         confirmBtn.disabled = true;
-        confirmBtn.innerText = 'ELABORAZIONE IN CORSO...';
+        confirmBtn.innerText = 'VERIFICA GATEWAY...';
 
         setTimeout(() => {
-            creditCoins(pendingCoinPack.rewardCoins);
-            closeIapModal();
-        }, 700);
+            // Blocca l'exploit dei soldi infiniti gratis!
+            document.getElementById('iap-desc').innerHTML =
+                `<span style="color:#ef4444">⚠️ PAGAMENTO NON COMPLETATO</span><br>` +
+                `Lo Store in valuta reale richiede il collegamento a Stripe/PayPal sul dominio ufficiale.<br>` +
+                `<span style="color:#4ade80">Guadagna monete combattendo o guarda lo Spot Video!</span>`;
+            confirmBtn.innerText = 'STORE IN BETA 🔒';
+        }, 600);
     }
 
     function claimDailyCoins() {
         localStorage.setItem('oni_daily_claim', Date.now().toString());
-        creditCoins(1500);
+        creditCoins(300);
     }
 
     function watchRewardedAd(packId) {
